@@ -62,6 +62,41 @@ jax.config.update("jax_enable_x64", True)
 
 This reduces relative error by ~8 orders of magnitude.
 
+## Composition and Error Accumulation
+
+### Same-Space Chains
+
+Operations that stay within one space accumulate minimal error:
+- **Linear chain** (add/sub only): Error bounded by single float ops (~1e-7)
+- **Log chain** (mul/div/pow only): Error bounded by single log/exp pair (~1e-6)
+
+### Cross-Space Chains
+
+When operations cross between linear and log space (e.g., `(a + b) * c`):
+1. First operation completes in source space
+2. Result is decoded to scalar
+3. Scalar is re-encoded to target space
+4. Next operation executes
+
+Each space crossing passes through one `log`/`exp` round-trip, adding ~1e-6 relative error (float32).
+
+### Error Growth with Depth
+
+| Chain Depth | Space Crossings | Typical Relative Error (float32) |
+|-------------|-----------------|----------------------------------|
+| 1 | 0 | < 1e-6 |
+| 2 | 1 | < 2e-6 |
+| 5 | 4 | < 5e-6 |
+| 10 | 9 | < 1e-5 |
+
+Error grows roughly linearly with the number of space crossings. For most practical applications (< 100 chained operations), error remains within 1e-4.
+
+### Recommendation
+
+For deep computation chains, consider:
+1. Batching same-space operations together when possible
+2. Using float64 for precision-critical applications (`jax.config.update("jax_enable_x64", True)`)
+
 ## Known Failure Modes
 
 | Condition | Behavior |

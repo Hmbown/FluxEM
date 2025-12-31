@@ -81,18 +81,21 @@ The logarithmic embedding is defined on R \ {0}. Zero is handled explicitly outs
 
 This makes zero handling a **masked branch** rather than a property of vector addition.
 
-## What "Exact" Means
+## Precision Semantics
 
-The magnitude homomorphism is exact over R (isomorphic structure). Under IEEE-754 float32/float64:
+The magnitude homomorphism is **exact over the reals** (isomorphic structure). Under IEEE-754 float32/float64, precision is bounded by:
 
-- Errors arise from: `log()`/`exp()` function rounding
-- NOT from: learning, approximation, model capacity, or dot product accumulation
+- `log()`/`exp()` function rounding (primary source)
+- IEEE-754 representation limits (secondary)
+- **NOT** from: learning, approximation, model capacity, or dot product accumulation
 
 With the canonical basis (default), errors are at the `log`/`exp` precision floor:
 - Addition/subtraction: < 1e-7 relative error (float32)
 - Multiplication/division: < 1e-6 relative error (float32)
 
-See [ERROR_MODEL.md](ERROR_MODEL.md) for precise bounds.
+**Note:** "Closed under operations" means the result of any supported operation on valid inputs is a valid output — not that results are mathematically exact. All claims are subject to IEEE-754 floating-point semantics.
+
+See [ERROR_MODEL.md](ERROR_MODEL.md) for precise bounds and composition error accumulation.
 
 ## What This Is
 

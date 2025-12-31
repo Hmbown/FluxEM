@@ -4,7 +4,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/fluxem)](https://pypi.org/project/fluxem/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**A deterministic, continuous number embedding with exact algebraic closure (within IEEE-754), usable as a baseline encoding for LLMs and transformers.**
+**Deterministic homomorphic number encoding — closed under arithmetic operations up to IEEE-754 precision. A training-free baseline for neural arithmetic.**
 
 <p align="center">
   <img src="docs/demo.gif" alt="FluxEM terminal demo" width="600">
@@ -15,9 +15,9 @@
 Numbers are hard for neural networks. Learned approaches like NALU struggle with extrapolation; tokenization schemes like Abacus require training. FluxEM takes a different approach: **pure algebraic structure, zero training**.
 
 **Target use-cases:**
-- **Number tokenization / continuous embeddings for LLM inputs** — Drop-in numeric representation that doesn't fragment digits
-- **Deterministic arithmetic module for neural nets** — A differentiable primitive where `embed(a) + embed(b) = embed(a+b)` by construction
-- **Baseline for learned arithmetic units** — Compare NALU, xVal, or custom modules against a training-free reference
+- **Continuous numeric embeddings** — Single-vector number representation (vs. digit tokenization). Suitable for architectures trained with continuous numeric inputs, or as a tokenization scheme for new models.
+- **Deterministic arithmetic module** — A differentiable primitive where `embed(a) + embed(b) = embed(a+b)` by construction, with no learned parameters.
+- **Baseline for learned arithmetic** — Compare NALU, xVal, or custom modules against a training-free reference that isolates representational structure from learning dynamics.
 
 The core insight: arithmetic operations are group homomorphisms. Addition is vector addition. Multiplication becomes addition in log-space. This is the same trick NALU uses, but FluxEM ships it as **deterministic structure** rather than learned gates.
 
@@ -110,7 +110,7 @@ ops.ln(2.718)      # -> 1.0...
 
 This is the same mathematical structure that shows up in NALU's log-space branch for multiplication/division — but FluxEM provides it as a fixed algebraic encoding rather than learned gates.
 
-**Note on dimensionality:** The embeddings are **low-rank** — linear lives on a 1D line, logarithmic on a 2D plane. The d=256 default is a compatibility wrapper for integration with neural network pipelines, not additional capacity.
+**Intentionally low-rank:** FluxEM embeddings are low-rank by design — linear (add/sub) is rank-1, logarithmic (mul/div/pow) is rank-2. The `dim=256` default is an isometric embedding for interface compatibility; the extra dimensions are zeros. This is a feature: algebraic structure lives in minimal dimensionality, while the wrapper ensures compatibility with standard neural network pipelines.
 
 See [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md) for mathematical details.
 
@@ -132,7 +132,24 @@ This approach comes from music theory. Lewin's Generalized Interval Systems (198
 | [xVal](https://arxiv.org/abs/2310.02989) (Golkar, 2023) | Learned scaling direction | Fixed algebraic structure; no training distribution drift |
 | [Abacus](https://arxiv.org/abs/2405.17399) (McLeish, 2024) | Positional digit encoding | Continuous embeddings; not tokenized digits |
 
-FluxEM is not claiming to outperform learned approaches on their benchmarks. It's a **reference implementation** for "how far can you get with pure structure, zero training?" — useful as a baseline, a drop-in numeric primitive, or a pedagogical tool.
+FluxEM is not claiming to outperform learned approaches on their benchmarks. It's a **reference implementation** for "how far can you get with pure structure, zero training?" — useful as a baseline or pedagogical tool.
+
+## What This Is / What This Isn't
+
+| FluxEM Is | FluxEM Is Not |
+|-----------|---------------|
+| A **deterministic encoding** where arithmetic = vector operations by construction | A drop-in replacement for tokenization in frozen pretrained LLMs |
+| A **training-free baseline** for comparing learned arithmetic modules | A general reasoning system |
+| A **reference implementation** of group-homomorphism numeric representation | A learned representation (no parameters) |
+
+**Validation status:**
+
+| Claim | Status |
+|-------|--------|
+| Single-operation arithmetic (add/sub/mul/div/pow) | Tested |
+| OOD generalization within IEEE-754 bounds | Tested |
+| Composition (chained cross-space operations) | Tested |
+| LLM integration benefit | Design hypothesis — not yet validated |
 
 ## Limitations & Edge Cases
 

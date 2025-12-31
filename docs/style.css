@@ -4,6 +4,7 @@
     --accent-color: #1e3a8a;
     --border-color: #e5e7eb;
     --code-bg: #f3f4f6;
+    --muted-color: #555;
 }
 
 * {
@@ -12,7 +13,7 @@
 
 body {
     font-family: "Georgia", "Times New Roman", serif;
-    line-height: 1.7;
+    line-height: 1.75;
     color: var(--text-color);
     background: var(--bg-color);
     margin: 0;
@@ -20,7 +21,7 @@ body {
 }
 
 article {
-    max-width: 760px;
+    max-width: 720px;
     margin: 0 auto;
 }
 
@@ -49,11 +50,11 @@ h1 {
 .affiliation {
     display: block;
     font-style: italic;
-    color: #555;
+    color: var(--muted-color);
 }
 
 .date {
-    color: #555;
+    color: var(--muted-color);
     font-size: 0.95rem;
 }
 
@@ -65,18 +66,21 @@ h2 {
     font-size: 1.2rem;
     font-weight: 700;
     margin-top: 2rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 h3 {
     font-size: 1rem;
     font-weight: 700;
     margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
 }
 
 p {
     margin: 1rem 0;
     text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
 }
 
 .abstract {
@@ -90,40 +94,60 @@ p {
     margin-top: 0;
 }
 
+.abstract p {
+    text-align: left;
+}
+
 .equation {
     font-family: "Cambria Math", "Times New Roman", serif;
     font-size: 1.05rem;
     text-align: center;
-    padding: 1rem;
+    padding: 1.25rem 1rem;
     margin: 1.5rem 0;
     background: #fafafa;
     border-radius: 4px;
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin: 1.5rem 0;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1.5rem 0;
     font-size: 0.92rem;
+    min-width: 400px;
 }
 
 th, td {
-    padding: 0.75rem;
+    padding: 0.75rem 0.875rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
 }
 
 th {
     font-weight: 700;
+    background: #f9fafb;
+    white-space: nowrap;
+}
+
+tbody tr:nth-child(even) {
     background: #fafafa;
 }
 
 pre {
     background: var(--code-bg);
-    padding: 1rem;
+    padding: 1.25rem;
     overflow-x: auto;
     border-radius: 4px;
+    border-left: 3px solid #d1d5db;
     font-size: 0.86rem;
+    line-height: 1.55;
+    margin: 1.5rem 0;
 }
 
 code {
@@ -148,8 +172,9 @@ li {
 
 .note {
     font-size: 0.87rem;
-    color: #555;
+    color: var(--muted-color);
     font-style: italic;
+    margin-top: 1rem;
 }
 
 .references ul {
@@ -170,7 +195,11 @@ footer {
     border-top: 1px solid var(--border-color);
     text-align: center;
     font-size: 0.92rem;
-    color: #555;
+    color: var(--muted-color);
+}
+
+footer p {
+    text-align: center;
 }
 
 footer a {
@@ -188,18 +217,51 @@ a {
 
 @media (max-width: 600px) {
     body {
-        padding: 1.2rem;
+        padding: 1.25rem 1rem;
+    }
+
+    article {
+        max-width: 100%;
     }
 
     h1 {
-        font-size: 1.55rem;
+        font-size: 1.5rem;
+    }
+
+    h2 {
+        font-size: 1.1rem;
+    }
+
+    .table-wrapper {
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding: 0 1rem;
     }
 
     table {
-        font-size: 0.82rem;
+        font-size: 0.85rem;
     }
 
     th, td {
-        padding: 0.5rem;
+        padding: 0.6rem 0.5rem;
+    }
+
+    .equation {
+        padding: 1rem 0.75rem;
+        font-size: 0.95rem;
+    }
+
+    pre {
+        padding: 1rem;
+        font-size: 0.8rem;
+        margin-left: -1rem;
+        margin-right: -1rem;
+        border-radius: 0;
+    }
+
+    .abstract {
+        padding: 1.25rem;
+        margin-left: -1rem;
+        margin-right: -1rem;
     }
 }

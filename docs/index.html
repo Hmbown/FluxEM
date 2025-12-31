@@ -194,7 +194,14 @@
 
         <section>
             <h2>8. Code</h2>
-            <pre><code>pip install fluxem
+            <p>Requires Python 3.10+.</p>
+            <p>Note: PyPI currently serves <code>fluxem==0.1.0</code>. For the latest source (0.2.0), install from GitHub.</p>
+            <pre><code>git clone https://github.com/Hmbown/FluxEM.git
+cd FluxEM
+python3 -m pip install -e .</code></pre>
+            <pre><code>python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install fluxem
 
 from fluxem import create_unified_model
 
@@ -202,6 +209,10 @@ model = create_unified_model()
 model.compute("1847*392")    # -> 724024.0
 model.compute("123456+789")  # -> 124245.0
 model.compute("2**16")       # -> 65536.0</code></pre>
+            <pre><code># Windows (PowerShell)
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install fluxem</code></pre>
             <p>
                 Source: <a href="https://github.com/Hmbown/FluxEM">github.com/Hmbown/FluxEM</a>
             </p>

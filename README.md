@@ -6,6 +6,8 @@
 
 **Algebraic embeddings for arithmetic with IEEE-754 float precision.**
 
+Note: PyPI currently serves `fluxem==0.1.0`. For the latest source (0.2.0), install from GitHub.
+
 <p align="center">
   <img src="docs/demo.gif" alt="FluxEM terminal demo" width="600">
 </p>
@@ -28,16 +30,30 @@ See [ERROR_MODEL.md](docs/ERROR_MODEL.md) for precision details.
 
 ## Installation
 
+Requires Python 3.10+.
+
 ```bash
-pip install fluxem
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install fluxem
 ```
+
+Note: PyPI currently serves `fluxem==0.1.0`. For the latest source (0.2.0), install from source:
 
 Or from source:
 
 ```bash
 git clone https://github.com/Hmbown/FluxEM.git
 cd FluxEM
-pip install -e .
+python3 -m pip install -e .
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install fluxem
 ```
 
 ## Quick Start

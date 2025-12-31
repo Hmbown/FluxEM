@@ -10,31 +10,21 @@
   <img src="docs/demo.gif" alt="FluxEM terminal demo" width="600">
 </p>
 
-## The Problem
+## Supported Operations
 
-Neural networks often struggle with arithmetic. They can explain calculus but fumble `1847 × 392`. This happens because they treat numbers as arbitrary tokens.
+Arithmetic through algebraic embeddings — no training required.
 
-## The Solution
+| Operation | Syntax | Embedding |
+|-----------|--------|-----------|
+| Addition | `a + b` | Linear (vector addition) |
+| Subtraction | `a - b` | Linear (vector subtraction) |
+| Multiplication | `a * b` | Logarithmic (log-space addition) |
+| Division | `a / b` | Logarithmic (log-space subtraction) |
+| Powers | `a ** b` | Logarithmic (repeated multiplication) |
+| Roots | `sqrt(a)` | Logarithmic (fractional power) |
 
-FluxEM encodes numbers so that arithmetic operations become geometric operations:
-
-- **Addition**: `embed(a) + embed(b) = embed(a + b)`
-- **Multiplication**: `log_embed(a) + log_embed(b) = log_embed(a × b)`
-
-Systematic generalization via algebraic structure (no learned parameters).
-
-## Results
-
-| Operation | OOD Accuracy | Training Required |
-|-----------|--------------|-------------------|
-| Addition | Within tolerance | None |
-| Subtraction | Within tolerance | None |
-| Multiplication | Within tolerance | None |
-| Division | Within tolerance | None |
-| Powers | Within tolerance | None |
-| Roots | Within tolerance | None |
-
-Tested on ranges outside any "training" distribution. See [ERROR_MODEL.md](docs/ERROR_MODEL.md) for precision details.
+All operations generalize out-of-distribution within IEEE-754 floating-point tolerance.
+See [ERROR_MODEL.md](docs/ERROR_MODEL.md) for precision details.
 
 ## Installation
 

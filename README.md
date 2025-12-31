@@ -4,7 +4,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/fluxem)](https://pypi.org/project/fluxem/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**Deterministic homomorphic number encoding — closed under arithmetic operations up to IEEE-754 precision. A training-free baseline for neural arithmetic.**
+**Deterministic numeric embedding where arithmetic corresponds to vector operations, within IEEE-754 tolerance. No learned parameters.**
 
 <p align="center">
   <img src="docs/demo.gif" alt="FluxEM terminal demo" width="600">
@@ -40,27 +40,25 @@ cd FluxEM && pip install -e .
 
 ## Why FluxEM?
 
-Numbers are hard for neural networks. Learned approaches like NALU struggle with extrapolation; tokenization schemes like Abacus require training. FluxEM takes a different approach: **pure algebraic structure, zero training**.
+FluxEM provides a deterministic numeric embedding where basic arithmetic corresponds to simple operations in embedding space (within IEEE-754 tolerance).
 
-**Use cases:**
-- **Continuous numeric embeddings** — Single-vector number representation (vs. digit tokenization)
-- **Deterministic arithmetic module** — `embed(a) + embed(b) = embed(a+b)` by construction, no learned parameters
-- **Baseline for learned arithmetic** — Compare NALU, xVal, or custom modules against a training-free reference
+**Use it when you need:**
+- **Continuous numeric embeddings** for models that accept vectors instead of digit tokenization.
+- A **deterministic arithmetic primitive** where add/sub are vector add/sub by construction.
+- A **training-free baseline** for learned arithmetic units (NALU, xVal), to isolate structure from learning.
 
-## How It Works
+### Design
 
-| Embedding | Operations | Property | Example |
-|-----------|------------|----------|---------|
-| **Linear** | `+` `-` | Vector addition = arithmetic addition | `embed(3) + embed(5) = embed(8)` |
-| **Logarithmic** | `*` `/` `**` | Log-space addition = multiplication | `log(3) + log(4) = log(12)` |
+FluxEM implements two fixed encodings:
 
-The core insight: arithmetic operations are group homomorphisms. This is the same trick NALU uses, but FluxEM ships it as **deterministic structure** rather than learned gates.
+| Encoding | Operations | Guarantee |
+|----------|------------|-----------|
+| **Linear** | `+` `-` | `decode(encode(a) + encode(b)) = a + b` |
+| **Log** | `*` `/` `**` | Operations reduce to addition/scaling in log-space, then decode back |
 
-**Origin:** This approach comes from music theory — Lewin's Generalized Interval Systems (1987) formalized how musical intervals form a group structure. FluxEM applies the same framework to numeric embeddings.
+This is the same log-space pathway used in learned arithmetic units, but FluxEM provides the mapping as a fixed, parameter-free transform.
 
-**Intentionally low-rank:** Linear embeddings are rank-1, logarithmic are rank-2. The `dim=256` default is for interface compatibility; algebraic structure lives in minimal dimensionality.
-
-See [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md) for mathematical details.
+**Rank:** Linear encoding is rank-1; log encoding is rank-2. The `dim=256` default zero-pads for interface compatibility. See [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md).
 
 ## API Reference
 
@@ -100,46 +98,48 @@ ops.ln(2.718)      # -> 1.0...
 
 ## Supported Operations
 
-| Operation | Syntax | Embedding | Algebraic Property |
-|-----------|--------|-----------|-------------------|
-| Addition | `a + b` | Linear | `embed(a) + embed(b) = embed(a+b)` |
-| Subtraction | `a - b` | Linear | `embed(a) - embed(b) = embed(a-b)` |
-| Multiplication | `a * b` | Logarithmic | `log(a) + log(b) = log(a*b)` |
-| Division | `a / b` | Logarithmic | `log(a) - log(b) = log(a/b)` |
-| Powers | `a ** b` | Logarithmic | `b * log(a) = log(a^b)` |
-| Roots | `sqrt(a)` | Logarithmic | `0.5 * log(a) = log(sqrt(a))` |
+| Operation | Syntax | Encoding | Guarantee |
+|-----------|--------|----------|-----------|
+| Addition | `a + b` | Linear | `encode(a) + encode(b) = encode(a+b)` |
+| Subtraction | `a - b` | Linear | `encode(a) - encode(b) = encode(a-b)` |
+| Multiplication | `a * b` | Log | `log(a) + log(b) = log(a*b)` |
+| Division | `a / b` | Log | `log(a) - log(b) = log(a/b)` |
+| Powers | `a ** b` | Log | `b * log(a) = log(a^b)` |
+| Roots | `sqrt(a)` | Log | `0.5 * log(a) = log(sqrt(a))` |
 
-All operations generalize out-of-distribution within IEEE-754 tolerance. See [ERROR_MODEL.md](docs/ERROR_MODEL.md) for precision bounds.
+All operations closed under IEEE-754 tolerance. See [ERROR_MODEL.md](docs/ERROR_MODEL.md) for precision bounds.
 
-## Prior Work & Positioning
+## Prior Work
 
 | Approach | Method | FluxEM Difference |
 |----------|--------|-------------------|
-| [NALU](https://arxiv.org/abs/1808.00508) (Trask, 2018) | Learned log/exp gates | No learned parameters; deterministic |
+| [NALU](https://arxiv.org/abs/1808.00508) (Trask, 2018) | Learned log/exp gates | No learned parameters |
 | [xVal](https://arxiv.org/abs/2310.02989) (Golkar, 2023) | Learned scaling direction | Fixed structure; no training drift |
 | [Abacus](https://arxiv.org/abs/2405.17399) (McLeish, 2024) | Positional digit encoding | Continuous embeddings; not tokenized |
 
-**What FluxEM is:** A deterministic encoding, training-free baseline, and reference implementation of group-homomorphism numeric representation.
-
-**What FluxEM is not:** A drop-in replacement for frozen LLM tokenization, a general reasoning system, or a learned representation.
+**Non-goals:** Drop-in replacement for frozen LLM tokenization. General reasoning. Learned representation.
 
 | Claim | Status |
 |-------|--------|
 | Single-operation arithmetic | Tested |
 | OOD generalization (IEEE-754 bounds) | Tested |
 | Composition (chained operations) | Tested |
-| LLM integration benefit | Not yet validated |
+| LLM integration benefit | Not validated |
 
 ## Limitations
 
 | Constraint | Behavior |
 |------------|----------|
-| Zero handling | Explicit flag; `log(0)` undefined, masked separately |
-| Sign tracking | Sign stored in `x[1]`; log-space is magnitude-only |
-| Negative base + fractional exponent | Unsupported — returns real-valued surrogate |
+| Zero | Explicit flag; `log(0)` undefined, masked separately |
+| Sign | Stored in `x[1]`; log-space operates on magnitude only |
+| Negative base + fractional exponent | Unsupported; returns real-valued surrogate |
 | Precision | < 1e-6 relative error (float32) |
 
 See [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md) for zero encoding and [ERROR_MODEL.md](docs/ERROR_MODEL.md) for precision details.
+
+## Background
+
+FluxEM's structure is analogous to interval systems in music theory (Lewin, 1987), where distances in a space form a group under some operation. This is noted for intuition; the formal definition is in [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md).
 
 ## Citation
 

@@ -20,7 +20,7 @@ import jax
 import jax.numpy as jnp
 from jax import random
 import equinox as eqx
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Literal
 
 
 class NumberEncoder(eqx.Module):
@@ -39,19 +39,40 @@ class NumberEncoder(eqx.Module):
         Scale factor to normalize embeddings.
         For numbers up to 100,000, scale=100000 keeps ||embed|| <= 1.
     seed : int
-        Random seed for direction vector.
+        Random seed for direction vector (only used if basis="random_orthonormal").
+    basis : str
+        "canonical" (default): Use e0 as direction, decode via indexing.
+            Error is minimal (single float op).
+        "random_orthonormal": Use random unit vector, decode via dot product.
+            Error accumulates over dim operations.
     """
 
     direction: jax.Array  # Unit direction vector [dim]
     scale: float
     dim: int
+    basis: str
 
-    def __init__(self, dim: int = 256, scale: float = 100000.0, seed: int = 42):
-        key = jax.random.PRNGKey(seed)
-        direction = jax.random.normal(key, (dim,))
-        self.direction = direction / jnp.linalg.norm(direction)
+    def __init__(
+        self,
+        dim: int = 256,
+        scale: float = 100000.0,
+        seed: int = 42,
+        basis: Literal["canonical", "random_orthonormal"] = "canonical",
+    ):
         self.scale = scale
         self.dim = dim
+        self.basis = basis
+
+        if basis == "canonical":
+            # e0: first coordinate only
+            direction = jnp.zeros(dim)
+            direction = direction.at[0].set(1.0)
+            self.direction = direction
+        else:
+            # Random unit vector (old behavior)
+            key = jax.random.PRNGKey(seed)
+            direction = jax.random.normal(key, (dim,))
+            self.direction = direction / jnp.linalg.norm(direction)
 
     def encode_number(self, n: float) -> jax.Array:
         """
@@ -67,7 +88,12 @@ class NumberEncoder(eqx.Module):
         jax.Array
             Linear embedding, shape [dim].
         """
-        return (n / self.scale) * self.direction
+        if self.basis == "canonical":
+            # Direct indexing: x[0] = n/scale, rest zeros
+            emb = jnp.zeros(self.dim)
+            return emb.at[0].set(n / self.scale)
+        else:
+            return (n / self.scale) * self.direction
 
     def encode_string(self, digit_str: str) -> jax.Array:
         """
@@ -105,7 +131,11 @@ class NumberEncoder(eqx.Module):
             Linear embedding, shape [dim].
         """
         value = self._parse_number_from_bytes(byte_seq)
-        return (value / self.scale) * self.direction
+        if self.basis == "canonical":
+            emb = jnp.zeros(self.dim)
+            return emb.at[0].set(value / self.scale)
+        else:
+            return (value / self.scale) * self.direction
 
     def _parse_number_from_bytes(self, byte_seq: jax.Array) -> jax.Array:
         """
@@ -161,8 +191,12 @@ class NumberEncoder(eqx.Module):
         float
             Recovered numeric value.
         """
-        projection = jnp.dot(embedding, self.direction)
-        return float(projection * self.scale)
+        if self.basis == "canonical":
+            # Direct indexing: no dot product accumulation
+            return float(embedding[0] * self.scale)
+        else:
+            projection = jnp.dot(embedding, self.direction)
+            return float(projection * self.scale)
 
     def decode_batch(self, embeddings: jax.Array) -> jax.Array:
         """
@@ -178,8 +212,11 @@ class NumberEncoder(eqx.Module):
         jax.Array
             Recovered values, shape [...].
         """
-        projection = jnp.sum(embeddings * self.direction, axis=-1)
-        return projection * self.scale
+        if self.basis == "canonical":
+            return embeddings[..., 0] * self.scale
+        else:
+            projection = jnp.sum(embeddings * self.direction, axis=-1)
+            return projection * self.scale
 
 
 def parse_arithmetic_expression(input_bytes: jax.Array) -> Tuple[jax.Array, int, jax.Array]:
@@ -274,7 +311,8 @@ def verify_linear_property(encoder: NumberEncoder, a: float, b: float, atol: flo
 if __name__ == "__main__":
     print("NumberEncoder demo")
 
-    encoder = NumberEncoder(dim=256, scale=100000.0, seed=42)
+    print("\n=== Canonical basis (default) ===")
+    encoder = NumberEncoder(dim=256, scale=100000.0, basis="canonical")
 
     test_pairs = [
         (42, 58),
@@ -305,5 +343,15 @@ if __name__ == "__main__":
     for n in test_numbers:
         emb = encoder.encode_number(n)
         recovered = encoder.decode(emb)
+        error = abs(recovered - n)
+        print(f"  {n:>7} -> encode -> decode -> {recovered:>10.2f} (error: {error:.2e})")
+
+    print("\n=== Random orthonormal basis (old behavior) ===")
+    encoder_old = NumberEncoder(dim=256, scale=100000.0, basis="random_orthonormal", seed=42)
+
+    print("\nRound-trip (encode -> decode):")
+    for n in test_numbers:
+        emb = encoder_old.encode_number(n)
+        recovered = encoder_old.decode(emb)
         error = abs(recovered - n)
         print(f"  {n:>7} -> encode -> decode -> {recovered:>10.2f} (error: {error:.2e})")

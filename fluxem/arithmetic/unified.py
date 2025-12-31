@@ -20,7 +20,7 @@ import jax
 import jax.numpy as jnp
 from jax import random
 import equinox as eqx
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, Literal
 
 from .linear_encoder import NumberEncoder
 from .log_encoder import LogarithmicNumberEncoder
@@ -42,6 +42,7 @@ class UnifiedArithmeticModel(eqx.Module):
     dim: int
     linear_scale: float
     log_scale: float
+    basis: str
 
     def __init__(
         self,
@@ -49,6 +50,7 @@ class UnifiedArithmeticModel(eqx.Module):
         linear_scale: float = 1e7,
         log_scale: float = 25.0,
         seed: int = 42,
+        basis: Literal["canonical", "random_orthonormal"] = "canonical",
     ):
         """
         Initialize UnifiedArithmeticModel.
@@ -63,12 +65,18 @@ class UnifiedArithmeticModel(eqx.Module):
             Scale for log embeddings (log of max number for mul/div).
         seed : int
             Random seed.
+        basis : str
+            "canonical" (default): Use first coordinates as exact orthonormal basis.
+                Error is minimal (single float ops for linear, log/exp for multiplicative).
+            "random_orthonormal": Use random unit vectors with Gram-Schmidt.
+                Error accumulates over dim dot product operations.
         """
-        self.linear_encoder = NumberEncoder(dim=dim, scale=linear_scale, seed=seed)
-        self.log_encoder = LogarithmicNumberEncoder(dim=dim, log_scale=log_scale, seed=seed + 1)
+        self.linear_encoder = NumberEncoder(dim=dim, scale=linear_scale, seed=seed, basis=basis)
+        self.log_encoder = LogarithmicNumberEncoder(dim=dim, log_scale=log_scale, seed=seed + 1, basis=basis)
         self.dim = dim
         self.linear_scale = linear_scale
         self.log_scale = log_scale
+        self.basis = basis
 
     def __call__(self, input_bytes: jax.Array) -> jax.Array:
         """
@@ -316,6 +324,7 @@ def create_unified_model(
     linear_scale: float = 1e7,
     log_scale: float = 25.0,
     seed: int = 42,
+    basis: Literal["canonical", "random_orthonormal"] = "canonical",
 ) -> UnifiedArithmeticModel:
     """Create a UnifiedArithmeticModel instance."""
     return UnifiedArithmeticModel(
@@ -323,6 +332,7 @@ def create_unified_model(
         linear_scale=linear_scale,
         log_scale=log_scale,
         seed=seed,
+        basis=basis,
     )
 
 

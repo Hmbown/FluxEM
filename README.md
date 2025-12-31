@@ -62,7 +62,7 @@ This is the same log-space pathway used in learned arithmetic units, but FluxEM 
 
 ## Benchmark
 
-We compared FluxEM against learned baselines (Transformer, GRU) on arithmetic expression evaluation. Training: 10K expressions, integers [0, 999], 1-3 operations, 50 epochs. Testing: in-distribution + three OOD shifts.
+We compared FluxEM against small learned baselines (Transformer ~72K params, GRU ~47K params) on arithmetic expression evaluation. The baselines are intentionally small to isolate structure from scale.
 
 | Method | ID Test | OOD-A (large ints) | OOD-B (long expr) | OOD-C (with **) |
 |--------|---------|-------------------|-------------------|-----------------|
@@ -70,7 +70,9 @@ We compared FluxEM against learned baselines (Transformer, GRU) on arithmetic ex
 | Transformer | 2% | 0% | 0.5% | 2% |
 | GRU | 0% | 0.5% | 0.5% | 0.5% |
 
-*Accuracy = predictions within 1% relative error. FluxEM's mean relative error: ~1e-7. Baselines: ~1e8.*
+*Training: 10K expressions, integers [0, 999], 50 epochs. Accuracy = within 1% relative error.*
+
+FluxEM's OOD generalization is guaranteed by construction (homomorphism), not learned. Larger models with more data would likely improve baseline OOD performance, but cannot provide the same guarantee.
 
 ```bash
 python -m benchmarks.run_all --quick  # quick test (~15 sec)

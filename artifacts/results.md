@@ -24,6 +24,8 @@
 
 ## Key Finding
 
-FluxEM maintains ~100% accuracy across all distributions because arithmetic
-is implemented via structure-preserving embeddings (homomorphisms), not learned.
-Baselines fail on OOD because they memorize patterns, not arithmetic structure.
+FluxEM maintains 100% accuracy across all distributions because arithmetic
+is guaranteed by structure-preserving embeddings (homomorphisms), not learned.
+
+The baselines are intentionally small to isolate structure from scale. Larger
+models with more data would likely improve, but cannot provide the same guarantee.

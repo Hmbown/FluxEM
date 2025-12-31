@@ -53,63 +53,55 @@ model.compute("1000 / 8")     # -> 125.0
 model.compute("3 ** 4")       # -> 81.0
 ```
 
-Extended operations:
+### Extended API
 
 ```python
 from fluxem import create_extended_ops
-
 ops = create_extended_ops()
-
-ops.power(2, 16)  # -> 65536.0
-ops.sqrt(256)     # -> 16.0
-ops.exp(1.0)      # -> 2.718...
-ops.ln(2.718)     # -> 1.0...
 ```
+
+| Method | Example | Result |
+|--------|---------|--------|
+| `power(base, exp)` | `ops.power(2, 16)` | `65536.0` |
+| `sqrt(x)` | `ops.sqrt(256)` | `16.0` |
+| `exp(x)` | `ops.exp(1.0)` | `2.718...` |
+| `ln(x)` | `ops.ln(2.718)` | `1.0...` |
 
 ## How It Works
 
-### Linear Embeddings (Addition)
-
-Numbers are embedded as vectors along a fixed direction. Vector addition in embedding space equals arithmetic addition.
-
-```
-embed(3) + embed(5) = embed(8)  # By design
-```
-
-### Log Embeddings (Multiplication)
-
-Numbers are embedded in log-space. Addition in log-space equals multiplication in linear space.
-
-```
-log_embed(3) + log_embed(4) = log_embed(12)  # By design
-```
+| Embedding | Operations | Property | Example |
+|-----------|------------|----------|---------|
+| **Linear** | `+` `-` | Vector addition = arithmetic addition | `embed(3) + embed(5) = embed(8)` |
+| **Logarithmic** | `*` `/` `**` | Log-space addition = multiplication | `log(3) + log(4) = log(12)` |
 
 See [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md) for mathematical details.
 
 ## The Insight
 
-This approach comes from music theory. Lewin's Generalized Interval Systems (1987) formalized how musical intervals form a group structure. FluxEM applies the same framework to numbers:
+This approach comes from music theory. Lewin's Generalized Interval Systems (1987) formalized how musical intervals form a group structure. FluxEM applies the same framework:
 
-- S = ℝ (numbers, like musical pitches)
-- IVLS = ℝ under + (intervals between numbers)
-- int(a, b) = embedding distance
-
-The framework that unified 20th-century music theory informs this arithmetic embedding design.
+| GIS Component | Music Theory | FluxEM |
+|---------------|--------------|--------|
+| **S** (space) | Pitches | ℝ (numbers) |
+| **IVLS** (intervals) | ℤ₁₂ (semitones) | ℝ under + |
+| **int(a,b)** | Pitch distance | Embedding distance |
 
 ## Prior Work
 
-| Approach | Method | Difference |
-|----------|--------|------------|
-| NALU (Trask, 2018) | Learned log/exp gates | No learned parameters here |
+| Approach | Method | FluxEM Difference |
+|----------|--------|-------------------|
+| NALU (Trask, 2018) | Learned log/exp gates | No learned parameters |
 | xVal (Golkar, 2023) | Learned scaling direction | Fixed algebraic structure |
-| Abacus (McLeish, 2024) | Positional digit encoding | Continuous, not character-level |
+| Abacus (McLeish, 2024) | Positional digit encoding | Continuous embeddings |
 
 ## Limitations
 
-- Precision bounded by IEEE-754 floating point
-- Zero requires special handling (log(0) undefined)
-- Sign tracked separately from magnitude in log space
-- Not a general reasoning system—just arithmetic
+| Constraint | Reason |
+|------------|--------|
+| IEEE-754 precision | Floating-point bounds error |
+| Zero handling | log(0) undefined |
+| Sign tracked separately | Log-space is magnitude-only |
+| Arithmetic only | Not a general reasoning system |
 
 ## Citation
 

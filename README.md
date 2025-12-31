@@ -1,135 +1,170 @@
 # FluxEM
 
-**Algebraic embeddings for deterministic arithmetic in neural networks.**
+**Stop teaching neural networks arithmetic. Encode the algebra.**
 
-[![PyPI version](https://badge.fury.io/py/fluxem.svg)](https://badge.fury.io/py/fluxem)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## The Problem
 
-FluxEM encodes numbers into vector spaces where arithmetic operations become geometric transformations. Unlike learned embeddings, these are **algebraically exact** (up to floating-point precision).
+Large language models fail at arithmetic. They can explain calculus but fumble `1847 x 392`. Seven years of research (NALU 2018, xVal 2023, Abacus 2024) tried to fix this by teaching networks to learn arithmetic better.
 
-## Origins
+FluxEM takes a different approach: **don't learn arithmetic. Encode it.**
 
-This project emerged from an exploration of music theory and its unrealized connections to machine learning. Theorists like **Paul Hindemith** (*The Craft of Musical Composition*), **George Lewis** (improvisation and AI), and **Milton Babbitt** (set-theoretic approaches to pitch) developed sophisticated frameworks for understanding intervallic relationships - treating musical intervals as transformations in structured pitch spaces.
+## The Insight
 
-These ideas of embedding and intervallic relationships had not been fully mapped to modern ML and mathematics. FluxEM represents one attempt to bridge that gap: encoding numbers so that arithmetic operations correspond to geometric transformations in embedding space, just as musical intervals correspond to movements in pitch space.
+In the right embedding space, arithmetic operations become geometry:
 
-## Key Properties
+- **Addition:** `embed(a) + embed(b) = embed(a + b)` (linear embeddings)
+- **Multiplication:** `log_embed(a) + log_embed(b) = log_embed(a * b)` (log embeddings)
 
-| Operation | Embedding Space | Identity |
-|-----------|-----------------|----------|
-| Addition | Linear | `encode(a) + encode(b) = encode(a + b)` |
-| Subtraction | Linear | `encode(a) - encode(b) = encode(a - b)` |
-| Multiplication | Logarithmic | `log_mag(a) + log_mag(b) = log_mag(a * b)` |
-| Division | Logarithmic | `log_mag(a) - log_mag(b) = log_mag(a / b)` |
-| Powers | Logarithmic | `log_mag(a^n) = n * log_mag(a)` |
+This isn't learned. It's algebraic. Out-of-distribution generalization is guaranteed because the structure IS the solution.
+
+## The Connection
+
+This approach has a 100-year history in music theory:
+
+| Year | Development |
+|------|-------------|
+| 1739 | Euler's Tonnetz - geometric pitch embedding |
+| 1920s | Schoenberg's 12-tone matrix - transformations as structure |
+| 1973 | Forte's set theory - classify by invariants |
+| 1987 | Lewin's GIS - formal framework for transformation-based theory |
+| 2025 | FluxEM - same insight applied to neural arithmetic |
+
+FluxEM is a **Generalized Interval System** (Lewin, 1987) for numbers:
+- **S** = numbers (Lewin: musical objects)
+- **IVLS** = R under + or R+ under x (Lewin: interval group)
+- **int** = embedding distance (Lewin: interval function)
+
+The framework that unified 20th-century music theory also solves 21st-century neural arithmetic.
+
+## Key Result
+
+| Operation | OOD Accuracy (<=1% rel error) | Method |
+|-----------|-------------------------------|--------|
+| Addition | 100% | Linear embedding homomorphism |
+| Subtraction | 100% | Linear embedding homomorphism |
+| Multiplication | 100% | Log-magnitude homomorphism + sign |
+| Division | 100% | Log-magnitude homomorphism + sign |
+| Powers | 100% | Scalar multiplication in log-magnitude space |
+| Roots | 100% | Fractional scalar multiplication |
+
+Tested OOD ranges (relative error < 1%):
+- Addition/Subtraction: [-100000, 100000]
+- Multiplication: [10, 1000] x [10, 1000]
+- Division: [100, 10000] / [10, 100]
+
+## Domain and Guarantees
+
+- **Domain:** Real numbers under IEEE-754 floating point
+- **Exactness:** Identities are exact in real arithmetic; numerical error bounded by float precision
+- **Zero:** Handled explicitly (log(0) is undefined)
+- **Sign:** Tracked separately from magnitude in log space
+- **Directions:** Fixed random unit vectors (seeded), not learned
+- **Division by zero:** Returns signed infinity
+
+## What "100%" Means
+
+- All sampled OOD tests are within 1% relative error (or 0.5 absolute error for |expected| <= 1)
+- Ranges are the sampled intervals listed above, not an unbounded guarantee
+
+## Relation to Prior Work
+
+| Approach | Method | Limitation |
+|----------|--------|------------|
+| NALU (Trask, 2018) | Log/exp with learned gates | Gates can fail to generalize |
+| xVal (Golkar, 2023) | Learned scaling direction | Direction must be learned |
+| Abacus (McLeish, 2024) | Positional digit encoding | Character-level, not continuous |
+| **FluxEM** | Fixed algebraic structure | No learned parameters |
+
+FluxEM's contribution: composable embeddings where arithmetic is exact by construction.
+
+## Limitations
+
+Be aware:
+- **Zero handling:** `log(0)` is undefined; zero uses special-case logic
+- **Sign:** Magnitude and sign tracked separately (like polar coordinates)
+- **Precision:** "Exact" means exact in real arithmetic, limited by float32
+- **Tested ranges:** OOD claims based on sampled ranges (see tests for details)
+- **Negative fractional exponents:** Returns magnitude only (no complex values)
 
 ## Installation
 
 ```bash
-pip install fluxem
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-## Quick Start
+## Usage
 
 ```python
-from fluxem import create_unified_model
+from flux_lm import create_unified_model
 
-# Create a model for all four basic operations
-model = create_unified_model()
+model = create_unified_model(dim=256)
 
-# Compute arithmetic expressions
-print(model.compute("42+58="))    # 100.0
-print(model.compute("6*7="))      # 42.0
-print(model.compute("100/4="))    # 25.0
-print(model.compute("1000-999=")) # 1.0
+model.compute("12345+67890")  # -> 80235.0
+model.compute("456*789")      # -> 359784.0
+model.compute("56088/123")    # -> 456.0
 ```
 
-### Extended Operations
+## Integration
 
-```python
-from fluxem import create_extended_ops
+FluxEM can be used as a drop-in numeric embedding primitive:
 
-ops = create_extended_ops()
+- Replace number token embeddings with FluxEM embeddings (linear or log as needed)
+- Concatenate FluxEM embeddings with learned token embeddings for mixed text/number inputs
+- Decode outputs with the corresponding encoder when a numeric value is required
 
-# Powers and roots
-print(ops.power(2, 10))   # 1024.0
-print(ops.sqrt(16))       # 4.0
-print(ops.cbrt(27))       # 3.0
+## Research Directions
 
-# Exponentials and logarithms
-print(ops.exp(1))         # 2.718...
-print(ops.ln(2.718))      # ~1.0
-print(ops.log10(1000))    # 3.0
-```
+FluxEM demonstrates a general principle: **encode structure, don't learn it.**
 
-### Low-Level Encoder Access
+Open questions:
+- Can this extend to symbolic differentiation? (See `fluxem/differentiation.py`)
+- What about compositional generalization in language?
+- Is there a unified embedding space for all arithmetic?
 
-```python
-from fluxem import NumberEncoder, LogarithmicNumberEncoder
+See the [Flux Mathematics textbook](../textbook/) for the theoretical framework.
 
-# Linear encoder for addition/subtraction
-linear = NumberEncoder(dim=256, scale=100000.0)
-emb_a = linear.encode_number(42)
-emb_b = linear.encode_number(58)
-result = linear.decode(emb_a + emb_b)  # 100.0
+## Why "FluxEM"?
 
-# Logarithmic encoder for multiplication/division
-log_enc = LogarithmicNumberEncoder(dim=256)
-emb_x = log_enc.encode_number(6)
-emb_y = log_enc.encode_number(7)
-result = log_enc.decode(log_enc.multiply(emb_x, emb_y))  # 42.0
-```
+- **Flux**: From [Flux Mathematics](../textbook/), inspired by Hindemith's transformation-first thinking - intervals are primary, pitches emerge
+- **EM**: Embedding Model. Like word2vec, but for numbers
 
-## How It Works
+The approach is technically a **Generalized Interval System** (Lewin, 1987), but the name honors the philosophical lineage: Hindemith's insight that relationships define objects, not the other way around.
 
-### Linear Embeddings (Addition/Subtraction)
+## Origins
 
-Numbers are encoded as scalar multiples of a fixed unit direction:
+This project emerged from a music theory graduate seminar at SMU with Professor Frank, where Hindemith's intervallic analysis, set theory, and transformation-based approaches clicked into place.
 
-```
-encode(n) = (n / scale) * unit_direction
-```
+The author spent 7 years as a music educator, is a trumpet player and vocalist, and saw the mismatch: ML treats numbers like arbitrary tokens while music theory has been treating pitch like geometry for a century.
 
-This ensures linearity: `encode(a) + encode(b) = encode(a + b)`.
+FluxEM exists because a musician noticed that embedding arithmetic for neural networks is the same problem music theorists solved decades ago.
 
-### Logarithmic Embeddings (Multiplication/Division)
+## References
 
-Numbers are encoded using their logarithm:
+### Music Theory (Theoretical Lineage)
+- Lewin, D. (1987). *Generalized Musical Intervals and Transformations*
+- Cohn, R. (1998). "Introduction to Neo-Riemannian Theory"
+- Tymoczko, D. (2011). *A Geometry of Music*
+- Forte, A. (1973). *The Structure of Atonal Music*
+- Euler, L. (1739). *Tentamen novae theoriae musicae*
 
-```
-encode(n) = (log(|n|) / log_scale) * direction + sign(n) * sign_direction
-```
-
-Since `log(a * b) = log(a) + log(b)`, multiplication becomes vector addition in this space.
-
-## Why FluxEM?
-
-Traditional neural networks struggle with arithmetic because:
-1. They must **learn** arithmetic from examples
-2. They fail on **out-of-distribution** numbers
-3. They have no **algebraic guarantees**
-
-FluxEM solves this by encoding arithmetic identities directly into the representation. The model achieves **100% accuracy** on arithmetic because the answer is computed algebraically, not learned.
-
-## Requirements
-
-- Python >= 3.10
-- JAX >= 0.4.20
-- Equinox >= 0.11.0
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
+### ML Arithmetic (Problem Space)
+- Trask, A. et al. (2018). "Neural Arithmetic Logic Units"
+- Golkar, S. et al. (2023). "xVal: A Continuous Number Encoding"
+- McLeish, S. et al. (2024). "Transformers Can Do Arithmetic with the Right Embeddings"
 
 ## Citation
 
-If you use FluxEM in your research, please cite:
-
 ```bibtex
 @software{fluxem2025,
-  author = {Bown, Hunter},
-  title = {FluxEM: Algebraic Embeddings for Deterministic Arithmetic},
-  year = {2025},
-  url = {https://github.com/Hmbown/FluxEM}
+  title={FluxEM: Algebraic Embeddings for Deterministic Arithmetic},
+  author={Hunter Bown},
+  year={2025},
+  note={Applies Lewin's Generalized Interval Systems to neural arithmetic}
 }
 ```
+
+## License
+
+Apache 2.0

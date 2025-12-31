@@ -22,19 +22,19 @@ Type "model = create_unified_model()"
 Enter
 Sleep 500ms
 
-Type "model.compute('1847 * 392')"
+Type "model.compute('1847*392')"
 Enter
 Sleep 1s
 
-Type "model.compute('123456 + 789')"
+Type "model.compute('123456+789')"
 Enter
 Sleep 1s
 
-Type "model.compute('2 ** 16')"
+Type "model.compute('2**16')"
 Enter
 Sleep 1s
 
-Type "model.compute('56088 / 123')"
+Type "model.compute('56088/123')"
 Enter
 Sleep 1.5s
 

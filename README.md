@@ -1,5 +1,9 @@
 # FluxEM
 
+[![PyPI version](https://img.shields.io/pypi/v/fluxem)](https://pypi.org/project/fluxem/)
+[![Python versions](https://img.shields.io/pypi/pyversions/fluxem)](https://pypi.org/project/fluxem/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 **Algebraic embeddings for arithmetic with IEEE-754 float precision.**
 
 <p align="center">

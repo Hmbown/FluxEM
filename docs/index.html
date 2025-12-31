@@ -64,8 +64,8 @@
                 log_embed(a) + log_embed(b) = log_embed(a x b)
             </div>
             <p>
-                These are algebraic identities in real arithmetic; under IEEE-754, they hold
-                within floating-point precision bounds.
+                These are algebraic identities over the reals for the magnitude component; under
+                IEEE-754, they hold within floating-point precision bounds.
             </p>
         </section>
 
@@ -88,33 +88,39 @@
             </div>
             <p>
                 where v_mag and v_sign are orthogonal unit vectors. Magnitude and sign are
-                tracked separately.
+                tracked separately, and the sign component is recombined in the operator definition.
+            </p>
+            <p>
+                Zero is handled explicitly outside the log embedding via a masking branch.
             </p>
         </section>
 
         <section>
             <h2>4. Results</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Operation</th>
-                        <th>OOD Accuracy</th>
-                        <th>Test Range</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td>Addition</td><td>Within tolerance</td><td>[-100000, 100000]</td></tr>
-                    <tr><td>Subtraction</td><td>Within tolerance</td><td>[-100000, 100000]</td></tr>
-                    <tr><td>Multiplication</td><td>Within tolerance</td><td>[10, 1000] x [10, 1000]</td></tr>
-                    <tr><td>Division</td><td>Within tolerance</td><td>[100, 10000] / [10, 100]</td></tr>
-                    <tr><td>Powers</td><td>Within tolerance</td><td>Various</td></tr>
-                    <tr><td>Roots</td><td>Within tolerance</td><td>Various</td></tr>
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>OOD Accuracy</th>
+                            <th>Test Range</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Addition</td><td>Within tolerance</td><td>[-100000, 100000]</td></tr>
+                        <tr><td>Subtraction</td><td>Within tolerance</td><td>[-100000, 100000]</td></tr>
+                        <tr><td>Multiplication</td><td>Within tolerance</td><td>[10, 1000] x [10, 1000]</td></tr>
+                        <tr><td>Division</td><td>Within tolerance</td><td>[100, 10000] / [10, 100]</td></tr>
+                        <tr><td>Powers</td><td>Within tolerance</td><td>Various</td></tr>
+                        <tr><td>Roots</td><td>Within tolerance</td><td>Various</td></tr>
+                    </tbody>
+                </table>
+            </div>
             <p class="note">
                 "Within tolerance" means all samples achieved &lt; 1% relative error
-                (or &lt; 0.5 absolute error when |expected| &lt;= 1). Errors arise from IEEE-754
-                floating-point precision.
+                (or &lt; 0.5 absolute error when |expected| &lt;= 1). These bounds are intended for
+                neural approximation contexts rather than calculator-grade financial or scientific
+                workloads. Errors arise from IEEE-754 floating-point precision.
             </p>
         </section>
 
@@ -141,44 +147,46 @@
 
         <section>
             <h2>6. Prior Work</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Approach</th>
-                        <th>Method</th>
-                        <th>Limitation</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>NALU (Trask 2018)</td>
-                        <td>Log/exp with learned gates</td>
-                        <td>Gates can fail to generalize</td>
-                    </tr>
-                    <tr>
-                        <td>xVal (Golkar 2023)</td>
-                        <td>Learned scaling direction</td>
-                        <td>Direction must be learned</td>
-                    </tr>
-                    <tr>
-                        <td>Abacus (McLeish 2024)</td>
-                        <td>Positional digit encoding</td>
-                        <td>Character-level, not continuous</td>
-                    </tr>
-                    <tr>
-                        <td>FluxEM</td>
-                        <td>Fixed algebraic structure</td>
-                        <td>Parameter-free</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Approach</th>
+                            <th>Method</th>
+                            <th>Limitation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>NALU (Trask 2018)</td>
+                            <td>Log/exp with learned gates</td>
+                            <td>Gates can fail to generalize</td>
+                        </tr>
+                        <tr>
+                            <td>xVal (Golkar 2023)</td>
+                            <td>Learned scaling direction</td>
+                            <td>Direction must be learned</td>
+                        </tr>
+                        <tr>
+                            <td>Abacus (McLeish 2024)</td>
+                            <td>Positional digit encoding</td>
+                            <td>Character-level, not continuous</td>
+                        </tr>
+                        <tr>
+                            <td>FluxEM</td>
+                            <td>Fixed algebraic structure</td>
+                            <td>Parameter-free</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section>
             <h2>7. Limitations</h2>
             <ul>
                 <li>Precision bounded by IEEE-754 floating point</li>
-                <li>Zero requires special handling (log(0) undefined)</li>
+                <li>Zero requires explicit masking (log(0) undefined)</li>
                 <li>Sign tracked separately from magnitude in log space</li>
                 <li>Not a general reasoning system: arithmetic only</li>
             </ul>
@@ -202,8 +210,8 @@ model.compute("2**16")       # -> 65536.0</code></pre>
         <section>
             <h2>9. Lean4 Notes</h2>
             <p>
-                These snippets illustrate how the linear and logarithmic properties can be stated
-                in a proof assistant. They are illustrative and omit proof details.
+                These snippets illustrate how the linear and logarithmic magnitude properties can be
+                stated in a proof assistant. They are illustrative and omit proof details.
             </p>
             <pre><code>-- Linear embedding property (sketch)
 -- e_lin (a + b) = e_lin a + e_lin b

@@ -23,8 +23,8 @@ from jax import random
 import equinox as eqx
 from typing import Tuple, Optional, Union
 
-from .linear import NumberEncoder
-from .logarithmic import LogarithmicNumberEncoder
+from .linear_encoder import NumberEncoder
+from .log_encoder import LogarithmicNumberEncoder
 
 
 class UnifiedArithmeticModel(eqx.Module):

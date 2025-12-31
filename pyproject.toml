@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fluxem"
-version = "0.1.0"
-description = "Algebraic embeddings for deterministic arithmetic in neural networks"
+version = "0.2.0"
+description = "Encode structure, don't learn it. Exact arithmetic and compositional generalization."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

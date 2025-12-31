@@ -1,170 +1,188 @@
 # FluxEM
 
-**Stop teaching neural networks arithmetic. Encode the algebra.**
+**Separate rule discovery from rule execution.**
 
-## The Problem
+When rules are known, execute exactly. When unknown, induce from examples.
 
-Large language models fail at arithmetic. They can explain calculus but fumble `1847 x 392`. Seven years of research (NALU 2018, xVal 2023, Abacus 2024) tried to fix this by teaching networks to learn arithmetic better.
+## What's Here
 
-FluxEM takes a different approach: **don't learn arithmetic. Encode it.**
+| Module | What it does | Key result |
+|--------|--------------|------------|
+| `fluxem.arithmetic` | Algebraic embeddings for +, -, ×, ÷ | 100% OOD accuracy |
+| `fluxem.compositional` | SCAN oracle baseline | 100% all splits |
+| `scan_inducer` | Learn operators from examples | Works with 1-3 examples |
 
 ## The Insight
 
-In the right embedding space, arithmetic operations become geometry:
+Neural networks fail at arithmetic and compositional generalization because they try to **discover** structure through gradient descent on tokens.
 
-- **Addition:** `embed(a) + embed(b) = embed(a + b)` (linear embeddings)
-- **Multiplication:** `log_embed(a) + log_embed(b) = log_embed(a * b)` (log embeddings)
-
-This isn't learned. It's algebraic. Out-of-distribution generalization is guaranteed because the structure IS the solution.
-
-## The Connection
-
-This approach has a 100-year history in music theory:
-
-| Year | Development |
-|------|-------------|
-| 1739 | Euler's Tonnetz - geometric pitch embedding |
-| 1920s | Schoenberg's 12-tone matrix - transformations as structure |
-| 1973 | Forte's set theory - classify by invariants |
-| 1987 | Lewin's GIS - formal framework for transformation-based theory |
-| 2025 | FluxEM - same insight applied to neural arithmetic |
-
-FluxEM is a **Generalized Interval System** (Lewin, 1987) for numbers:
-- **S** = numbers (Lewin: musical objects)
-- **IVLS** = R under + or R+ under x (Lewin: interval group)
-- **int** = embedding distance (Lewin: interval function)
-
-The framework that unified 20th-century music theory also solves 21st-century neural arithmetic.
-
-## Key Result
-
-| Operation | OOD Accuracy (<=1% rel error) | Method |
-|-----------|-------------------------------|--------|
-| Addition | 100% | Linear embedding homomorphism |
-| Subtraction | 100% | Linear embedding homomorphism |
-| Multiplication | 100% | Log-magnitude homomorphism + sign |
-| Division | 100% | Log-magnitude homomorphism + sign |
-| Powers | 100% | Scalar multiplication in log-magnitude space |
-| Roots | 100% | Fractional scalar multiplication |
-
-Tested OOD ranges (relative error < 1%):
-- Addition/Subtraction: [-100000, 100000]
-- Multiplication: [10, 1000] x [10, 1000]
-- Division: [100, 10000] / [10, 100]
-
-## Domain and Guarantees
-
-- **Domain:** Real numbers under IEEE-754 floating point
-- **Exactness:** Identities are exact in real arithmetic; numerical error bounded by float precision
-- **Zero:** Handled explicitly (log(0) is undefined)
-- **Sign:** Tracked separately from magnitude in log space
-- **Directions:** Fixed random unit vectors (seeded), not learned
-- **Division by zero:** Returns signed infinity
-
-## What "100%" Means
-
-- All sampled OOD tests are within 1% relative error (or 0.5 absolute error for |expected| <= 1)
-- Ranges are the sampled intervals listed above, not an unbounded guarantee
-
-## Relation to Prior Work
-
-| Approach | Method | Limitation |
-|----------|--------|------------|
-| NALU (Trask, 2018) | Log/exp with learned gates | Gates can fail to generalize |
-| xVal (Golkar, 2023) | Learned scaling direction | Direction must be learned |
-| Abacus (McLeish, 2024) | Positional digit encoding | Character-level, not continuous |
-| **FluxEM** | Fixed algebraic structure | No learned parameters |
-
-FluxEM's contribution: composable embeddings where arithmetic is exact by construction.
-
-## Limitations
-
-Be aware:
-- **Zero handling:** `log(0)` is undefined; zero uses special-case logic
-- **Sign:** Magnitude and sign tracked separately (like polar coordinates)
-- **Precision:** "Exact" means exact in real arithmetic, limited by float32
-- **Tested ranges:** OOD claims based on sampled ranges (see tests for details)
-- **Negative fractional exponents:** Returns magnitude only (no complex values)
+FluxEM separates concerns:
+- **Rule execution**: When you know the rules, encode them. Exact results, guaranteed.
+- **Rule discovery**: When you don't know the rules, induce them from examples. Then execute exactly.
 
 ## Installation
 
 ```bash
+git clone https://github.com/Hmbown/FluxEM.git
+cd FluxEM
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 ```
 
-## Usage
+## Quick Start
+
+### Arithmetic (Exact)
 
 ```python
-from flux_lm import create_unified_model
+from fluxem import create_unified_model
 
-model = create_unified_model(dim=256)
-
-model.compute("12345+67890")  # -> 80235.0
-model.compute("456*789")      # -> 359784.0
-model.compute("56088/123")    # -> 456.0
+model = create_unified_model()
+model.compute("1847*392")   # -> 724024.0
+model.compute("12345+67890") # -> 80235.0
+model.compute("56088/123")   # -> 456.0
 ```
 
-## Integration
+No training. Algebraic identities guarantee correctness.
 
-FluxEM can be used as a drop-in numeric embedding primitive:
+### SCAN Oracle (Rule Execution)
 
-- Replace number token embeddings with FluxEM embeddings (linear or log as needed)
-- Concatenate FluxEM embeddings with learned token embeddings for mixed text/number inputs
-- Decode outputs with the corresponding encoder when a numeric value is required
+```python
+from fluxem import AlgebraicSCANSolver
 
-## Research Directions
+solver = AlgebraicSCANSolver()
+solver.solve("jump around right twice")
+# -> 'I_TURN_RIGHT I_JUMP I_TURN_RIGHT I_JUMP ...'
+```
 
-FluxEM demonstrates a general principle: **encode structure, don't learn it.**
+This is an **oracle baseline**—it executes known rules. The point: once rules are known, composition is trivial.
 
-Open questions:
-- Can this extend to symbolic differentiation? (See `fluxem/differentiation.py`)
-- What about compositional generalization in language?
-- Is there a unified embedding space for all arithmetic?
+### Rule Inducer (Rule Discovery)
 
-See the [Flux Mathematics textbook](../textbook/) for the theoretical framework.
+```python
+from scan_inducer import induce_unary_operator
 
-## Why "FluxEM"?
+examples = [
+    ("walk around right", ["I_TURN_RIGHT", "I_WALK"] * 4),
+    ("run around right", ["I_TURN_RIGHT", "I_RUN"] * 4),
+]
 
-- **Flux**: From [Flux Mathematics](../textbook/), inspired by Hindemith's transformation-first thinking - intervals are primary, pitches emerge
-- **EM**: Embedding Model. Like word2vec, but for numbers
+program = induce_unary_operator(examples, "around right")
+# -> Repeat(4, Concat(RTURN, ACTION))
 
-The approach is technically a **Generalized Interval System** (Lewin, 1987), but the name honors the philosophical lineage: Hindemith's insight that relationships define objects, not the other way around.
+program.execute(["I_JUMP"])
+# -> ['I_TURN_RIGHT', 'I_JUMP', 'I_TURN_RIGHT', 'I_JUMP', ...]
+```
 
-## Origins
+Learns the operator from 2 examples. Generalizes to unseen primitives perfectly.
 
-This project emerged from a music theory graduate seminar at SMU with Professor Frank, where Hindemith's intervallic analysis, set theory, and transformation-based approaches clicked into place.
+## Results
 
-The author spent 7 years as a music educator, is a trumpet player and vocalist, and saw the mismatch: ML treats numbers like arbitrary tokens while music theory has been treating pitch like geometry for a century.
+### Arithmetic
 
-FluxEM exists because a musician noticed that embedding arithmetic for neural networks is the same problem music theorists solved decades ago.
+| Operation | OOD Accuracy | Method |
+|-----------|--------------|--------|
+| Addition | 100% | Linear embedding homomorphism |
+| Subtraction | 100% | Linear embedding homomorphism |
+| Multiplication | 100% | Log-space homomorphism |
+| Division | 100% | Log-space homomorphism |
+| Powers/Roots | 100% | Scalar multiplication in log-space |
 
-## References
+Tested ranges: Addition [-100000, 100000], Multiplication [10, 1000] × [10, 1000]
 
-### Music Theory (Theoretical Lineage)
-- Lewin, D. (1987). *Generalized Musical Intervals and Transformations*
-- Cohn, R. (1998). "Introduction to Neo-Riemannian Theory"
-- Tymoczko, D. (2011). *A Geometry of Music*
-- Forte, A. (1973). *The Structure of Atonal Music*
-- Euler, L. (1739). *Tentamen novae theoriae musicae*
+### SCAN Oracle Baseline
 
-### ML Arithmetic (Problem Space)
-- Trask, A. et al. (2018). "Neural Arithmetic Logic Units"
-- Golkar, S. et al. (2023). "xVal: A Continuous Number Encoding"
-- McLeish, S. et al. (2024). "Transformers Can Do Arithmetic with the Right Embeddings"
+| Split | Oracle | Seq2Seq | What it shows |
+|-------|--------|---------|---------------|
+| addprim_jump | 100% | ~1% | Rule discovery failed, not composition |
+| addprim_turn_left | 100% | ~1% | Same |
+| length | 100% | ~14% | Length extrapolation trivial with known rules |
+| simple | 100% | ~99% | Memorization works when examples cover space |
+
+### Rule Induction
+
+| Operator | Examples | Generalization |
+|----------|----------|----------------|
+| around right | 1-3 | 100% on held-out primitives |
+
+## How It Works
+
+### Arithmetic
+
+Addition is vector addition:
+```
+embed(a) + embed(b) = embed(a + b)
+```
+
+Multiplication is addition in log-space:
+```
+log_embed(a) + log_embed(b) = log_embed(a × b)
+```
+
+These are algebraic identities, not learned patterns. See `docs/FORMAL_DEFINITION.md`.
+
+### SCAN Oracle
+
+Composition rules encoded directly. This is deterministic execution, not learning. See `docs/SCAN_BASELINE.md`.
+
+### Rule Inducer
+
+Program synthesis over a typed DSL:
+1. Enumerate candidate programs (bottom-up, by size)
+2. Prune by observational equivalence (signature hashing)
+3. Filter to programs consistent with all examples
+4. Return smallest (MDL principle)
+
+The induced program is explicit and human-readable.
+
+## Why This Matters
+
+SCAN has been used for 7 years to show neural networks fail at compositional generalization. They get ~0-20% on the hard splits.
+
+The diagnosis was incomplete. Neural networks don't fail at **composition**—they fail at **rule discovery** from limited examples.
+
+Once you separate the problems:
+- Rule discovery → program synthesis (works with 1-3 examples)
+- Rule execution → algebraic encoding (works perfectly)
+
+## Prior Work
+
+| Approach | Method | Difference |
+|----------|--------|------------|
+| NALU (Trask, 2018) | Learned log/exp gates | No learned parameters here |
+| xVal (Golkar, 2023) | Learned scaling direction | Fixed algebraic structure |
+| Abacus (McLeish, 2024) | Positional digit encoding | Continuous, not character-level |
+| Lake & Baroni (2018) | Identified SCAN problem | We separate discovery/execution |
+
+## Limitations
+
+- **Arithmetic**: Precision bounded by IEEE-754 float32 (see `docs/ERROR_MODEL.md`)
+- **SCAN Oracle**: Requires known grammar (that's the point—it's a baseline)
+- **Inducer**: Currently handles unary operators; binary operators not yet implemented
+- **Not a general-purpose reasoning system**
+
+## Documentation
+
+- `docs/FORMAL_DEFINITION.md` - Mathematical specification
+- `docs/ERROR_MODEL.md` - Precision guarantees and failure modes
+- `docs/SCAN_BASELINE.md` - Why the oracle is a baseline, not a result
+
+## The Name
+
+**Flux**: From transformation-first thinking in music theory (Lewin's Generalized Interval Systems)
+**EM**: Embedding Model
 
 ## Citation
 
 ```bibtex
 @software{fluxem2025,
-  title={FluxEM: Algebraic Embeddings for Deterministic Arithmetic},
+  title={FluxEM: Algebraic Embeddings with Separated Rule Discovery},
   author={Hunter Bown},
   year={2025},
-  note={Applies Lewin's Generalized Interval Systems to neural arithmetic}
+  url={https://github.com/Hmbown/FluxEM}
 }
 ```
 
 ## License
 
-Apache 2.0
+MIT

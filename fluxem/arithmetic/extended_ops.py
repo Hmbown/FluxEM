@@ -25,8 +25,8 @@ import jax.numpy as jnp
 import equinox as eqx
 from typing import Union
 
-from .logarithmic import LogarithmicNumberEncoder
-from .linear import NumberEncoder
+from .log_encoder import LogarithmicNumberEncoder
+from .linear_encoder import NumberEncoder
 
 
 class ExtendedOps(eqx.Module):

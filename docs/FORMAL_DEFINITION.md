@@ -53,7 +53,7 @@ See [ERROR_MODEL.md](ERROR_MODEL.md) for precise bounds.
 ## What This Is
 
 FluxEM is a **deterministic numeric module** for hybrid systems. It provides:
-- Algebraic embeddings with guaranteed homomorphism properties
+- Algebraic embeddings with homomorphism properties in real arithmetic (approximate under IEEE-754)
 - A drop-in numeric primitive, not a complete reasoning system
 
 It does NOT:

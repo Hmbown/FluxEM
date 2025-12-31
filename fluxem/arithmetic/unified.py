@@ -5,8 +5,7 @@ This module uses:
 - Linear embeddings for addition and subtraction
 - Logarithmic embeddings for multiplication and division
 
-Algebraic identities (exact in real arithmetic, numerically approximate in
-floating point):
+Algebraic identities (exact over the reals; approximate under IEEE-754):
     Addition:       embed(a) + embed(b) = embed(a + b)
     Subtraction:    embed(a) - embed(b) = embed(a - b)
     Multiplication: log_mag(a) + log_mag(b) = log_mag(a * b)
@@ -32,7 +31,7 @@ class UnifiedArithmeticModel(eqx.Module):
     Unified arithmetic model with deterministic operations.
 
     Uses:
-    - NumberEncoder for +, - (exact in real arithmetic)
+    - NumberEncoder for +, - (exact over the reals)
     - LogarithmicNumberEncoder for *, / (log-magnitude is additive)
 
     The arithmetic properties are built into the representation, not learned.
@@ -120,7 +119,7 @@ class UnifiedArithmeticModel(eqx.Module):
         """
         Compute the result using appropriate encoder.
 
-        For + and -: uses linear embeddings (exact in real arithmetic)
+        For + and -: uses linear embeddings (exact over the reals)
         For * and /: uses logarithmic embeddings (log-magnitude arithmetic)
         """
         PLUS = ord('+')
@@ -318,7 +317,7 @@ def evaluate_all_operations_ood(
     seed: int = 42,
 ) -> dict:
     """
-    Evaluate OOD accuracy on all four operations.
+    Evaluate tolerance-based OOD accuracy on all four operations.
 
     Parameters
     ----------

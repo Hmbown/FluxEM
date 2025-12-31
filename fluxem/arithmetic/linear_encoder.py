@@ -8,8 +8,8 @@ Linearity property:
     encode(a) + encode(b) = encode(a + b)
     encode(a) - encode(b) = encode(a - b)
 
-This algebraic identity is exact in real arithmetic and numerically
-approximate in floating point.
+This identity is exact in real arithmetic and approximate under IEEE-754
+floating point.
 
 Reference: Flux Mathematics textbook, Chapter 8
 """

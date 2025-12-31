@@ -1,12 +1,13 @@
 """
-FluxEM Arithmetic: Exact arithmetic through structured embeddings.
+FluxEM Arithmetic: Structured embeddings for arithmetic with float precision.
 
-This module provides algebraic embeddings that make arithmetic operations exact:
+This module provides algebraic embeddings that implement arithmetic operations
+within IEEE-754 float precision:
 - Linear embeddings for addition/subtraction: encode(a) + encode(b) = encode(a+b)
 - Logarithmic embeddings for multiplication/division: log_mag(a) + log_mag(b) = log_mag(a*b)
 - Extended operations for powers, roots, exp, ln
 
-Key Result: 100% OOD accuracy on all four basic operations.
+Key Result: accuracy within floating-point tolerance on all four basic operations.
 """
 
 from .linear_encoder import (

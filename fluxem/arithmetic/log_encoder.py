@@ -9,8 +9,8 @@ Mathematical basis:
 Sign is tracked separately in an orthogonal direction:
     sign(a * b) = sign(a) * sign(b)
 
-The full embedding is magnitude + sign; the homomorphism is exact for
-the magnitude projection and approximate in floating point.
+The full embedding is magnitude + sign; the homomorphism is exact in real
+arithmetic for the magnitude projection and approximate under IEEE-754.
 
 Zero is handled explicitly by encoding it as the zero vector.
 
@@ -159,7 +159,7 @@ class LogarithmicNumberEncoder(eqx.Module):
         """
         Multiply two numbers in embedding space.
 
-        This is ADDITION of the magnitude parts of the embeddings!
+        This adds the magnitude components in log space:
         log(a * b) = log(a) + log(b)
 
         For signs: (+)(+)=+, (+)(-)=-, (-)(+)=-, (-)(-)=+
@@ -192,7 +192,7 @@ class LogarithmicNumberEncoder(eqx.Module):
         """
         Divide two numbers in embedding space.
 
-        This is SUBTRACTION of the magnitude parts of the embeddings!
+        This subtracts the magnitude components in log space:
         log(a / b) = log(a) - log(b)
 
         Parameters

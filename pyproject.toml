@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "fluxem"
 version = "0.2.0"
-description = "Encode structure, don't learn it. Exact arithmetic and compositional generalization."
+description = "Algebraic embeddings for exact neural arithmetic"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -19,7 +19,6 @@ keywords = [
     "neural-networks",
     "algebraic",
     "machine-learning",
-    "deep-learning",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

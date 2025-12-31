@@ -7,7 +7,7 @@ FluxEM operates in IEEE-754 floating point. All errors arise from:
 2. Accumulation in dot products
 3. Representation limits (denormals, overflow)
 
-## Tested Guarantees
+## Tested Results
 
 | Operation | Test Range | Samples | Relative Error |
 |-----------|------------|---------|----------------|
@@ -16,7 +16,7 @@ FluxEM operates in IEEE-754 floating point. All errors arise from:
 | Multiplication | [10, 1000] x [10, 1000] | 200 | < 1% |
 | Division | [100, 10000] / [10, 100] | 200 | < 1% |
 
-"100% OOD accuracy" means: all samples within these ranges achieved < 1% relative error (or < 0.5 absolute error when |expected| <= 1).
+"Accuracy within floating-point tolerance" means: all samples within these ranges achieved < 1% relative error (or < 0.5 absolute error when |expected| <= 1).
 
 ## Known Failure Modes
 
@@ -36,7 +36,7 @@ import jax
 jax.config.update("jax_enable_x64", True)
 ```
 
-This reduces relative error by ~8 orders of magnitude for most operations.
+This often reduces relative error by ~8 orders of magnitude for most operations.
 
 ## Error Sources by Operation
 

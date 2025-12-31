@@ -2,6 +2,10 @@
 
 **Algebraic embeddings for arithmetic with IEEE-754 float precision.**
 
+<p align="center">
+  <img src="docs/demo.gif" alt="FluxEM terminal demo" width="600">
+</p>
+
 ## The Problem
 
 Neural networks often struggle with arithmetic. They can explain calculus but fumble `1847 × 392`. This happens because they treat numbers as arbitrary tokens.

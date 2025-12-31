@@ -2,11 +2,10 @@ name: ci
 
 on:
   workflow_dispatch:
-  # Uncomment to enable CI on pushes and PRs.
-  # push:
-  #   branches: ["main"]
-  # pull_request:
-  #   branches: ["main"]
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
   test:

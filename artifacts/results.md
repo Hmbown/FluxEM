@@ -5,8 +5,15 @@
 | Method | ID Test | OOD-A | OOD-B | OOD-C | OOD Avg |
 |--------|---------|-------|-------|-------|---------|
 | FluxEM (ours) | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% |
-| Transformer | 2.0% | 1.0% | 0.0% | 0.5% | 0.5% |
-| GRU | 3.0% | 0.5% | 0.5% | 0.0% | 0.3% |
+| Transformer | 1.5% | 0.0% | 0.5% | 2.0% | 0.8% |
+| GRU | 0.0% | 0.5% | 0.5% | 0.5% | 0.5% |
+
+## Training Details
+
+- **Training data**: 10K expressions, integers [0, 999], 1-3 operations
+- **Epochs**: 50
+- **Transformer**: ~72K params, d_model=64, 4 heads, 2 layers
+- **GRU**: ~47K params, embed=32, hidden=64, bidirectional
 
 ## Notes
 

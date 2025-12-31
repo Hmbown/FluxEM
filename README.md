@@ -62,18 +62,19 @@ This is the same log-space pathway used in learned arithmetic units, but FluxEM 
 
 ## Benchmark
 
-We compared FluxEM against learned baselines (Transformer, GRU) on arithmetic expression evaluation. Training: integers [0, 999], 1-3 operations. Testing: in-distribution + three OOD shifts.
+We compared FluxEM against learned baselines (Transformer, GRU) on arithmetic expression evaluation. Training: 10K expressions, integers [0, 999], 1-3 operations, 50 epochs. Testing: in-distribution + three OOD shifts.
 
 | Method | ID Test | OOD-A (large ints) | OOD-B (long expr) | OOD-C (with **) |
 |--------|---------|-------------------|-------------------|-----------------|
 | FluxEM | 100% | 100% | 100% | 100% |
-| Transformer | 2% | 1% | 0% | 0.5% |
-| GRU | 3% | 0.5% | 0.5% | 0% |
+| Transformer | 2% | 0% | 0.5% | 2% |
+| GRU | 0% | 0.5% | 0.5% | 0.5% |
 
 *Accuracy = predictions within 1% relative error. FluxEM's mean relative error: ~1e-7. Baselines: ~1e8.*
 
 ```bash
-python -m benchmarks.run_all --quick  # reproduce in ~15 seconds
+python -m benchmarks.run_all --quick  # quick test (~15 sec)
+python -m benchmarks.run_all          # full benchmark (~20 min)
 ```
 
 ## API Reference

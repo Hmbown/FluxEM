@@ -95,3 +95,7 @@ Thumbs.db
 
 # JAX cache
 .jax_cache/
+
+# Benchmark artifacts (regeneratable)
+artifacts/checkpoints/
+artifacts/datasets/

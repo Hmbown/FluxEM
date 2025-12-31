@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluxEM: Algebraic Embeddings for Neural Arithmetic</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <article>
+        <header>
+            <h1>FluxEM: Algebraic Embeddings for Neural Arithmetic</h1>
+            <div class="authors">
+                <span class="author">Hunter Bown</span>
+                <span class="affiliation">Shannon Labs</span>
+            </div>
+            <div class="date">December 2024</div>
+        </header>
+
+        <section class="abstract">
+            <h2>Abstract</h2>
+            <p>
+                Neural networks often struggle with arithmetic because they treat numbers as arbitrary tokens.
+                FluxEM is an embedding scheme where arithmetic operations map to geometric operations:
+                addition becomes vector addition, and multiplication becomes addition in log space.
+                The result is systematic generalization from algebraic structure without learned parameters,
+                with accuracy evaluated within floating-point tolerance. The approach draws on Lewin's
+                Generalized Interval Systems (1987), a framework from music theory that formalizes
+                transformation-based structure.
+            </p>
+        </section>
+
+        <section>
+            <h2>1. The Problem</h2>
+            <p>
+                Large language models can describe calculus but still fumble arithmetic like
+                <code>1847 x 392</code>. Prior work (NALU, xVal, Abacus) focuses on training
+                models to learn arithmetic more reliably.
+            </p>
+            <p>
+                The core issue is representation: when numbers are embedded as arbitrary token vectors,
+                arithmetic relationships must be inferred from data. This inference often fails to
+                generalize to new ranges.
+            </p>
+        </section>
+
+        <section>
+            <h2>2. The Insight</h2>
+            <p>
+                What if numbers were encoded so arithmetic operations are geometric operations?
+            </p>
+            <p>
+                For addition, embed numbers along a fixed direction. Then vector addition in
+                embedding space equals arithmetic addition:
+            </p>
+            <div class="equation">
+                embed(a) + embed(b) = embed(a + b)
+            </div>
+            <p>
+                For multiplication, embed in log space. Addition in log space corresponds to
+                multiplication in linear space:
+            </p>
+            <div class="equation">
+                log_embed(a) + log_embed(b) = log_embed(a x b)
+            </div>
+            <p>
+                These are algebraic identities in real arithmetic; under IEEE-754, they hold
+                within floating-point precision bounds.
+            </p>
+        </section>
+
+        <section>
+            <h2>3. Formal Definition</h2>
+            <h3>3.1 Linear Embedding</h3>
+            <p>For addition and subtraction:</p>
+            <div class="equation">
+                e_lin(n) = (n / scale) * v
+            </div>
+            <p>
+                where v in R^d is a fixed unit vector. The homomorphism property
+                e_lin(a) + e_lin(b) = e_lin(a + b) follows directly.
+            </p>
+
+            <h3>3.2 Logarithmic Embedding</h3>
+            <p>For multiplication and division:</p>
+            <div class="equation">
+                e_log(n) = (log|n| / scale) * v_mag + sign(n) * v_sign
+            </div>
+            <p>
+                where v_mag and v_sign are orthogonal unit vectors. Magnitude and sign are
+                tracked separately.
+            </p>
+        </section>
+
+        <section>
+            <h2>4. Results</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Operation</th>
+                        <th>OOD Accuracy</th>
+                        <th>Test Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Addition</td><td>Within tolerance</td><td>[-100000, 100000]</td></tr>
+                    <tr><td>Subtraction</td><td>Within tolerance</td><td>[-100000, 100000]</td></tr>
+                    <tr><td>Multiplication</td><td>Within tolerance</td><td>[10, 1000] x [10, 1000]</td></tr>
+                    <tr><td>Division</td><td>Within tolerance</td><td>[100, 10000] / [10, 100]</td></tr>
+                    <tr><td>Powers</td><td>Within tolerance</td><td>Various</td></tr>
+                    <tr><td>Roots</td><td>Within tolerance</td><td>Various</td></tr>
+                </tbody>
+            </table>
+            <p class="note">
+                "Within tolerance" means all samples achieved &lt; 1% relative error
+                (or &lt; 0.5 absolute error when |expected| &lt;= 1). Errors arise from IEEE-754
+                floating-point precision.
+            </p>
+        </section>
+
+        <section>
+            <h2>5. Connection to Music Theory</h2>
+            <p>
+                This approach has historical roots in music theory. Euler's Tonnetz (1739)
+                embedded pitches geometrically, and Lewin's <em>Generalized Musical Intervals
+                and Transformations</em> (1987) formalized a transformation-based framework.
+            </p>
+            <p>
+                A Generalized Interval System (GIS) consists of:
+            </p>
+            <ul>
+                <li><strong>S</strong>: a set of objects (pitches, or in this case, numbers)</li>
+                <li><strong>IVLS</strong>: an interval group (Z_12 for pitch classes, R for numbers)</li>
+                <li><strong>int</strong>: a function mapping pairs to intervals</li>
+            </ul>
+            <p>
+                FluxEM applies this structure to numbers: arithmetic is encoded directly as
+                interval relations in embedding space.
+            </p>
+        </section>
+
+        <section>
+            <h2>6. Prior Work</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Approach</th>
+                        <th>Method</th>
+                        <th>Limitation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>NALU (Trask 2018)</td>
+                        <td>Log/exp with learned gates</td>
+                        <td>Gates can fail to generalize</td>
+                    </tr>
+                    <tr>
+                        <td>xVal (Golkar 2023)</td>
+                        <td>Learned scaling direction</td>
+                        <td>Direction must be learned</td>
+                    </tr>
+                    <tr>
+                        <td>Abacus (McLeish 2024)</td>
+                        <td>Positional digit encoding</td>
+                        <td>Character-level, not continuous</td>
+                    </tr>
+                    <tr>
+                        <td>FluxEM</td>
+                        <td>Fixed algebraic structure</td>
+                        <td>Parameter-free</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>7. Limitations</h2>
+            <ul>
+                <li>Precision bounded by IEEE-754 floating point</li>
+                <li>Zero requires special handling (log(0) undefined)</li>
+                <li>Sign tracked separately from magnitude in log space</li>
+                <li>Not a general reasoning system: arithmetic only</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>8. Code</h2>
+            <pre><code>pip install fluxem
+
+from fluxem import create_unified_model
+
+model = create_unified_model()
+model.compute("1847*392")    # -> 724024.0
+model.compute("123456+789")  # -> 124245.0
+model.compute("2**16")       # -> 65536.0</code></pre>
+            <p>
+                Source: <a href="https://github.com/Hmbown/FluxEM">github.com/Hmbown/FluxEM</a>
+            </p>
+        </section>
+
+        <section>
+            <h2>9. Lean4 Notes</h2>
+            <p>
+                These snippets illustrate how the linear and logarithmic properties can be stated
+                in a proof assistant. They are illustrative and omit proof details.
+            </p>
+            <pre><code>-- Linear embedding property (sketch)
+-- e_lin (a + b) = e_lin a + e_lin b
+
+-- Log embedding magnitude property (sketch)
+-- proj_mag (e_log (a * b)) = proj_mag (e_log a) + proj_mag (e_log b)</code></pre>
+        </section>
+
+        <section class="references">
+            <h2>References</h2>
+            <ul>
+                <li>Euler, L. (1739). <em>Tentamen novae theoriae musicae</em>.</li>
+                <li>Lewin, D. (1987). <em>Generalized Musical Intervals and Transformations</em>. Yale University Press.</li>
+                <li>Trask, A. et al. (2018). Neural Arithmetic Logic Units. <em>NeurIPS</em>.</li>
+                <li>Golkar, S. et al. (2023). xVal: A Continuous Number Encoding. <em>arXiv</em>.</li>
+                <li>McLeish, S. et al. (2024). Transformers Can Do Arithmetic with the Right Embeddings. <em>arXiv</em>.</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>Hunter Bown · Shannon Labs · 2024</p>
+            <p>
+                <a href="https://github.com/Hmbown/FluxEM">GitHub</a> ·
+                <a href="https://pypi.org/project/fluxem/">PyPI</a>
+            </p>
+        </footer>
+    </article>
+</body>
+</html>

@@ -13,7 +13,7 @@ where `v in R^d` is a fixed unit vector and `scale` is a normalization constant.
 ```
 e_lin(a) + e_lin(b) = e_lin(a + b)
 ```
-This is exact in real arithmetic. Under IEEE-754, error is bounded by floating-point precision.
+This is exact as a real-valued identity. Under IEEE-754, error is bounded by floating-point precision.
 
 **Decode function:**
 ```
@@ -34,7 +34,9 @@ where `v_mag, v_sign in R^d` are orthogonal unit vectors.
 ```
 proj_mag(e_log(a)) + proj_mag(e_log(b)) = proj_mag(e_log(a * b))
 ```
-Sign is tracked separately: `sign(a * b) = sign(a) * sign(b)`
+Sign is tracked separately: `sign(a * b) = sign(a) * sign(b)`.
+The sign component is not a linear homomorphism under vector addition; it is
+extracted and recombined in the operator definition.
 
 **Decode function:**
 ```
@@ -42,9 +44,22 @@ d_log: R^d -> R
 d_log(x) = sign(x . v_sign) * exp(log_scale * (x . v_mag))
 ```
 
+## Zero Handling
+
+The logarithmic embedding is defined on R \\ {0}. Zero is handled explicitly
+outside the algebraic embedding:
+
+- Encode: map zero to the zero vector, with an explicit zero flag.
+- Multiply/divide: if either operand is zero, return zero (or inf for division).
+- Decode: if the zero flag is set, return 0 regardless of the embedding vector.
+
+This makes zero handling a masked branch rather than a property of vector
+addition.
+
 ## What "Exact" Means
 
-The homomorphism properties are exact in R. Under IEEE-754 float32/float64:
+The magnitude homomorphism is exact over R (isomorphic structure). Under
+IEEE-754 float32/float64:
 - Errors arise from: rounding in exp/log, accumulation in dot products
 - NOT from: learning, approximation, or model capacity
 

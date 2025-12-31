@@ -53,9 +53,10 @@ from fluxem import create_unified_model
 
 model = create_unified_model()
 
-model.compute("1847*392")    # -> 724024.0
-model.compute("123456+789")  # -> 124245.0
-model.compute("56088/123")   # -> 456.0
+model.compute("1234 + 5678")  # -> 6912.0
+model.compute("250 * 4")      # -> 1000.0
+model.compute("1000 / 8")     # -> 125.0
+model.compute("3 ** 4")       # -> 81.0
 ```
 
 Extended operations:

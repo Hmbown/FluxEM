@@ -90,20 +90,36 @@ class UnifiedArithmeticModel(eqx.Module):
         result = self._compute(op1_value, operator, op2_value)
         return result
 
-    def compute(self, expr: str) -> float:
+    def compute(self, expr: str, round_to: int = 2) -> float:
         """
         Compute an arithmetic expression from string.
 
         Parameters
         ----------
         expr : str
-            Expression like "42+58=" or "123*456".
+            Expression like "42+58=" or "123*456" or "2**16".
+        round_to : int
+            Decimal places to round result (default 6). Set to None to disable.
 
         Returns
         -------
         float
             Numeric result.
         """
+        # Strip whitespace
+        expr = expr.replace(' ', '')
+
+        # Handle ** exponentiation before regular parsing
+        if '**' in expr:
+            expr_clean = expr.rstrip('=')
+            parts = expr_clean.split('**')
+            if len(parts) == 2:
+                base, exp = float(parts[0]), float(parts[1])
+                from .extended_ops import create_extended_ops
+                ops = create_extended_ops()
+                result = ops.power(base, exp)
+                return round(result, round_to) if round_to is not None else result
+
         if '=' not in expr:
             expr = expr + '='
 
@@ -113,7 +129,8 @@ class UnifiedArithmeticModel(eqx.Module):
 
         op1, operator, op2 = self._parse_expression(input_bytes)
 
-        return self._compute_value(float(op1), int(operator), float(op2))
+        result = self._compute_value(float(op1), int(operator), float(op2))
+        return round(result, round_to) if round_to is not None else result
 
     def _compute_value(self, op1: float, operator: int, op2: float) -> float:
         """

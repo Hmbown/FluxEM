@@ -6,9 +6,12 @@ Set Width 800
 Set Height 450
 Set Theme "Dracula"
 
+# Hide venv activation
+Hide
 Type "source .venv/bin/activate"
 Enter
 Sleep 500ms
+Show
 
 Type "python3"
 Enter
@@ -22,19 +25,19 @@ Type "model = create_unified_model()"
 Enter
 Sleep 500ms
 
-Type "model.compute('1847*392')"
+Type "model.compute('1234 + 5678')"
 Enter
 Sleep 1s
 
-Type "model.compute('123456+789')"
+Type "model.compute('250 * 4')"
 Enter
 Sleep 1s
 
-Type "model.compute('2**16')"
+Type "model.compute('1000 / 8')"
 Enter
 Sleep 1s
 
-Type "model.compute('56088/123')"
+Type "model.compute('3 ** 4')"
 Enter
 Sleep 1.5s
 

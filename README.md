@@ -158,6 +158,17 @@ tokens = tokenizer.tokenize("Water (H2O) boils at 373.15 K")
 pipeline = TrainingPipeline()
 ```
 
+### Run Experiments
+
+```bash
+# Generate data, train models, evaluate
+python experiments/scripts/generate_data.py --config experiments/configs/arithmetic_small.yaml
+python experiments/scripts/train_hybrid.py --config experiments/configs/arithmetic_small.yaml
+python experiments/scripts/eval.py --config experiments/configs/arithmetic_small.yaml
+```
+
+See [docs/HYBRID_TRAINING.md](docs/HYBRID_TRAINING.md) for the full architecture and [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) for detailed instructions.
+
 ## Hybrid Training Vision: Embed What Should Be Embedded
 
 FluxEM is motivated by a simple thesis:
@@ -198,36 +209,27 @@ The core bet: the transformer learns *routing and composition*, while the exact 
 
 This roadmap is oriented toward a publishable/reproducible research result: demonstrate that hybrid tokenization+algebraic embeddings improve exactness and generalization.
 
-### Phase 0 — Foundations (done / ongoing)
+### Phase 0 — Foundations ✅
 
 - Deterministic encoders with unit tests across domains
 - Backend abstraction (JAX/MLX/NumPy) with equivalent semantics
 - Mixed-pattern detection primitives (`MultiDomainTokenizer`) and registry (`DomainEncoderRegistry`)
 
-### Phase 1 — Hybrid data format + evaluation harness
+### Phase 1 — Hybrid data format + evaluation harness ✅
 
-- Define a **mixed-sequence serialization** for training samples (text spans + typed domain spans)
-- Add an evaluation suite with exact metrics for:
-  - arithmetic (large magnitude, long expressions)
-  - dimensional analysis (type-checking + conversion)
-  - chemistry (formula parsing + mass/stoichiometry)
-  - music set theory (invariants, prime form)
-- Add ablations:
-  - token-only
-  - hybrid with frozen FluxEM encoders
-  - hybrid with learned-only (no FluxEM) baselines
+- **Mixed-sequence JSONL format** defined in `fluxem/integration/sample_format.py`
+- Evaluation suite with exact metrics (arithmetic, dimensional analysis)
+- Token-only and hybrid training baselines in `experiments/scripts/`
+- See [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) for exact commands
 
-### Phase 2 — Model integration (small-scale)
+### Phase 2 — Model integration (small-scale) ✅
 
-- Implement a minimal reference integration:
-  - project 128-d domain embeddings into the LLM hidden space (`MultiDomainProjector`)
-  - splice projected embeddings into the input sequence
-  - add a small type embedding / domain-tag embedding to stabilize routing
-- Train on a controlled mixture (e.g. arithmetic + unit conversion + natural-language explanation)
+- `MultiDomainProjector`: projects 128-d → LLM hidden dim
+- Type embeddings for domain routing
+- Hybrid transformer implementation in `experiments/scripts/train_hybrid.py`
+- See [docs/HYBRID_TRAINING.md](docs/HYBRID_TRAINING.md) for architecture details
 
-Deliverable: reproducible experiment showing improved exactness vs token-only at the same parameter count.
-
-### Phase 3 — Scaling + robustness
+### Phase 3 — Scaling + robustness (current)
 
 - Improve detection/segmentation robustness:
   - ambiguity handling (multiple parses)

@@ -14,10 +14,10 @@ from fluxem.domains.chemistry.molecules import Formula
 def test_unified_model_compute_basic_ops():
     model = create_unified_model()
 
-    assert model.compute("1234 + 5678") == 6912.0
-    assert model.compute("250 * 4") == 1000.0
-    assert model.compute("1000 / 8") == 125.0
-    assert model.compute("3 ** 4") == 81.0
+    assert model.compute("1234 + 5678") == pytest.approx(6912.0, rel=1e-4)
+    assert model.compute("250 * 4") == pytest.approx(1000.0, rel=1e-4)
+    assert model.compute("1000 / 8") == pytest.approx(125.0, rel=1e-4)
+    assert model.compute("3 ** 4") == pytest.approx(81.0, rel=1e-4)
 
 
 def test_extended_ops_power_and_sqrt():

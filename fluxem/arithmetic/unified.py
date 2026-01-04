@@ -96,7 +96,7 @@ class UnifiedArithmeticModel:
         result = self._compute(op1_value, operator, op2_value)
         return result
 
-    def compute(self, expr: str, round_to: int = 2) -> float:
+    def compute(self, expr: str, round_to: int = 10) -> float:
         """
         Compute an arithmetic expression from string.
 
@@ -105,7 +105,7 @@ class UnifiedArithmeticModel:
         expr : str
             Expression like "42+58=" or "123*456" or "2**16".
         round_to : int
-            Decimal places to round result (default 6). Set to None to disable.
+            Decimal places to round result (default 10). Set to None to disable.
 
         Returns
         -------

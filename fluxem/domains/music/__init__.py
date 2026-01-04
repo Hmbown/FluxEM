@@ -350,11 +350,14 @@ class PitchEncoder:
                 accidental -= 1
 
         # Calculate MIDI
-        base_midi = {"C": 12, "D": 14, "E": 16, "F": 17, "G": 19, "A": 21, "B": 23}.get(
-            note_name, 12
+        # Semitone offset from C (C=0, D=2, E=4, F=5, G=7, A=9, B=11)
+        semitone_offset = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}.get(
+            note_name, 0
         )
 
-        midi = base_midi + accidental + (octave + 1) * 12
+        # MIDI = (octave + 1) * 12 + semitone_offset + accidental
+        # A4 = (4+1)*12 + 9 = 69 ✓
+        midi = (octave + 1) * 12 + semitone_offset + accidental
         return midi
 
     def _parse_note_tuple(self, note_tuple: Tuple[str, int]) -> int:

@@ -201,8 +201,8 @@ class DNAEncoder:
         """
         Decode embedding back to DNA sequence (reconstruction).
 
-        Note: Cannot perfectly reconstruct original sequence due to
-        compression. Returns closest match by length and composition.
+        For sequences up to 32 bases, exact reconstruction is possible.
+        For longer sequences, only the first 32 bases are stored.
         """
         backend = get_backend()
         # Extract properties
@@ -211,8 +211,8 @@ class DNAEncoder:
 
         gc = emb[8 + GC_CONTENT_OFFSET].item()
 
-        # Reconstruct sequence with matching composition
-        seq = self._reconstruct_sequence(length, gc)
+        # Reconstruct sequence from stored base values
+        seq = self._reconstruct_sequence(length, emb)
 
         return DNASequence(
             sequence=seq,
@@ -307,34 +307,61 @@ class DNAEncoder:
     # ========================================================================
 
     def _sequence_hash(self, sequence: str) -> List[float]:
-        """Create a deterministic hash embedding of the sequence."""
+        """
+        Encode the sequence as a list of base values for exact reconstruction.
+
+        Each base is encoded as a distinct value:
+        - A = 0.25
+        - T = 0.50
+        - G = 0.75
+        - C = 1.00
+        - Empty/padding = 0.0
+
+        We have 32 dimensions, so sequences up to 32 bases can be exactly stored.
+        For longer sequences, we store the first 32 bases (truncated).
+        """
+        BASE_VALUES = {"A": 0.25, "T": 0.50, "G": 0.75, "C": 1.00}
         values = []
         for i in range(32):
-            # Simple rolling hash
-            val = 0.0
-            for j, base in enumerate(sequence):
-                base_code = BASE_ORDER.get(base, 0)
-                val += base_code * ((i + 1) ** j)
-            values.append((val % 1000) / 1000.0)
+            if i < len(sequence):
+                values.append(BASE_VALUES.get(sequence[i], 0.0))
+            else:
+                values.append(0.0)  # Padding for shorter sequences
         return values
 
-    def _reconstruct_sequence(self, length: int, gc: float) -> str:
-        """Reconstruct a sequence with matching length and GC content."""
+    def _reconstruct_sequence(self, length: int, emb: Any) -> str:
+        """
+        Reconstruct a sequence from the embedding.
+
+        Decodes base values stored in the sequence embedding region:
+        - 0.25 -> A
+        - 0.50 -> T
+        - 0.75 -> G
+        - 1.00 -> C
+        """
         if length <= 0:
             return ""
 
-        num_gc = int(length * gc)
-        num_at = length - num_gc
+        # Decode bases from the sequence embedding region
+        VALUE_TO_BASE = {0.25: "A", 0.50: "T", 0.75: "G", 1.00: "C"}
+        bases = []
 
-        # Distribute evenly among GC and AT bases
-        num_g = num_gc // 2
-        num_c = num_gc - num_g
-        num_a = num_at // 2
-        num_t = num_at - num_a
+        # Only reconstruct up to the stored length (max 32 bases)
+        reconstruct_length = min(length, 32)
 
-        # Create sequence
-        seq = "G" * num_g + "C" * num_c + "A" * num_a + "T" * num_t
-        return seq
+        for i in range(reconstruct_length):
+            val = emb[8 + SEQUENCE_EMBED_OFFSET + i].item()
+            # Find closest matching base value
+            closest_base = "A"  # Default
+            closest_dist = float("inf")
+            for base_val, base in VALUE_TO_BASE.items():
+                dist = abs(val - base_val)
+                if dist < closest_dist:
+                    closest_dist = dist
+                    closest_base = base
+            bases.append(closest_base)
+
+        return "".join(bases)
 
 
 def translate_dna_to_protein(dna_seq: str) -> str:

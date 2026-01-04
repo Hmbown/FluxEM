@@ -133,7 +133,9 @@ class Formula:
 
     def __repr__(self) -> str:
         parts = []
-        # Standard order: C, H, then alphabetical
+        # Hill system ordering: C first, H second, then remaining elements alphabetically.
+        # This is the standard canonical form in chemistry (e.g., NaCl -> ClNa, H2SO4 -> H2O4S).
+        # For organic compounds (containing C), this produces familiar forms like CH4, C6H12O6.
         order = ['C', 'H'] + sorted(set(self.composition.keys()) - {'C', 'H'})
         for symbol in order:
             count = self.composition.get(symbol, 0)
@@ -230,11 +232,18 @@ class MoleculeEncoder:
         """
         Decode embedding to molecular formula.
 
+        Note: The decoded formula uses canonical (Hill system) ordering:
+        C first, then H, then remaining elements alphabetically.
+        This means encode('NaCl').decode() produces 'ClNa' (alphabetically sorted).
+        This is intentional - the embedding preserves chemical composition,
+        not the original string representation. Hill ordering is the standard
+        canonical form in chemistry for molecular formulas.
+
         Args:
             emb: 128-dim embedding
 
         Returns:
-            Formula object
+            Formula object with composition in canonical order
         """
         backend = get_backend()
         composition = {}

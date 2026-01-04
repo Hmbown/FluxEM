@@ -107,18 +107,18 @@ class BenchmarkConfig:
         positional = embeddings.get("positional", {})
 
         return cls(
-            seed=data.get("seed", 42),
-            n_samples_id=benchmark.get("n_samples_id", 500),
-            n_samples_ood=benchmark.get("n_samples_ood", 500),
+            seed=int(data.get("seed", 42)),
+            n_samples_id=int(benchmark.get("n_samples_id", 500)),
+            n_samples_ood=int(benchmark.get("n_samples_ood", 500)),
             id_range=tuple(benchmark.get("id_range", [0, 999])),
             ood_magnitude_range=tuple(benchmark.get("ood_magnitude_range", [100000, 9999999])),
             ood_chain_length=tuple(benchmark.get("ood_chain_length", [3, 5])),
             operations=benchmark.get("operations", ["+", "-", "*", "/"]),
-            tolerance=benchmark.get("tolerance", 0.01),
+            tolerance=float(benchmark.get("tolerance", 0.01)),
             verbose=data.get("output", {}).get("verbose", False),
-            fluxem_dim=fluxem.get("dim", 256),
-            fluxem_linear_scale=fluxem.get("linear_scale", 1e7),
-            fluxem_log_scale=fluxem.get("log_scale", 25.0),
+            fluxem_dim=int(fluxem.get("dim", 256)),
+            fluxem_linear_scale=float(fluxem.get("linear_scale", 1e7)),
+            fluxem_log_scale=float(fluxem.get("log_scale", 25.0)),
             learned_vocab_size=learned.get("vocab_size", 14),
             learned_embed_dim=learned.get("embed_dim", 64),
             learned_hidden_dim=learned.get("hidden_dim", 128),
@@ -795,6 +795,10 @@ def run_benchmark(config: BenchmarkConfig) -> Dict[str, Dict[str, EvaluationResu
     for approach in approaches:
         results[approach.name] = {}
         print(f"\n  Evaluating {approach.name}...")
+
+        # Re-seed for consistent evaluation across runs
+        # (simulated approaches use np.random for noise)
+        np.random.seed(config.seed + 2000)
 
         for dataset_name, data in datasets.items():
             result = evaluate_approach(approach, data, dataset_name, config.tolerance)

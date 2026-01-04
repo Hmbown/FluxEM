@@ -26,7 +26,7 @@ embeddings:
   fluxem:
     enabled: true
     dim: 256
-    linear_scale: 1e7
+    linear_scale: 10000000.0  # 1e7 as explicit float
     log_scale: 25.0
 
   character:

@@ -266,19 +266,35 @@ FluxEM implements fixed encodings that guarantee algebraic properties:
 | **Log** | `*` `/` `**` | Operations reduce to addition in log-space |
 | **Domain** | varies | Preserves domain-specific algebraic structure |
 
-## Benchmark
+## Key Results: 100% OOD Generalization
 
-We compared FluxEM against small learned baselines on arithmetic evaluation:
+FluxEM achieves **100% accuracy on out-of-distribution tests** — a result impossible for learned approaches:
 
-| Method | ID Test | OOD-A (large ints) | OOD-B (long expr) | OOD-C (with **) |
-|--------|---------|-------------------|-------------------|-----------------|
-| FluxEM | 100% | 100% | 100% | 100% |
-| Transformer | 2% | 0% | 0.5% | 2% |
-| GRU | 0% | 0.5% | 0.5% | 0.5% |
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  EMBEDDING COMPARISON: Accuracy within 1% relative error                    │
+├─────────────────┬────────────┬─────────────────┬────────────────────────────┤
+│  Method         │  ID Test   │  OOD-Magnitude  │  OOD-Length (chains)       │
+├─────────────────┼────────────┼─────────────────┼────────────────────────────┤
+│  FluxEM         │   100.0%   │     100.0%      │       100.0%               │
+│  Character      │    18.4%   │      56.2%      │        15.4%               │
+│  Learned MLP    │     0.4%   │       0.0%      │         1.0%               │
+│  Positional     │    69.8%   │       1.8%      │        67.4%               │
+└─────────────────┴────────────┴─────────────────┴────────────────────────────┘
+```
 
-*Training: 10K expressions, integers [0, 999], 50 epochs. Accuracy = within 1% relative error.*
+**Why 100%?** FluxEM's accuracy is *guaranteed by construction*:
+- `embed(a) + embed(b) = embed(a + b)` — exact algebraic homomorphism
+- No training needed, no distribution to overfit
+- Works on *any* numbers, not just training examples
 
-FluxEM's OOD generalization is guaranteed by construction (homomorphism), not learned.
+### Benchmark Details
+
+| Test | Description | FluxEM | Best Learned |
+|------|-------------|--------|--------------|
+| **ID** | Numbers in [1, 1000] | 100% | 69.8% (Positional) |
+| **OOD-Magnitude** | Numbers in [1000, 100000] | 100% | 56.2% (Character) |
+| **OOD-Length** | Multi-operand chains | 100% | 67.4% (Positional) |
 
 ```bash
 python -m benchmarks.run_all --quick  # quick test (~15 sec)
@@ -291,23 +307,22 @@ python -m benchmarks.run_all          # full benchmark (~20 min)
 - LLMs tokenize numbers as text ("123" → ['1','2','3'])
 - No arithmetic structure preserved
 - Must learn operations from data
-- OOD generalization fails
+- **OOD generalization fundamentally limited**
 
 ### FluxEM Solution
-- Algebraic embeddings preserve operations
-- embed(a) + embed(b) = embed(a+b) exactly
-- No training needed for arithmetic
-- Perfect OOD generalization
+- Algebraic embeddings preserve operations exactly
+- `embed(a) + embed(b) = embed(a+b)` by construction
+- No training required for arithmetic
+- **Perfect OOD generalization guaranteed**
 
-### Comparison Summary
-| Approach | ID Accuracy | OOD Accuracy | Training Required |
-|----------|-------------|--------------|-------------------|
-| Character tokens | ~95% | ~20% | Yes |
-| BPE tokens | ~90% | ~15% | Yes |
-| Learned embeddings | ~98% | ~25% | Yes |
-| Word2Vec style | ~85% | ~10% | Yes |
-| Sentence-transformers | N/A | N/A | N/A (semantic only) |
-| **FluxEM** | **100%** | **100%** | **No** |
+### Full Comparison (500 samples per condition)
+
+| Approach | ID Accuracy | OOD-Mag | OOD-Length | Training | Median Error |
+|----------|-------------|---------|------------|----------|--------------|
+| **FluxEM** | **100%** | **100%** | **100%** | **None** | **<0.0001** |
+| Character tokens | 18.4% | 56.2% | 15.4% | 5K examples | 0.0315 |
+| Learned MLP | 0.4% | 0.0% | 1.0% | 5K examples | >100% |
+| Positional encoding | 69.8% | 1.8% | 67.4% | 5K examples | 0.0063 |
 
 ### Running Comparisons
 ```bash

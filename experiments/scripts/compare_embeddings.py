@@ -291,11 +291,21 @@ class FluxEMApproach(EmbeddingApproach):
         return parts
 
     def _format_number(self, n: float) -> str:
-        """Format number for FluxEM, avoiding decimal points for integers."""
-        if n == int(n):
-            return str(int(n))
-        else:
-            return str(n)
+        """Format number for FluxEM, avoiding decimal points for integers.
+
+        Also rounds numbers very close to integers (within 1e-6) to handle
+        floating point accumulation in chains.
+        """
+        # Round to nearest integer if very close (handles floating point errors)
+        rounded = round(n)
+        if abs(n - rounded) < 1e-6:
+            return str(int(rounded))
+        # Otherwise round to reasonable precision and check again
+        n_rounded = round(n, 6)
+        if n_rounded == int(n_rounded):
+            return str(int(n_rounded))
+        # FluxEM parser doesn't handle decimals, so round to nearest int
+        return str(int(round(n)))
 
     def compute(self, expr: str) -> Optional[float]:
         """

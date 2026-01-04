@@ -327,7 +327,7 @@ class MoleculeEncoder:
 
         return result
 
-    def subtract(self, emb1: Any, emb2: Any) -> Optional[backend.array]:
+    def subtract(self, emb1: Any, emb2: Any) -> Optional[Any]:
         """
         Subtract molecules (for reaction balancing).
 

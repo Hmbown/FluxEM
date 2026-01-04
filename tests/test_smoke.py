@@ -68,5 +68,8 @@ def test_domain_tags_unique():
     names = list(tags.keys())
     for i, name in enumerate(names):
         for other in names[i + 1:]:
-            if backend.allclose(tags[name], tags[other], atol=0.1).item():
+            result = backend.allclose(tags[name], tags[other], atol=0.1)
+            # Handle both bool (NumPy) and array (JAX/MLX) return types
+            is_match = result.item() if hasattr(result, 'item') else result
+            if is_match:
                 pytest.fail(f"Domain tags collide: {name} vs {other}")

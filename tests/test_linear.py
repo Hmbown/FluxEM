@@ -47,8 +47,9 @@ class TestNumberEncoder:
             computed = emb_a + emb_b
 
             # Check that the computed sum equals the direct encoding
-            import jax.numpy as jnp
-            error = float(jnp.linalg.norm(computed - emb_sum))
+            from fluxem.backend import get_backend
+            backend = get_backend()
+            error = float(backend.norm(computed - emb_sum))
             assert error < 1e-6, f"Linearity failed for {a} + {b}"
 
     def test_linearity_property_subtraction(self, encoder):
@@ -60,8 +61,9 @@ class TestNumberEncoder:
             emb_diff = encoder.encode_number(a - b)
             computed = emb_a - emb_b
 
-            import jax.numpy as jnp
-            error = float(jnp.linalg.norm(computed - emb_diff))
+            from fluxem.backend import get_backend
+            backend = get_backend()
+            error = float(backend.norm(computed - emb_diff))
             assert error < 1e-6, f"Linearity failed for {a} - {b}"
 
     def test_verify_linear_property(self, encoder):

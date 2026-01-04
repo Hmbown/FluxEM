@@ -255,7 +255,10 @@ def get_domain_tag_name(emb: Any) -> str:
     tag_slice = emb[DOMAIN_OFFSET:DOMAIN_OFFSET + DOMAIN_SIZE]
 
     for name, tag in get_domain_tags().items():
-        if backend.allclose(tag_slice, tag, atol=0.1).item():
+        result = backend.allclose(tag_slice, tag, atol=0.1)
+        # Handle both bool (NumPy) and array (JAX/MLX) return types
+        is_match = result.item() if hasattr(result, 'item') else result
+        if is_match:
             return name
     return "unknown"
 

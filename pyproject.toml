@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fluxem"
-version = "0.2.0"
-description = "Algebraic embeddings for exact neural arithmetic"
+version = "1.0.0"
+description = "Algebraic embeddings for exact neural computation across 11 scientific domains"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -13,15 +13,20 @@ authors = [
     { name = "Hunter Bown" }
 ]
 keywords = [
-    "arithmetic",
     "embeddings",
-    "jax",
-    "neural-networks",
     "algebraic",
+    "neural-networks",
     "machine-learning",
+    "physics",
+    "chemistry",
+    "biology",
+    "mathematics",
+    "music-theory",
+    "jax",
+    "mlx",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.10",
@@ -29,15 +34,45 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
+# Core only needs numpy
 dependencies = [
-    "jax>=0.4.20",
-    "jaxlib>=0.4.20",
-    "equinox>=0.11.0",
+    "numpy>=1.20.0",
 ]
 
 [project.optional-dependencies]
+# JAX backend (recommended for Linux/Cloud)
+jax = [
+    "jax>=0.4.20",
+    "jaxlib>=0.4.20",
+]
+# MLX backend (recommended for Apple Silicon)
+mlx = [
+    "mlx>=0.4.0",
+]
+# HuggingFace integration
+huggingface = [
+    "transformers>=4.30.0",
+    "datasets>=2.10.0",
+]
+# Full installation with JAX
+full-jax = [
+    "jax>=0.4.20",
+    "jaxlib>=0.4.20",
+    "transformers>=4.30.0",
+    "datasets>=2.10.0",
+]
+# Full installation with MLX (Apple Silicon)
+full-mlx = [
+    "mlx>=0.4.0",
+    "transformers>=4.30.0",
+    "datasets>=2.10.0",
+]
+# Development dependencies
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",

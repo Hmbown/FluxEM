@@ -1,0 +1,27 @@
+task: arithmetic
+seed: 42
+
+data:
+  train_size: 10000
+  test_size: 1000
+  id_range: [0, 999]
+  ood_magnitude_range: [1000000, 999999999]
+  ood_max_ops: 7
+  operations: ["+", "-", "*", "/"]
+
+model:
+  hidden_dim: 256
+  num_layers: 4
+  num_heads: 8
+  dropout: 0.1
+  max_seq_len: 128
+
+training:
+  epochs: 50
+  batch_size: 64
+  learning_rate: 0.0005
+  device: cpu
+
+paths:
+  data_dir: experiments/data/arithmetic
+  results_dir: experiments/results/arithmetic

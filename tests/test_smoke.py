@@ -3,6 +3,12 @@ import math
 import pytest
 
 from fluxem import create_extended_ops, create_unified_model
+from fluxem.backend import get_backend
+from fluxem.core.base import log_encode_value, log_decode_value, get_domain_tags
+from fluxem.core import get_domain_tag_name
+from fluxem.domains.music.atonal import row_matrix
+from fluxem.domains.music.atonal import AtonalSetEncoder
+from fluxem.domains.chemistry.molecules import Formula
 
 
 def test_unified_model_compute_basic_ops():
@@ -28,3 +34,39 @@ def test_extended_ops_edge_cases():
     assert ops.sqrt(0) == 0.0
     assert math.isinf(ops.ln(0))
     assert math.isinf(ops.ln(-4))
+
+
+def test_log_encode_decode_tiny_nonzero_roundtrip():
+    # This value is far below exp(-99) (~1e-43) but far above EPSILON (1e-300).
+    x = 1e-200
+    sign, log_mag = log_encode_value(x)
+    y = log_decode_value(sign, log_mag)
+    assert y == pytest.approx(x, rel=1e-12)
+
+
+def test_music_atonal_row_matrix_smoke():
+    m = row_matrix(list(range(12)))
+    assert m.shape == (12, 12)
+
+
+def test_music_domain_tags_are_distinct():
+    enc = AtonalSetEncoder()
+    emb = enc.encode([0, 4, 7])
+    assert get_domain_tag_name(emb) == "music_atonal"
+
+
+def test_chemistry_formula_parse_parentheses():
+    f = Formula.parse("Ca(OH)2")
+    assert f.composition.get("Ca") == 1
+    assert f.composition.get("O") == 2
+    assert f.composition.get("H") == 2
+
+
+def test_domain_tags_unique():
+    backend = get_backend()
+    tags = get_domain_tags()
+    names = list(tags.keys())
+    for i, name in enumerate(names):
+        for other in names[i + 1:]:
+            if backend.allclose(tags[name], tags[other], atol=0.1).item():
+                pytest.fail(f"Domain tags collide: {name} vs {other}")

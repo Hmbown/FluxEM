@@ -20,16 +20,14 @@ Reference: Flux Mathematics textbook, Chapter 8
 from __future__ import annotations
 
 import math
-import jax
-import jax.numpy as jnp
-import equinox as eqx
-from typing import Union
+from typing import Union, Any
 
+from ..backend import get_backend
 from .log_encoder import LogarithmicNumberEncoder
 from .linear_encoder import NumberEncoder
 
 
-class ExtendedOps(eqx.Module):
+class ExtendedOps:
     """
     Extended operations using logarithmic embeddings.
 
@@ -77,9 +75,9 @@ class ExtendedOps(eqx.Module):
 
     def power_from_embedding(
         self,
-        base_emb: jax.Array,
+        base_emb: Any,
         exponent: float
-    ) -> jax.Array:
+    ) -> Any:
         """
         Compute a^b in embedding space.
 
@@ -94,43 +92,43 @@ class ExtendedOps(eqx.Module):
 
         Parameters
         ----------
-        base_emb : jax.Array
+        base_emb : Array
             Logarithmic embedding of the base, shape [dim].
         exponent : float
             The exponent value.
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding of base^exponent, shape [dim].
         """
-        log_mag = jnp.dot(base_emb, self.log_encoder.direction)
+        backend = get_backend()
+
+        log_mag = backend.dot(base_emb, self.log_encoder.direction)
         result_log_mag = exponent * log_mag
 
-        sign_proj = jnp.dot(base_emb, self.log_encoder.sign_direction) / 0.5
-        base_sign = jnp.sign(sign_proj)
-        base_sign = jnp.where(jnp.abs(sign_proj) < 0.1, 1.0, base_sign)
+        sign_proj = backend.dot(base_emb, self.log_encoder.sign_direction) / 0.5
+        base_sign = backend.sign(sign_proj)
+        base_sign = backend.where(backend.abs(sign_proj) < 0.1, backend.array(1.0), base_sign)
 
-        exp_is_odd_int = (exponent == jnp.floor(exponent)) & (jnp.mod(exponent, 2) == 1)
-        result_sign = jnp.where(
-            (base_sign < 0) & exp_is_odd_int,
-            -1.0,
-            1.0
-        )
+        # Check if exponent is odd integer
+        exp_is_int = (exponent == int(exponent))
+        exp_is_odd = (int(exponent) % 2 == 1) if exp_is_int else False
+        result_sign = -1.0 if (float(base_sign) < 0 and exp_is_odd) else 1.0
 
-        mag_emb = result_log_mag * self.log_encoder.direction
+        mag_emb = float(result_log_mag) * self.log_encoder.direction
         sign_emb = result_sign * self.log_encoder.sign_direction * 0.5
         result = mag_emb + sign_emb
 
         zero_base = self.log_encoder._is_zero_embedding(base_emb)
         if exponent < 0:
-            zero_result = self.log_encoder._inf_embedding(1.0)
+            zero_result = self.log_encoder._inf_embedding(backend.array(1.0))
         elif exponent == 0:
             zero_result = self.log_encoder.sign_direction * 0.5
         else:
-            zero_result = jnp.zeros_like(result)
+            zero_result = backend.zeros(self.dim)
 
-        return jnp.where(zero_base, zero_result, result)
+        return backend.where(zero_base, zero_result, result)
 
     def power(self, base: float, exponent: float) -> float:
         """
@@ -159,7 +157,7 @@ class ExtendedOps(eqx.Module):
         result_emb = self.power_from_embedding(base_emb, exponent)
         return self.log_encoder.decode(result_emb)
 
-    def sqrt_from_embedding(self, emb: jax.Array) -> jax.Array:
+    def sqrt_from_embedding(self, emb: Any) -> Any:
         """
         Compute sqrt(a) from embedding.
 
@@ -168,12 +166,12 @@ class ExtendedOps(eqx.Module):
 
         Parameters
         ----------
-        emb : jax.Array
+        emb : Array
             Logarithmic embedding of a, shape [dim].
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding of sqrt(a), shape [dim].
         """
         return self.power_from_embedding(emb, 0.5)
@@ -196,7 +194,7 @@ class ExtendedOps(eqx.Module):
             a = abs(a)
         return self.power(a, 0.5)
 
-    def cbrt_from_embedding(self, emb: jax.Array) -> jax.Array:
+    def cbrt_from_embedding(self, emb: Any) -> Any:
         """
         Compute cbrt(a) from embedding.
 
@@ -205,12 +203,12 @@ class ExtendedOps(eqx.Module):
 
         Parameters
         ----------
-        emb : jax.Array
+        emb : Array
             Logarithmic embedding of a, shape [dim].
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding of cbrt(a), shape [dim].
         """
         return self.power_from_embedding(emb, 1.0 / 3.0)
@@ -265,7 +263,7 @@ class ExtendedOps(eqx.Module):
     # EXPONENTIAL AND LOGARITHM
     # =========================================================================
 
-    def exp_to_embedding(self, x: float) -> jax.Array:
+    def exp_to_embedding(self, x: float) -> Any:
         """
         Compute embedding of e^x.
 
@@ -278,7 +276,7 @@ class ExtendedOps(eqx.Module):
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding of e^x, shape [dim].
         """
         log_normalized = x / self.log_encoder.log_scale
@@ -305,7 +303,7 @@ class ExtendedOps(eqx.Module):
         emb = self.exp_to_embedding(x)
         return self.log_encoder.decode(emb)
 
-    def ln_from_embedding(self, emb: jax.Array) -> float:
+    def ln_from_embedding(self, emb: Any) -> float:
         """
         Compute ln(a) from embedding.
 
@@ -313,7 +311,7 @@ class ExtendedOps(eqx.Module):
 
         Parameters
         ----------
-        emb : jax.Array
+        emb : Array
             Logarithmic embedding of a, shape [dim].
 
         Returns
@@ -321,7 +319,8 @@ class ExtendedOps(eqx.Module):
         float
             ln(a).
         """
-        log_normalized = jnp.dot(emb, self.log_encoder.direction)
+        backend = get_backend()
+        log_normalized = backend.dot(emb, self.log_encoder.direction)
         return float(log_normalized * self.log_encoder.log_scale)
 
     def ln(self, a: float) -> float:
@@ -442,6 +441,9 @@ def create_extended_ops(
 
 if __name__ == "__main__":
     print("ExtendedOps demo")
+
+    backend = get_backend()
+    print(f"Using backend: {backend.name}")
 
     ops = create_extended_ops(dim=256, log_scale=25.0, seed=42)
 

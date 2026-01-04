@@ -1,0 +1,56 @@
+# Configuration for embedding comparison benchmark
+# Compares FluxEM algebraic embeddings vs learned/tokenized approaches
+
+seed: 42
+
+benchmark:
+  # Number of samples per test
+  n_samples_id: 500
+  n_samples_ood: 500
+
+  # ID range (small numbers, seen during "training")
+  id_range: [0, 999]
+
+  # OOD ranges (tests generalization)
+  ood_magnitude_range: [100000, 9999999]  # Large numbers
+  ood_chain_length: [3, 5]                 # Long operation chains
+
+  # Operations to test
+  operations: ["+", "-", "*", "/"]
+
+  # Tolerance for numeric accuracy (1% relative error)
+  tolerance: 0.01
+
+# Embedding approaches to compare
+embeddings:
+  fluxem:
+    enabled: true
+    dim: 256
+    linear_scale: 1e7
+    log_scale: 25.0
+
+  character:
+    enabled: true
+    max_digits: 12
+
+  learned:
+    enabled: true
+    vocab_size: 14  # 0-9, +, -, *, /
+    embed_dim: 64
+    hidden_dim: 128
+    train_samples: 5000
+    train_epochs: 50
+    learning_rate: 0.001
+
+  positional:
+    enabled: true
+    base: 10
+    max_digits: 12
+    dim: 64
+
+# Output settings
+output:
+  print_table: true
+  save_json: true
+  results_file: experiments/results/embedding_comparison.json
+  verbose: false

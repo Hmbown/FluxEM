@@ -99,3 +99,7 @@ Thumbs.db
 # Benchmark artifacts (regeneratable)
 artifacts/checkpoints/
 artifacts/datasets/
+
+# Experiment artifacts (regeneratable)
+experiments/data/
+experiments/results/

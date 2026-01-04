@@ -19,14 +19,12 @@ Reference: Flux Mathematics textbook, Chapter 8
 
 from __future__ import annotations
 
-import jax
-import jax.numpy as jnp
-from jax import random
-import equinox as eqx
-from typing import Tuple, Literal
+from typing import Tuple, Literal, Any
+
+from ..backend import get_backend
 
 
-class LogarithmicNumberEncoder(eqx.Module):
+class LogarithmicNumberEncoder:
     """
     Encode numbers logarithmically for multiplication.
 
@@ -53,8 +51,8 @@ class LogarithmicNumberEncoder(eqx.Module):
             Error accumulates over dim operations.
     """
 
-    direction: jax.Array       # Unit direction for log magnitude
-    sign_direction: jax.Array  # Orthogonal direction for sign
+    direction: Any       # Unit direction for log magnitude
+    sign_direction: Any  # Orthogonal direction for sign
     log_scale: float
     dim: int
     basis: str
@@ -71,29 +69,28 @@ class LogarithmicNumberEncoder(eqx.Module):
         self.dim = dim
         self.basis = basis
 
+        backend = get_backend()
+
         if basis == "canonical":
             # e0 for magnitude, e1 for sign
-            direction = jnp.zeros(dim)
-            direction = direction.at[0].set(1.0)
+            direction = backend.zeros(dim)
+            direction = backend.at_set(direction, 0, 1.0)
             self.direction = direction
 
-            sign_direction = jnp.zeros(dim)
-            sign_direction = sign_direction.at[1].set(1.0)
+            sign_direction = backend.zeros(dim)
+            sign_direction = backend.at_set(sign_direction, 1, 1.0)
             self.sign_direction = sign_direction
         else:
             # Random orthonormal vectors (old behavior)
-            key = jax.random.PRNGKey(seed)
-            k1, k2 = jax.random.split(key)
-
-            direction = jax.random.normal(k1, (dim,))
-            self.direction = direction / jnp.linalg.norm(direction)
+            direction = backend.random_normal(dim, seed=seed)
+            self.direction = direction / backend.norm(direction)
 
             # Gram-Schmidt for sign direction
-            sign_dir = jax.random.normal(k2, (dim,))
-            sign_dir = sign_dir - jnp.dot(sign_dir, self.direction) * self.direction
-            self.sign_direction = sign_dir / jnp.linalg.norm(sign_dir)
+            sign_dir = backend.random_normal(dim, seed=seed + 1)
+            sign_dir = sign_dir - backend.dot(sign_dir, self.direction) * self.direction
+            self.sign_direction = sign_dir / backend.norm(sign_dir)
 
-    def encode_number(self, n: float) -> jax.Array:
+    def encode_number(self, n: float) -> Any:
         """
         Encode a number to a logarithmic embedding.
 
@@ -104,31 +101,33 @@ class LogarithmicNumberEncoder(eqx.Module):
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding, shape [dim].
         """
-        sign = jnp.sign(n)
-        abs_n = jnp.abs(n)
+        backend = get_backend()
+
+        sign = backend.sign(backend.array(n))
+        abs_n = backend.abs(backend.array(n))
 
         is_zero = abs_n < self.epsilon
-        safe_n = jnp.where(is_zero, 1.0, abs_n)
+        safe_n = backend.where(is_zero, backend.array(1.0), abs_n)
 
-        log_value = jnp.log(safe_n)
+        log_value = backend.log(safe_n)
         log_normalized = log_value / self.log_scale
 
         if self.basis == "canonical":
             # x[0] = log_normalized, x[1] = sign
-            emb = jnp.zeros(self.dim)
-            emb = emb.at[0].set(log_normalized)
-            emb = emb.at[1].set(sign)
-            return jnp.where(is_zero, jnp.zeros(self.dim), emb)
+            emb = backend.zeros(self.dim)
+            emb = backend.at_set(emb, 0, float(log_normalized))
+            emb = backend.at_set(emb, 1, float(sign))
+            return backend.where(is_zero, backend.zeros(self.dim), emb)
         else:
-            magnitude_emb = log_normalized * self.direction
-            sign_emb = sign * self.sign_direction * 0.5
+            magnitude_emb = float(log_normalized) * self.direction
+            sign_emb = float(sign) * self.sign_direction * 0.5
             emb = magnitude_emb + sign_emb
-            return jnp.where(is_zero, jnp.zeros_like(self.direction), emb)
+            return backend.where(is_zero, backend.zeros(self.dim), emb)
 
-    def encode_string(self, s: str) -> jax.Array:
+    def encode_string(self, s: str) -> Any:
         """
         Encode a string representation of a number.
 
@@ -139,7 +138,7 @@ class LogarithmicNumberEncoder(eqx.Module):
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding, shape [dim].
         """
         try:
@@ -148,13 +147,13 @@ class LogarithmicNumberEncoder(eqx.Module):
             value = 0.0
         return self.encode_number(value)
 
-    def decode(self, emb: jax.Array) -> float:
+    def decode(self, emb: Any) -> float:
         """
         Decode a logarithmic embedding back to a number.
 
         Parameters
         ----------
-        emb : jax.Array
+        emb : Array
             Logarithmic embedding, shape [dim].
 
         Returns
@@ -162,40 +161,41 @@ class LogarithmicNumberEncoder(eqx.Module):
         float
             The decoded number.
         """
+        backend = get_backend()
+
         if self.basis == "canonical":
             # Direct indexing: x[0] = log_normalized, x[1] = sign
-            emb_norm = jnp.linalg.norm(emb)
+            emb_norm = backend.norm(emb)
             is_zero = emb_norm < self.epsilon
 
             log_normalized = emb[0]
             log_value = log_normalized * self.log_scale
-            magnitude = jnp.exp(log_value)
+            magnitude = backend.exp(log_value)
 
-            # Sign is stored exactly as ±1 in x[1]
-            sign = jnp.sign(emb[1])
-            sign = jnp.where(sign == 0, 1.0, sign)
+            # Sign is stored exactly as +/-1 in x[1]
+            sign = backend.sign(emb[1])
+            sign = backend.where(sign == 0, backend.array(1.0), sign)
 
             value = sign * magnitude
-            return float(jnp.where(is_zero, 0.0, value))
+            return float(backend.where(is_zero, backend.array(0.0), value))
         else:
-            emb_norm = jnp.linalg.norm(emb)
+            emb_norm = backend.norm(emb)
             is_zero = emb_norm < self.epsilon
 
-            finite_emb = jnp.where(jnp.isfinite(emb), emb, 0.0)
+            # Handle infinities
+            finite_mask = emb == emb  # NaN check
+            finite_emb = backend.where(finite_mask, emb, backend.zeros(self.dim))
 
-            log_normalized = jnp.dot(finite_emb, self.direction)
+            log_normalized = backend.dot(finite_emb, self.direction)
             log_value = log_normalized * self.log_scale
-            magnitude = jnp.exp(log_value)
-
-            has_inf = jnp.any(jnp.isinf(emb))
-            magnitude = jnp.where(has_inf, jnp.inf, magnitude)
+            magnitude = backend.exp(log_value)
 
             sign = self._extract_sign(finite_emb)
 
             value = sign * magnitude
-            return float(jnp.where(is_zero, 0.0, value))
+            return float(backend.where(is_zero, backend.array(0.0), value))
 
-    def multiply(self, emb_a: jax.Array, emb_b: jax.Array) -> jax.Array:
+    def multiply(self, emb_a: Any, emb_b: Any) -> Any:
         """
         Multiply two numbers in embedding space.
 
@@ -206,14 +206,16 @@ class LogarithmicNumberEncoder(eqx.Module):
 
         Parameters
         ----------
-        emb_a, emb_b : jax.Array
+        emb_a, emb_b : Array
             Logarithmic embeddings of the operands.
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding of the product.
         """
+        backend = get_backend()
+
         zero_a = self._is_zero_embedding(emb_a)
         zero_b = self._is_zero_embedding(emb_b)
 
@@ -221,18 +223,18 @@ class LogarithmicNumberEncoder(eqx.Module):
             # x[0] = log_mag, x[1] = sign
             result_log_mag = emb_a[0] + emb_b[0]  # log(a) + log(b) = log(a*b)
 
-            sign_a = jnp.sign(emb_a[1])
-            sign_b = jnp.sign(emb_b[1])
-            sign_a = jnp.where(sign_a == 0, 1.0, sign_a)
-            sign_b = jnp.where(sign_b == 0, 1.0, sign_b)
+            sign_a = backend.sign(emb_a[1])
+            sign_b = backend.sign(emb_b[1])
+            sign_a = backend.where(sign_a == 0, backend.array(1.0), sign_a)
+            sign_b = backend.where(sign_b == 0, backend.array(1.0), sign_b)
             result_sign = sign_a * sign_b
 
-            result = jnp.zeros(self.dim)
-            result = result.at[0].set(result_log_mag)
-            result = result.at[1].set(result_sign)
+            result = backend.zeros(self.dim)
+            result = backend.at_set(result, 0, float(result_log_mag))
+            result = backend.at_set(result, 1, float(result_sign))
         else:
-            mag_a = jnp.dot(emb_a, self.direction) * self.direction
-            mag_b = jnp.dot(emb_b, self.direction) * self.direction
+            mag_a = backend.dot(emb_a, self.direction) * self.direction
+            mag_b = backend.dot(emb_b, self.direction) * self.direction
             result_mag = mag_a + mag_b  # log(a) + log(b) = log(a*b)
 
             sign_a = self._extract_sign(emb_a)
@@ -241,9 +243,9 @@ class LogarithmicNumberEncoder(eqx.Module):
 
             result = result_mag + result_sign * self.sign_direction * 0.5
 
-        return jnp.where(zero_a | zero_b, jnp.zeros_like(result), result)
+        return backend.where(zero_a | zero_b, backend.zeros(self.dim), result)
 
-    def divide(self, emb_a: jax.Array, emb_b: jax.Array) -> jax.Array:
+    def divide(self, emb_a: Any, emb_b: Any) -> Any:
         """
         Divide two numbers in embedding space.
 
@@ -252,14 +254,16 @@ class LogarithmicNumberEncoder(eqx.Module):
 
         Parameters
         ----------
-        emb_a, emb_b : jax.Array
+        emb_a, emb_b : Array
             Logarithmic embeddings of numerator and denominator.
 
         Returns
         -------
-        jax.Array
+        Array
             Logarithmic embedding of the quotient.
         """
+        backend = get_backend()
+
         zero_a = self._is_zero_embedding(emb_a)
         zero_b = self._is_zero_embedding(emb_b)
 
@@ -267,20 +271,20 @@ class LogarithmicNumberEncoder(eqx.Module):
             # x[0] = log_mag, x[1] = sign
             result_log_mag = emb_a[0] - emb_b[0]  # log(a) - log(b) = log(a/b)
 
-            sign_a = jnp.sign(emb_a[1])
-            sign_b = jnp.sign(emb_b[1])
-            sign_a = jnp.where(sign_a == 0, 1.0, sign_a)
-            sign_b = jnp.where(sign_b == 0, 1.0, sign_b)
+            sign_a = backend.sign(emb_a[1])
+            sign_b = backend.sign(emb_b[1])
+            sign_a = backend.where(sign_a == 0, backend.array(1.0), sign_a)
+            sign_b = backend.where(sign_b == 0, backend.array(1.0), sign_b)
             result_sign = sign_a * sign_b
 
-            result = jnp.zeros(self.dim)
-            result = result.at[0].set(result_log_mag)
-            result = result.at[1].set(result_sign)
+            result = backend.zeros(self.dim)
+            result = backend.at_set(result, 0, float(result_log_mag))
+            result = backend.at_set(result, 1, float(result_sign))
 
             inf_emb = self._inf_embedding(sign_a)
         else:
-            mag_a = jnp.dot(emb_a, self.direction) * self.direction
-            mag_b = jnp.dot(emb_b, self.direction) * self.direction
+            mag_a = backend.dot(emb_a, self.direction) * self.direction
+            mag_b = backend.dot(emb_b, self.direction) * self.direction
             result_mag = mag_a - mag_b  # log(a) - log(b) = log(a/b)
 
             sign_a = self._extract_sign(emb_a)
@@ -290,34 +294,37 @@ class LogarithmicNumberEncoder(eqx.Module):
             result = result_mag + result_sign * self.sign_direction * 0.5
             inf_emb = self._inf_embedding(sign_a)
 
-        return jnp.where(
+        return backend.where(
             zero_b,
             inf_emb,
-            jnp.where(zero_a, jnp.zeros_like(result), result),
+            backend.where(zero_a, backend.zeros(self.dim), result),
         )
 
-    def _is_zero_embedding(self, emb: jax.Array) -> jax.Array:
-        return jnp.linalg.norm(emb) < self.epsilon
+    def _is_zero_embedding(self, emb: Any) -> Any:
+        backend = get_backend()
+        return backend.norm(emb) < self.epsilon
 
-    def _extract_sign(self, emb: jax.Array) -> jax.Array:
+    def _extract_sign(self, emb: Any) -> Any:
         """Extract sign from embedding (for random_orthonormal basis)."""
-        sign_proj = jnp.dot(emb, self.sign_direction) / 0.5
-        sign = jnp.sign(sign_proj)
-        sign = jnp.where(jnp.abs(sign_proj) < 0.1, 1.0, sign)
-        sign = jnp.where(sign == 0, 1.0, sign)
+        backend = get_backend()
+        sign_proj = backend.dot(emb, self.sign_direction) / 0.5
+        sign = backend.sign(sign_proj)
+        sign = backend.where(backend.abs(sign_proj) < 0.1, backend.array(1.0), sign)
+        sign = backend.where(sign == 0, backend.array(1.0), sign)
         return sign
 
-    def _inf_embedding(self, sign: jax.Array) -> jax.Array:
+    def _inf_embedding(self, sign: Any) -> Any:
         """Create an embedding representing infinity with given sign."""
+        backend = get_backend()
         if self.basis == "canonical":
-            emb = jnp.zeros(self.dim)
-            emb = emb.at[0].set(1e6)  # Large log value
-            emb = emb.at[1].set(sign)
+            emb = backend.zeros(self.dim)
+            emb = backend.at_set(emb, 0, 1e6)  # Large log value
+            emb = backend.at_set(emb, 1, float(sign))
             return emb
         else:
-            inf_log = jnp.array(1e6, dtype=self.direction.dtype)
+            inf_log = 1e6
             mag_emb = inf_log * self.direction
-            sign_emb = sign * self.sign_direction * 0.5
+            sign_emb = float(sign) * self.sign_direction * 0.5
             return mag_emb + sign_emb
 
 
@@ -344,6 +351,8 @@ def verify_multiplication_theorem(
     bool
         True if the multiplication theorem holds.
     """
+    backend = get_backend()
+
     if a == 0 or b == 0:
         return True
 
@@ -357,10 +366,10 @@ def verify_multiplication_theorem(
         computed_log_mag = computed[0]
         expected_log_mag = emb_product[0]
     else:
-        computed_log_mag = jnp.dot(computed, encoder.direction)
-        expected_log_mag = jnp.dot(emb_product, encoder.direction)
+        computed_log_mag = backend.dot(computed, encoder.direction)
+        expected_log_mag = backend.dot(emb_product, encoder.direction)
 
-    abs_error = jnp.abs(computed_log_mag - expected_log_mag)
+    abs_error = backend.abs(computed_log_mag - expected_log_mag)
     return bool(abs_error < tol)
 
 
@@ -387,6 +396,8 @@ def verify_division_theorem(
     bool
         True if the division theorem holds.
     """
+    backend = get_backend()
+
     if a == 0 or b == 0:
         return True
 
@@ -400,15 +411,18 @@ def verify_division_theorem(
         computed_log_mag = computed[0]
         expected_log_mag = emb_quotient[0]
     else:
-        computed_log_mag = jnp.dot(computed, encoder.direction)
-        expected_log_mag = jnp.dot(emb_quotient, encoder.direction)
+        computed_log_mag = backend.dot(computed, encoder.direction)
+        expected_log_mag = backend.dot(emb_quotient, encoder.direction)
 
-    abs_error = jnp.abs(computed_log_mag - expected_log_mag)
+    abs_error = backend.abs(computed_log_mag - expected_log_mag)
     return bool(abs_error < tol)
 
 
 if __name__ == "__main__":
     print("LogarithmicNumberEncoder demo")
+
+    backend = get_backend()
+    print(f"Using backend: {backend.name}")
 
     print("\n=== Canonical basis (default) ===")
     encoder = LogarithmicNumberEncoder(dim=256, log_scale=20.0, basis="canonical")
@@ -444,17 +458,3 @@ if __name__ == "__main__":
         rel_error = abs(result - expected) / abs(expected) if expected != 0 else 0
         status = "PASS" if rel_error < 1e-6 else "FAIL"
         print(f"  {a:>6} / {b:>4} = {result:>10.4f} (expected: {expected:>10.4f}, rel error: {rel_error:.2e}) [{status}]")
-
-    print("\n=== Random orthonormal basis (old behavior) ===")
-    encoder_old = LogarithmicNumberEncoder(dim=256, log_scale=20.0, basis="random_orthonormal", seed=42)
-
-    print("\nMultiplication via embedding space:")
-    for a, b in mul_tests[:4]:
-        emb_a = encoder_old.encode_number(a)
-        emb_b = encoder_old.encode_number(b)
-        result_emb = encoder_old.multiply(emb_a, emb_b)
-        result = encoder_old.decode(result_emb)
-        expected = a * b
-        rel_error = abs(result - expected) / abs(expected) if expected != 0 else 0
-        status = "PASS" if rel_error < 0.01 else "FAIL"
-        print(f"  {a:>4} * {b:>4} = {result:>10.2f} (expected: {expected:>8}, rel error: {rel_error:.2e}) [{status}]")

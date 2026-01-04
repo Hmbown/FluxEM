@@ -1,0 +1,27 @@
+task: units
+seed: 42
+
+data:
+  train_size: 5000
+  test_size: 500
+  unit_types: ["length", "mass", "time", "temperature", "velocity"]
+  include_can_add: true
+  id_magnitude_range: [0.001, 1000]
+  ood_magnitude_range: [0.000001, 1000000000]
+
+model:
+  hidden_dim: 256
+  num_layers: 3
+  num_heads: 8
+  dropout: 0.1
+  max_seq_len: 128
+
+training:
+  epochs: 30
+  batch_size: 64
+  learning_rate: 0.0005
+  device: cpu
+
+paths:
+  data_dir: experiments/data/units
+  results_dir: experiments/results/units

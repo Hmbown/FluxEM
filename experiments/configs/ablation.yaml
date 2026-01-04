@@ -1,0 +1,90 @@
+# Ablation Study Configuration
+# Compares three approaches:
+# 1. frozen_fluxem: FluxEM embeddings frozen, only projection layer learns
+# 2. learned_only: No FluxEM, purely learned embeddings for numbers
+# 3. hybrid: FluxEM embeddings + learned projection (both can update)
+
+task: arithmetic
+seed: 42
+
+# Ablation variants to run
+ablation:
+  variants:
+    - frozen_fluxem   # FluxEM frozen, projection learns
+    - learned_only    # No FluxEM, learned number embeddings
+    - hybrid          # FluxEM + projection, all trainable
+
+  # Metrics to track
+  metrics:
+    - train_loss
+    - id_accuracy
+    - ood_magnitude_accuracy
+    - ood_length_accuracy
+    - convergence_epoch    # Epoch where loss < threshold
+    - parameter_count
+
+  # Convergence threshold (loss below this = converged)
+  convergence_threshold: 0.5
+
+# Data configuration
+data:
+  train_size: 2000
+  test_size: 500
+  id_range: [0, 99]
+  ood_magnitude_range: [10000, 99999]
+  ood_max_ops: 5
+  operations: ["+", "-", "*"]
+
+# Model configuration
+model:
+  # FluxEM embedding dimension (fixed by FluxEM)
+  fluxem_dim: 128
+
+  # Hidden dimension for projections
+  hidden_dim: 128
+
+  # For learned_only: embedding dimension for numbers
+  learned_number_dim: 64
+  max_number_value: 100000
+
+  # Common architecture
+  num_layers: 2
+  num_heads: 4
+  dropout: 0.1
+  max_seq_len: 64
+
+# Training configuration
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.001
+  device: cpu
+
+  # Early stopping
+  early_stop_patience: 10
+
+  # Logging frequency
+  log_every: 5
+
+# Paths
+paths:
+  data_dir: experiments/data/ablation
+  results_dir: experiments/results/ablation
+
+# Hypothesis testing
+hypothesis:
+  description: >
+    Frozen FluxEM encoders should give immediate OOD generalization
+    (no training needed for core arithmetic), while learned-only
+    requires more data and fails on OOD.
+
+  expected_results:
+    frozen_fluxem:
+      ood_magnitude: ">0.95"  # Near-perfect OOD
+      convergence: "fast"      # Few epochs needed
+    learned_only:
+      ood_magnitude: "<0.3"   # Poor OOD
+      convergence: "slow"      # Many epochs needed
+    hybrid:
+      ood_magnitude: ">0.90"  # Good OOD from FluxEM
+      convergence: "medium"    # Some learning needed

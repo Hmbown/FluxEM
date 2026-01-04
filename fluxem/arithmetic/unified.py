@@ -16,17 +16,15 @@ Reference: Flux Mathematics textbook, Chapter 8
 
 from __future__ import annotations
 
-import jax
-import jax.numpy as jnp
-from jax import random
-import equinox as eqx
-from typing import Tuple, Optional, Union, Literal
+from typing import Tuple, Optional, Union, Literal, Any
+import numpy as np
 
+from ..backend import get_backend
 from .linear_encoder import NumberEncoder
 from .log_encoder import LogarithmicNumberEncoder
 
 
-class UnifiedArithmeticModel(eqx.Module):
+class UnifiedArithmeticModel:
     """
     Unified arithmetic model with deterministic operations.
 
@@ -78,7 +76,7 @@ class UnifiedArithmeticModel(eqx.Module):
         self.log_scale = log_scale
         self.basis = basis
 
-    def __call__(self, input_bytes: jax.Array) -> jax.Array:
+    def __call__(self, input_bytes: Any) -> Any:
         """
         Process an arithmetic expression and return the result embedding.
 
@@ -86,12 +84,12 @@ class UnifiedArithmeticModel(eqx.Module):
 
         Parameters
         ----------
-        input_bytes : jax.Array
+        input_bytes : Array
             Byte sequence representing an expression like "42+58=".
 
         Returns
         -------
-        jax.Array
+        Array
             Result embedding, shape [dim].
         """
         op1_value, operator, op2_value = self._parse_expression(input_bytes)
@@ -114,6 +112,8 @@ class UnifiedArithmeticModel(eqx.Module):
         float
             Numeric result.
         """
+        backend = get_backend()
+
         # Strip whitespace
         expr = expr.replace(' ', '')
 
@@ -133,7 +133,7 @@ class UnifiedArithmeticModel(eqx.Module):
 
         byte_list = list(expr.encode('utf-8'))
         byte_list = byte_list + [0] * (64 - len(byte_list))
-        input_bytes = jnp.array(byte_list, dtype=jnp.uint8)
+        input_bytes = backend.array(byte_list)
 
         op1, operator, op2 = self._parse_expression(input_bytes)
 
@@ -181,64 +181,70 @@ class UnifiedArithmeticModel(eqx.Module):
         else:
             return 0.0
 
-    def _compute(self, op1: jax.Array, operator: jax.Array, op2: jax.Array) -> jax.Array:
+    def _compute(self, op1: Any, operator: Any, op2: Any) -> Any:
         """
         Compute result embedding using appropriate encoder.
 
         Returns a LINEAR embedding for consistency.
         """
+        backend = get_backend()
+
         PLUS = ord('+')
         MINUS = ord('-')
         STAR = ord('*')
         SLASH = ord('/')
 
-        lin_emb1 = self.linear_encoder.encode_number(op1)
-        lin_emb2 = self.linear_encoder.encode_number(op2)
+        lin_emb1 = self.linear_encoder.encode_number(float(op1))
+        lin_emb2 = self.linear_encoder.encode_number(float(op2))
         add_result = lin_emb1 + lin_emb2
         sub_result = lin_emb1 - lin_emb2
 
-        log_emb1 = self.log_encoder.encode_number(op1)
-        log_emb2 = self.log_encoder.encode_number(op2)
+        log_emb1 = self.log_encoder.encode_number(float(op1))
+        log_emb2 = self.log_encoder.encode_number(float(op2))
 
         mul_log_result = self.log_encoder.multiply(log_emb1, log_emb2)
         mul_value = self._decode_log_to_value(mul_log_result)
-        mul_result = self.linear_encoder.encode_number(mul_value)
+        mul_result = self.linear_encoder.encode_number(float(mul_value))
 
         div_log_result = self.log_encoder.divide(log_emb1, log_emb2)
-        div_value = jnp.where(
+        div_value = backend.where(
             op2 != 0,
             self._decode_log_to_value(div_log_result),
-            jnp.where(op1 < 0, -jnp.inf, jnp.inf),
+            backend.where(op1 < 0, backend.array(-float('inf')), backend.array(float('inf'))),
         )
-        div_result = self.linear_encoder.encode_number(div_value)
+        div_result = self.linear_encoder.encode_number(float(div_value))
 
-        result = jnp.where(operator == PLUS, add_result,
-                 jnp.where(operator == MINUS, sub_result,
-                 jnp.where(operator == STAR, mul_result,
-                 jnp.where(operator == SLASH, div_result,
-                 jnp.zeros_like(add_result)))))
+        result = backend.where(operator == PLUS, add_result,
+                 backend.where(operator == MINUS, sub_result,
+                 backend.where(operator == STAR, mul_result,
+                 backend.where(operator == SLASH, div_result,
+                 backend.zeros(self.dim)))))
 
         return result
 
-    def _decode_log_to_value(self, emb: jax.Array) -> jax.Array:
+    def _decode_log_to_value(self, emb: Any) -> Any:
         """Decode a log embedding to a numeric value."""
+        backend = get_backend()
+
         is_zero = self.log_encoder._is_zero_embedding(emb)
-        finite_emb = jnp.where(jnp.isfinite(emb), emb, 0.0)
 
-        log_normalized = jnp.dot(finite_emb, self.log_encoder.direction)
+        # Handle infinities
+        finite_mask = emb == emb  # NaN check
+        finite_emb = backend.where(finite_mask, emb, backend.zeros(self.dim))
+
+        log_normalized = backend.dot(finite_emb, self.log_encoder.direction)
         log_value = log_normalized * self.log_encoder.log_scale
-        magnitude = jnp.exp(log_value)
-
-        has_inf = jnp.any(jnp.isinf(emb))
-        magnitude = jnp.where(has_inf, jnp.inf, magnitude)
+        magnitude = backend.exp(log_value)
 
         sign = self.log_encoder._extract_sign(finite_emb)
         value = sign * magnitude
 
-        return jnp.where(is_zero, 0.0, value)
+        return backend.where(is_zero, backend.array(0.0), value)
 
-    def _parse_expression(self, input_bytes: jax.Array) -> Tuple[jax.Array, jax.Array, jax.Array]:
+    def _parse_expression(self, input_bytes: Any) -> Tuple[Any, Any, Any]:
         """Parse an expression into operands and operator."""
+        backend = get_backend()
+
         PLUS = ord('+')
         MINUS = ord('-')
         STAR = ord('*')
@@ -248,10 +254,10 @@ class UnifiedArithmeticModel(eqx.Module):
         NINE = ord('9')
 
         max_len = input_bytes.shape[0]
-        positions = jnp.arange(max_len)
+        positions = backend.arange(max_len)
 
         is_digit = (input_bytes >= ZERO) & (input_bytes <= NINE)
-        prev_is_digit = jnp.concatenate([jnp.array([False]), is_digit[:-1]])
+        prev_is_digit = backend.concatenate([backend.array([False]), is_digit[:-1]])
 
         is_plus_op = (input_bytes == PLUS) & prev_is_digit
         is_minus_op = (input_bytes == MINUS) & prev_is_digit
@@ -260,61 +266,69 @@ class UnifiedArithmeticModel(eqx.Module):
 
         is_binary_op = is_plus_op | is_minus_op | is_star_op | is_slash_op
 
-        op_positions = jnp.where(is_binary_op, positions, max_len)
-        op_pos = jnp.min(op_positions)
+        op_positions = backend.where(is_binary_op, positions, max_len)
+        op_pos = int(backend.argmin(op_positions))
 
-        operator = input_bytes[jnp.minimum(op_pos, max_len - 1)]
+        operator = input_bytes[min(op_pos, max_len - 1)]
 
-        eq_positions = jnp.where(input_bytes == EQUALS, positions, max_len)
-        eq_pos = jnp.min(eq_positions)
+        eq_positions = backend.where(input_bytes == EQUALS, positions, max_len)
+        eq_pos = int(backend.argmin(eq_positions))
 
         op1_value = self._parse_number_segment(input_bytes, 0, op_pos)
         op2_start = op_pos + 1
-        op2_end = jnp.where(eq_pos < max_len, eq_pos, max_len)
+        op2_end = eq_pos if eq_pos < max_len else max_len
         op2_value = self._parse_number_segment(input_bytes, op2_start, op2_end)
 
         return op1_value, operator, op2_value
 
     def _parse_number_segment(
         self,
-        input_bytes: jax.Array,
-        start: jax.Array,
-        end: jax.Array,
-    ) -> jax.Array:
+        input_bytes: Any,
+        start: int,
+        end: int,
+    ) -> Any:
         """Parse a number from a segment of the byte array."""
+        backend = get_backend()
+
         ZERO = ord('0')
         NINE = ord('9')
         MINUS = ord('-')
 
         max_len = input_bytes.shape[0]
-        positions = jnp.arange(max_len)
+        positions = backend.arange(max_len)
 
         in_segment = (positions >= start) & (positions < end)
-        segment_bytes = jnp.where(in_segment, input_bytes, 0)
+        segment_bytes = backend.where(in_segment, input_bytes, backend.zeros(max_len))
 
-        first_byte = input_bytes[jnp.minimum(start, max_len - 1)]
+        first_byte = input_bytes[min(start, max_len - 1)]
         is_negative = first_byte == MINUS
 
         is_digit = (segment_bytes >= ZERO) & (segment_bytes <= NINE)
-        digit_values = jnp.where(is_digit, segment_bytes - ZERO, 0)
+        digit_values = backend.where(is_digit, segment_bytes - ZERO, backend.zeros(max_len))
 
-        n_digits = jnp.sum(is_digit)
+        n_digits = backend.sum(is_digit.astype(float) if hasattr(is_digit, 'astype') else is_digit)
 
-        cumsum = jnp.cumsum(is_digit)
-        position_in_number = jnp.where(is_digit, cumsum - 1, 0)
+        # Build cumsum for position tracking
+        cumsum = []
+        total = 0
+        for i in range(max_len):
+            if is_digit[i]:
+                total += 1
+            cumsum.append(total)
+        position_in_number = backend.array(cumsum) - 1
 
-        place_values = jnp.where(
+        place_values = backend.where(
             is_digit,
-            10.0 ** (n_digits - 1 - position_in_number),
-            0.0
+            backend.power(10.0, n_digits - 1 - position_in_number),
+            backend.zeros(max_len)
         )
 
-        value = jnp.sum(digit_values * place_values)
-        value = jnp.where(is_negative, -value, value)
+        value = backend.sum(digit_values * place_values)
+        value = backend.where(is_negative, -value, value)
 
         return value
 
-    def decode_result(self, embedding: jax.Array) -> float:
+    def decode_result(self, embedding: Any) -> float:
         """Decode a linear embedding back to a number."""
         return self.linear_encoder.decode(embedding)
 
@@ -362,7 +376,7 @@ def evaluate_all_operations_ood(
     dict
         Dictionary with accuracy per operation and overall.
     """
-    key = random.PRNGKey(seed)
+    rng = np.random.default_rng(seed)
 
     operations = {
         '+': lambda a, b: a + b,
@@ -374,17 +388,15 @@ def evaluate_all_operations_ood(
     results = {}
 
     for op_char, op_fn in operations.items():
-        k1, k2, key = random.split(key, 3)
-
         if op_char == '*':
-            a_vals = random.randint(k1, (n_samples,), 10, 1000)
-            b_vals = random.randint(k2, (n_samples,), 10, 1000)
+            a_vals = rng.integers(10, 1000, size=n_samples)
+            b_vals = rng.integers(10, 1000, size=n_samples)
         elif op_char == '/':
-            a_vals = random.randint(k1, (n_samples,), 100, 10000)
-            b_vals = random.randint(k2, (n_samples,), 10, 100)
+            a_vals = rng.integers(100, 10000, size=n_samples)
+            b_vals = rng.integers(10, 100, size=n_samples)
         else:
-            a_vals = random.randint(k1, (n_samples,), min_num, max_num)
-            b_vals = random.randint(k2, (n_samples,), min_num, max_num)
+            a_vals = rng.integers(min_num, max_num, size=n_samples)
+            b_vals = rng.integers(min_num, max_num, size=n_samples)
 
         correct = 0
 
@@ -418,6 +430,9 @@ def evaluate_all_operations_ood(
 
 if __name__ == "__main__":
     print("UnifiedArithmeticModel demo")
+
+    backend = get_backend()
+    print(f"Using backend: {backend.name}")
 
     model = create_unified_model(dim=256, linear_scale=1e7, log_scale=25.0, seed=42)
 

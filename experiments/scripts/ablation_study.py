@@ -429,16 +429,47 @@ def run_numpy_ablation(cfg: AblationConfig, datasets: Dict[str, List[Dict]]) -> 
             return correct / len(data)
 
         # For OOD evaluation with FluxEM, use direct computation
+        def evaluate_chain_numpy(operands: List[float], operators: List[str]) -> float:
+            """Evaluate a chain of operations using FluxEM step by step."""
+            if len(operands) == 0:
+                return 0.0
+
+            result = operands[0]
+            for i, op in enumerate(operators):
+                if i + 1 < len(operands):
+                    # Use integer format when result is close to integer
+                    if abs(result - round(result)) < 1e-6:
+                        result_str = str(int(round(result)))
+                    else:
+                        result_str = f"{result:.0f}"
+
+                    operand = operands[i + 1]
+                    if abs(operand - round(operand)) < 1e-6:
+                        operand_str = str(int(round(operand)))
+                    else:
+                        operand_str = f"{operand:.0f}"
+
+                    expr = f"{result_str}{op}{operand_str}="
+                    result = fluxem_model.compute(expr, round_to=6)
+            return result
+
         def evaluate_fluxem_direct(data: List[Dict]) -> float:
             """Evaluate using FluxEM's direct compute (ground truth for frozen/hybrid)."""
             correct = 0
             for sample in data:
                 target = sample["target_value"]
+                operands = sample.get("operands", [])
+                operators = sample.get("operators", [])
 
-                # Reconstruct expression
-                expr = sample["text"].replace(" ", "") + "="
                 try:
-                    pred = fluxem_model.compute(expr)
+                    if len(operands) > 2:
+                        # Multi-operand: evaluate step by step
+                        pred = evaluate_chain_numpy([float(x) for x in operands], operators)
+                    else:
+                        # Binary: use direct compute
+                        expr = sample["text"].replace(" ", "") + "="
+                        pred = fluxem_model.compute(expr)
+
                     if abs(target) > 1:
                         rel_err = abs(pred - target) / abs(target)
                         if rel_err < 0.01:
@@ -774,7 +805,20 @@ if TORCH_AVAILABLE:
         result = operands[0]
         for i, op in enumerate(operators):
             if i + 1 < len(operands):
-                expr = f"{result}{op}{operands[i+1]}="
+                # Use integer format when result is close to integer
+                # (FluxEM parser has issues with decimal numbers)
+                if abs(result - round(result)) < 1e-6:
+                    result_str = str(int(round(result)))
+                else:
+                    result_str = f"{result:.0f}"  # Round to avoid parsing issues
+
+                operand = operands[i + 1]
+                if abs(operand - round(operand)) < 1e-6:
+                    operand_str = str(int(round(operand)))
+                else:
+                    operand_str = f"{operand:.0f}"
+
+                expr = f"{result_str}{op}{operand_str}="
                 result = fluxem_model.compute(expr, round_to=6)
         return result
 

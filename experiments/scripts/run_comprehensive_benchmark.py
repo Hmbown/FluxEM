@@ -112,6 +112,12 @@ def run_script_as_module(script_path: Path) -> Tuple[bool, str, Optional[str]]:
 
     Returns: (success, output, error_message)
     """
+    # Save and clear sys.argv to prevent child scripts from parsing our arguments
+    old_argv = sys.argv
+    sys.argv = [str(script_path)]
+
+    captured_output = StringIO()
+
     try:
         # Load the module
         spec = importlib.util.spec_from_file_location(
@@ -126,7 +132,7 @@ def run_script_as_module(script_path: Path) -> Tuple[bool, str, Optional[str]]:
 
         # Execute the module to define its functions
         old_stdout = sys.stdout
-        sys.stdout = captured_output = StringIO()
+        sys.stdout = captured_output
 
         try:
             spec.loader.exec_module(module)
@@ -146,15 +152,19 @@ def run_script_as_module(script_path: Path) -> Tuple[bool, str, Optional[str]]:
 
     except SystemExit as e:
         # Script called sys.exit() - that's usually OK
-        output = captured_output.getvalue() if 'captured_output' in dir() else ""
+        output = captured_output.getvalue()
         if e.code == 0 or e.code is None:
             return True, output, None
         return False, output, f"Script exited with code {e.code}"
 
     except Exception as e:
-        output = captured_output.getvalue() if 'captured_output' in dir() else ""
+        output = captured_output.getvalue()
         error_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
         return False, output, error_msg
+
+    finally:
+        # Restore original sys.argv
+        sys.argv = old_argv
 
 
 def run_script(script_name: str, scripts_dir: Path) -> ScriptResult:
@@ -208,17 +218,28 @@ def extract_metrics_from_output(output: str) -> Dict[str, Any]:
     Looks for common patterns like:
     - "Accuracy: 95.5%"
     - "FluxEM: 100%"
+    - "FluxEM               96.8%       97.4%"  (table format)
     - "Error: 0.0001"
     """
     metrics = {}
 
-    # Look for accuracy patterns
     import re
 
+    # Pattern: Table format with FluxEM row - "FluxEM     96.8%    97.4%"
+    # Look for FluxEM followed by percentage values
+    table_row = re.search(r'FluxEM\s+([\d.]+)%', output)
+    if table_row:
+        metrics['fluxem_accuracy'] = float(table_row.group(1))
+
     # Pattern: "FluxEM: X%" or "FluxEM Accuracy: X%"
-    fluxem_acc = re.findall(r'FluxEM[^:]*:\s*([\d.]+)%', output, re.IGNORECASE)
-    if fluxem_acc:
+    fluxem_acc = re.findall(r'FluxEM[^:\d]*:\s*([\d.]+)%', output, re.IGNORECASE)
+    if fluxem_acc and 'fluxem_accuracy' not in metrics:
         metrics['fluxem_accuracy'] = float(fluxem_acc[-1])
+
+    # Pattern: "FluxEM Acc" or "FluxEM Accuracy" followed by numbers (like "100%")
+    fluxem_acc_labeled = re.findall(r'FluxEM\s+Acc[^:]*:?\s*([\d.]+)%', output, re.IGNORECASE)
+    if fluxem_acc_labeled and 'fluxem_accuracy' not in metrics:
+        metrics['fluxem_accuracy'] = float(fluxem_acc_labeled[-1])
 
     # Pattern: "Accuracy: X%" or "accuracy: X%"
     accuracy = re.findall(r'(?<!FluxEM\s)Accuracy[^:]*:\s*([\d.]+)%', output, re.IGNORECASE)

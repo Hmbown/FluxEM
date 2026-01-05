@@ -5,21 +5,23 @@
 [![CI](https://github.com/Hmbown/FluxEM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hmbown/FluxEM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**Deterministic embeddings where arithmetic operations become vector operations.**
+**Turn structure into vectors. Algebraically.**
 
-```
-encode(a) + encode(b) = encode(a + b)
-```
+> "What if `vector(A) + vector(B)` wasn't just a similarity search, but the actual result of `A + B`?"
 
-No training. No weights. Structure by construction.
+FluxEM provides **deterministic embeddings** where algebraic operations on data become linear operations in vector space. No training, no weights, no hallucinations—just structure by construction.
 
 <p align="center">
   <img src="docs/demo.gif" alt="FluxEM demo" width="600">
 </p>
 
-→ [Project page](https://hmbown.github.io/FluxEM) · [The idea behind this](https://hmbown.github.io/FluxEM/vision.html)
+→ [Project page](https://hmbown.github.io/FluxEM) · [The Vision](https://hmbown.github.io/FluxEM/vision.html)
 
-## Quick Start
+---
+
+## ⚡️ Quick Start
+
+You can use FluxEM as a "neuro-symbolic calculator" right out of the box.
 
 ```bash
 pip install fluxem
@@ -28,163 +30,128 @@ pip install fluxem
 ```python
 from fluxem import create_unified_model
 
+# It looks like a calculator, but under the hood, this is vector algebra.
 model = create_unified_model()
-model.compute("12345 + 67890")  # → 80235.0
-model.compute("144 * 89")       # → 12816.0
+
+# Arithmetic is just vector addition
+model.compute("123 + 456")      # → 579.0
+
+# Even complex dimensional analysis works
+model.compute("10 m/s * 5 s")   # → 50.0 m
 ```
 
-## What this is
+## 🧠 The Big Idea
 
-FluxEM is **neuro-symbolic grounding**: symbolic structure encoded in a format neural networks digest natively.
-
-- Symbolic systems (SymPy, Z3) manipulate expressions but don't integrate with neural pipelines
-- Learned embeddings capture semantics but not algebraic structure
-- FluxEM embeds the algebra itself—vector addition *is* arithmetic addition
+Most embeddings (like word2vec or BERT) are **semantic**: they learn that *King* is close to *Queen*.
+FluxEM embeddings are **algebraic**: they encode the *rules* of the domain itself.
 
 ```
-encode(a) + encode(b) = encode(a + b)        # addition
-log_encode(a) + log_encode(b) = log_encode(a × b)  # multiplication
+encode(x) + encode(y) = encode(x + y)
 ```
 
-This extends to eleven domains—physics, chemistry, biology, mathematics, logic, music, geometry, graphs, sets, number theory, and data. No fine-tuning required; install and your system understands dimensional analysis, stoichiometry, pitch-class theory.
+This means you can perform symbolic reasoning using nothing but neural network primitives (vector addition, matrix multiplication).
 
-| Domain | Example | Operations |
-|--------|---------|------------|
-| Physics | `9.8 m/s²` | Unit conversion, dimensional analysis |
-| Chemistry | `C6H12O6` | Stoichiometry, mass balance |
-| Biology | `ATGCCGTAG` | GC content, melting temp, translation |
-| Math | `3 + 4i` | Complex, matrices, vectors, polynomials |
-| Logic | `p ∧ q → r` | Tautology detection, satisfiability |
-| Music | `{0, 4, 7}` | Transposition, inversion, Forte numbers |
-| Geometry | △ABC | Area, centroid, circumcenter |
-| Graphs | G = (V, E) | Connectivity, cycles, shortest path |
-| Sets | A ∪ B | Union, intersection, composition |
-| Number Theory | 360 = 2³·3²·5 | Prime factorization, modular arithmetic |
-| Data | [x₁, x₂, ...] | Arrays, records, tables |
+### Why is this useful?
+1. **Grounding for LLMs**: Give your models a "native" understanding of math, logic, and science without tokenization hacks.
+2. **Infinite Data**: Generate millions of algebraically consistent training examples for your own models.
+3. **Zero-Shot Structure**: No need to train an encoder to understand that `3+4=7`. It's built in.
 
-## Limitations
+## 📐 Examples: See the Math in Action
 
-- **Not symbolic math.** Won't simplify `x + x → 2x`. Use SymPy for symbolic manipulation.
-- **Not semantic embeddings.** Won't find "king − man + woman ≈ queen". Use text embeddings for similarity.
-- **Not learned.** No parameters, no training—this is the point. Deterministic by construction.
+The "Algebra" isn't just for numbers. It applies to structure.
 
-## Domain Examples
+### 1. Polynomials as Vectors
+In the math domain, adding two embedding vectors is equivalent to adding the polynomials they represent.
 
 ```python
-# Physics
-from fluxem.domains.physics import DimensionalQuantity
-enc = DimensionalQuantity()
-velocity = enc.encode(9.8, {'L': 1, 'T': -2})
+from fluxem.domains.math import PolynomialEncoder
 
-# Chemistry
-from fluxem.domains.chemistry import MoleculeEncoder, Formula
-enc = MoleculeEncoder()
-glucose = enc.encode(Formula.parse('C6H12O6'))
+enc = PolynomialEncoder(degree=2)
 
-# Music: pitch-class set theory
-from fluxem.domains.music import AtonalSetEncoder, prime_form, interval_class_vector
-enc = AtonalSetEncoder()
-major = enc.encode([0, 4, 7])
-prime_form([0, 4, 7])              # → (0, 3, 7)
-interval_class_vector([0, 4, 7])   # → (0, 0, 1, 1, 1, 0)
+# P1: 3x² + 2x + 1
+# P2:       x - 1
+vec1 = enc.encode([3, 2, 1])
+vec2 = enc.encode([0, 1, -1])
 
-# Biology
-from fluxem.domains.biology import DNAEncoder, translate_dna_to_protein
-enc = DNAEncoder()
-seq = enc.encode('ATGCCGTAG')
-translate_dna_to_protein('ATGCCGTAG')  # → 'MP*'
+# The vector sum IS the polynomial sum
+sum_vec = vec1 + vec2
+print(enc.decode(sum_vec))
+# → [3, 3, 0]  (which is 3x² + 3x)
+```
 
-# Logic
+### 2. Music Theory: Harmony is Geometry
+This is where it gets wild. In pitch-class set theory, "transposition" (moving a chord up via pitch) is just vector addition.
+
+```python
+from fluxem.domains.music import ChordEncoder
+
+enc = ChordEncoder()
+
+# Encode a C Major chord
+c_major = enc.encode("C", quality="major")
+
+# Transpose it by adding to the vector
+# (This isn't a helper function, it's literal vector math)
+f_major = enc.transpose(c_major, 5)  # Up 5 semitones
+
+root, quality, _ = enc.decode(f_major)
+print(f"{root} {quality}")
+# → "F major"
+```
+
+### 3. Logic: Tautologies by Definition
+We can encode propositional logic such that "True" formulas land in a specific subspace.
+
+```python
 from fluxem.domains.logic import PropositionalEncoder, PropFormula
-p, q = PropFormula.atom('p'), PropFormula.atom('q')
-formula = p.implies(q) | ~p
+
+p = PropFormula.atom('p')
+q = PropFormula.atom('q')
+
+# Formula: (p implies q) OR (not p) used to check tautology
+# This is physically encoded into the vector structure
 enc = PropositionalEncoder()
-enc.is_tautology(enc.encode(formula))
+formula_vec = enc.encode(p.implies(q) | ~p)
 
-# Number theory
-from fluxem.domains.number_theory import prime_factorization, mod_pow
-prime_factorization(360)  # → {2: 3, 3: 2, 5: 1}
-mod_pow(2, 100, 13)       # → 3
+print(enc.is_tautology(formula_vec))
+# → True
 ```
 
-<details>
-<summary><strong>Where this idea comes from</strong></summary>
+## 🌍 Supported Domains
 
-In the early twentieth century, Schoenberg and the Second Viennese School developed atonal theory—a framework that treated all twelve chromatic pitches as mathematically equal. This led to pitch-class set theory: reduce notes to numbers 0–11, analyze chords as sets.
+We support 11 domains where structure is preserved:
 
-Something unexpected emerged. The math revealed hidden structure in tonality itself.
+| Domain | What gets preserved? |
+|--------|----------------------|
+| **Physics** | Units, dimensions, physical constants |
+| **Chemistry** | Stoichiometry, molecule composition |
+| **Biology** | DNA/RNA sequences, codons, melting temp |
+| **Math** | Complex numbers, polynomials, rational numbers |
+| **Music** | Pitch classes, intervals, chord inversions |
+| **Logic** | Propositional logic, simple predicates |
+| **Geometry** | Shapes, areas, centroids |
+| **Sets** | Union, intersection, subsets |
+| **Graphs** | Adjacency, simple cycles |
+| **Number Theory** | Prime factorization, modular arithmetic |
+| **Data** | Structured records, schema validation |
 
-Consider major and minor triads:
-
-```
-C major: {0, 4, 7}  intervals: 4, then 3
-C minor: {0, 3, 7}  intervals: 3, then 4
-```
-
-These are **inversions** of each other—the same intervals, reversed. Their interval-class vector is identical: `(0, 0, 1, 1, 1, 0)`. In pitch-class set theory, they're the same object under a group action.
-
-Paul Hindemith (1895–1963) took this further. He didn't reject atonality—he used its mathematical tools to rebuild tonal theory from first principles. The dichotomy dissolved: tonality and atonality were the same structure, viewed differently.
-
-When you encode pitch-class sets into vector space with the algebra intact:
-- **Transposition** becomes vector addition
-- **Inversion** becomes a linear transformation
-- The relationship between major and minor is geometric
-
-The embedding doesn't represent the structure. It *is* the structure.
-
-This extends across domains. The cyclic group of pitch transposition (Z₁₂) is isomorphic to clock arithmetic. The lattice of propositional logic mirrors set operations. If domains are embedded with their algebra intact, a model could recognize when structures are the same—not similar, but algebraically identical.
-
-Read the full story: [Where this comes from](https://hmbown.github.io/FluxEM/vision.html)
-
-</details>
-
-## Reproducibility
+## 🛠 Installation
 
 ```bash
-git clone https://github.com/Hmbown/FluxEM.git && cd FluxEM
-pip install -e ".[jax]"
-python experiments/scripts/compare_embeddings.py
+pip install fluxem              # Core (NumPy only)
+pip install "fluxem[jax]"       # With JAX (recommended for speed)
+pip install "fluxem[mlx]"       # With MLX (for Apple Silicon)
 ```
 
-Outputs TSV tables comparing FluxEM to baselines:
+## ⚠️ Limitations
 
-```
-table=accuracy_by_encoder
-approach              dataset          exact_match    numeric_accuracy
-FluxEM                id               1.000000       1.000000
-FluxEM                ood_magnitude    1.000000       1.000000
-Character             ood_magnitude    0.000000       0.012000
-```
-
-## Installation
-
-```bash
-pip install fluxem              # Core (NumPy)
-pip install fluxem[jax]         # With JAX
-pip install fluxem[mlx]         # With MLX (Apple Silicon)
-pip install fluxem[full-jax]    # Full with HuggingFace
-```
-
-## Precision
-
-| Operation | Relative Error (float32) |
-|-----------|-------------------------|
-| Add/Sub   | < 1e-7 |
-| Mul/Div   | < 1e-6 |
-
-Edge cases: `log(0)` → masked, division by zero → signed infinity, negative base with fractional exponent → unsupported.
-
-See [ERROR_MODEL.md](docs/ERROR_MODEL.md) and [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md).
-
-## Related Work
-
-| Approach | Method | Difference |
-|----------|--------|------------|
-| [NALU](https://arxiv.org/abs/1808.00508) | Learned log/exp gates | FluxEM: no learned parameters |
-| [xVal](https://arxiv.org/abs/2310.02989) | Learned scaling | FluxEM: deterministic, multi-domain |
-| [Abacus](https://arxiv.org/abs/2405.17399) | Positional digits | FluxEM: algebraic structure |
+*   **It's NOT a symbolic solver**: It won't simplify `sin(x)^2 + cos(x)^2` to `1` unless specifically encoded. It preserves structure, it doesn't perform arbitrary reduction.
+*   **Precision matters**: We implement a custom error model to track floating point drift. For complex chains of operations, error can accumulate (~1e-7).
+*   **Fixed Dimensions**: Embeddings are fixed size (default 128 or 256), so there is a limit to the complexity (e.g., number of polynomial terms) you can encode before "overflowing".
 
 ## Citation
+
+If you use FluxEM in your research, please cite:
 
 ```bibtex
 @software{fluxem2026,

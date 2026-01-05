@@ -503,7 +503,7 @@ class FunctionEncoder:
 
         return result
 
-    def inverse(self, emb: Any) -> Optional[backend.array]:
+    def inverse(self, emb: Any) -> Optional[Any]:
         """
         Inverse function (only for bijections).
 

@@ -285,7 +285,7 @@ class ModularEncoder:
         m = self.decode(embedding)
         return self.encode(m**exp)
 
-    def inverse(self, embedding: Any) -> Optional[backend.array]:
+    def inverse(self, embedding: Any) -> Optional[Any]:
         """
         Compute modular inverse.
         Returns None if inverse doesn't exist.

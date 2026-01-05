@@ -509,7 +509,7 @@ class DimensionalQuantity:
         """Alias for can_add - check dimensional equality."""
         return self.can_add(emb1, emb2)
 
-    def add(self, emb1: Any, emb2: Any) -> Optional[backend.array]:
+    def add(self, emb1: Any, emb2: Any) -> Optional[Any]:
         """
         Add two physical quantities (only if dimensions match).
 
@@ -523,7 +523,7 @@ class DimensionalQuantity:
         val2, _ = self.decode(emb2)
         return self.encode(val1 + val2, dims)
 
-    def subtract(self, emb1: Any, emb2: Any) -> Optional[backend.array]:
+    def subtract(self, emb1: Any, emb2: Any) -> Optional[Any]:
         """
         Subtract two physical quantities (only if dimensions match).
 

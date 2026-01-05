@@ -851,7 +851,7 @@ class TypeEncoder:
 
         return True
 
-    def apply_function(self, func_emb: Any, arg_emb: Any) -> Optional[backend.array]:
+    def apply_function(self, func_emb: Any, arg_emb: Any) -> Optional[Any]:
         """
         Apply a function type to an argument, returning the result type.
 

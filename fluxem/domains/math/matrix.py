@@ -66,7 +66,7 @@ class MatrixEncoder:
     domain_tag = DOMAIN_TAGS["math_matrix"]
     domain_name = "math_matrix"
 
-    def encode(self, m: Union[List[List[float]], backend.array]) -> Any:
+    def encode(self, m: Union[List[List[float]], Any]) -> Any:
         """
         Encode a matrix.
 
@@ -77,7 +77,7 @@ class MatrixEncoder:
             128-dim embedding
         """
         backend = get_backend()
-        if isinstance(m, backend.array):
+        if hasattr(m, "tolist"):
             m = m.tolist()
 
         rows = len(m)

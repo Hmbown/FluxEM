@@ -5,7 +5,7 @@ Pre-computed embeddings for fundamental physical constants.
 All values are deterministic lookup - no learning.
 """
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 from ...backend import get_backend
 
 from .dimensions import DimensionalQuantity, Dimensions
@@ -21,7 +21,7 @@ class PhysicalConstants:
     def __init__(self):
         backend = get_backend()
         self.encoder = DimensionalQuantity()
-        self._constants: Dict[str, backend.array] = {}
+        self._constants: Dict[str, Any] = {}
         self._metadata: Dict[str, Dict] = {}
         self._build_constants()
 
@@ -189,7 +189,7 @@ class PhysicalConstants:
             "uncertainty": uncertainty,
         }
 
-    def get(self, name: str) -> Optional[backend.array]:
+    def get(self, name: str) -> Optional[Any]:
         """Get the embedding for a physical constant."""
         return self._constants.get(name)
 
@@ -225,6 +225,6 @@ class PhysicalConstants:
 CONSTANTS = PhysicalConstants()
 
 
-def get_constant(name: str) -> Optional[backend.array]:
+def get_constant(name: str) -> Optional[Any]:
     """Convenience function to get a constant embedding."""
     return CONSTANTS.get(name)

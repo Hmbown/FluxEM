@@ -51,7 +51,7 @@ class VectorEncoder:
     domain_tag = DOMAIN_TAGS["math_vector"]
     domain_name = "math_vector"
 
-    def encode(self, v: Union[List[float], Tuple[float, ...], backend.array]) -> Any:
+    def encode(self, v: Union[List[float], Tuple[float, ...], Any]) -> Any:
         """
         Encode a vector.
 
@@ -62,7 +62,7 @@ class VectorEncoder:
             128-dim embedding
         """
         backend = get_backend()
-        if isinstance(v, backend.array):
+        if hasattr(v, "tolist"):
             v = v.tolist()
         v = list(v)
 

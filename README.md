@@ -35,12 +35,18 @@ model.compute("144 * 89")       # → 12816.0
 
 ## What this is
 
-FluxEM encodes typed domain values into 128-dimensional vectors where selected operations map to linear algebra:
+FluxEM is **neuro-symbolic grounding**: symbolic structure encoded in a format neural networks digest natively.
 
-- **Addition/subtraction**: `encode(a) + encode(b) = encode(a + b)`
-- **Multiplication/division**: `log_encode(a) + log_encode(b) = log_encode(a × b)`
+- Symbolic systems (SymPy, Z3) manipulate expressions but don't integrate with neural pipelines
+- Learned embeddings capture semantics but not algebraic structure
+- FluxEM embeds the algebra itself—vector addition *is* arithmetic addition
 
-This extends to eleven domains—physics, chemistry, biology, mathematics, logic, music, geometry, graphs, sets, number theory, and data—each with encoders that preserve algebraic structure.
+```
+encode(a) + encode(b) = encode(a + b)        # addition
+log_encode(a) + log_encode(b) = log_encode(a × b)  # multiplication
+```
+
+This extends to eleven domains—physics, chemistry, biology, mathematics, logic, music, geometry, graphs, sets, number theory, and data. No fine-tuning required; install and your system understands dimensional analysis, stoichiometry, pitch-class theory.
 
 | Domain | Example | Operations |
 |--------|---------|------------|
@@ -56,11 +62,11 @@ This extends to eleven domains—physics, chemistry, biology, mathematics, logic
 | Number Theory | 360 = 2³·3²·5 | Prime factorization, modular arithmetic |
 | Data | [x₁, x₂, ...] | Arrays, records, tables |
 
-## What this is not
+## Limitations
 
-- **Not symbolic math.** Won't simplify `x + x → 2x`. Use SymPy.
-- **Not semantic embeddings.** Won't find "king − man + woman ≈ queen". Use text embeddings.
-- **Not learned.** No parameters, no training, no drift.
+- **Not symbolic math.** Won't simplify `x + x → 2x`. Use SymPy for symbolic manipulation.
+- **Not semantic embeddings.** Won't find "king − man + woman ≈ queen". Use text embeddings for similarity.
+- **Not learned.** No parameters, no training—this is the point. Deterministic by construction.
 
 ## Domain Examples
 

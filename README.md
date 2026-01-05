@@ -20,8 +20,11 @@ Embeddings are already the interface most ML systems use to move information int
 This can be a good fit when you want to:
 
 - Represent a domain object as a single token-level vector instead of a variable-length text tokenization.
+- Reduce context length and avoid tokenization artifacts for structured values (e.g., long integers, units, formulas) by using a canonical encoding.
 - Define parts of the computation deterministically (e.g., arithmetic in linear/log components), shifting learning toward parsing/routing and away from memorizing digit-level patterns.
 - Mix multiple domains in one sequence via an explicit domain tag and consistent 128‑d layout (useful for “typed span” training setups).
+
+One motivation for this direction was noticing that multimodal models sometimes perform strongly on tasks that look “text-native” (in my own use, Qwen‑VL vs a text-only coding model), which raised the question of how much capability comes from *how information is embedded and structured* at the input interface. FluxEM explores an adjacent idea: feed certain structured values through typed embeddings rather than through raw text tokenization.
 
 This is not a general-purpose semantic embedding model; if you want similarity tuned to natural-language meaning, use learned text/vision embedding models.
 

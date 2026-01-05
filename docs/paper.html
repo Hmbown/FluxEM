@@ -279,39 +279,38 @@
     </nav>
 
     <article>
-        <header>
-            <h1>FluxEM: Algebraic Embeddings for Deterministic Neural Computation</h1>
-            <div class="authors">
-                <span class="author">Hunter Bown</span>
-                <span class="affiliation">Shannon Labs</span>
-            </div>
-            <div class="date">January 2025</div>
-        </header>
+	        <header>
+	            <h1>FluxEM: Algebraic Embeddings for Deterministic Neural Computation</h1>
+	            <div class="authors">
+	                <span class="author">Hunter Bown</span>
+	                <span class="affiliation">Shannon Labs</span>
+	            </div>
+	            <div class="date">January 2026</div>
+	        </header>
 
-        <section class="abstract">
-            <h2>Abstract</h2>
-            <p>
-                Neural networks often struggle with arithmetic because they treat numbers as arbitrary tokens.
-                FluxEM provides an embedding scheme where arithmetic operations map to geometric operations:
-                addition becomes vector addition, and multiplication becomes addition in log space.
-                The result is systematic generalization from algebraic structure without learned parameters,
-                with accuracy bounded by floating-point precision.
-            </p>
-        </section>
+	        <section class="abstract">
+	            <h2>Abstract</h2>
+	            <p>
+	                Neural networks often struggle with arithmetic because they treat numbers as arbitrary tokens.
+	                FluxEM maps arithmetic operations to geometry: addition becomes vector addition, and
+	                multiplication becomes addition in log-space.
+	                The result is systematic generalization from algebraic structure without learned parameters,
+	                with accuracy bounded by floating-point precision.
+	            </p>
+	        </section>
 
-        <section>
-            <h2>1. Problem</h2>
+	        <section>
+	            <h2>1. Problem</h2>
             <p>
                 Large language models can describe calculus but still fail on arithmetic like
                 <code>1847 × 392</code>. Prior work (NALU, xVal, Abacus) focuses on training
                 models to learn arithmetic more reliably.
             </p>
-            <p>
-                The issue is representation: when numbers are embedded as arbitrary token vectors,
-                arithmetic relationships must be inferred from data. This inference often fails to
-                generalize beyond the training distribution.
-            </p>
-        </section>
+	            <p>
+	                The issue is representation: embed numbers as arbitrary token vectors and arithmetic relationships
+	                must be inferred from data, which often fails to generalize beyond the training distribution.
+	            </p>
+	        </section>
 
         <section>
             <h2>2. Approach</h2>
@@ -338,8 +337,8 @@
             </p>
         </section>
 
-        <section>
-            <h2>3. Formal Definition</h2>
+	        <section>
+	            <h2>3. Formal Definition</h2>
 
             <h3>3.1 Linear Embedding</h3>
             <p>For addition and subtraction:</p>
@@ -366,23 +365,52 @@
 
             <h3>3.3 Embedding Layout</h3>
             <p>FluxEM uses a unified 128-dimensional embedding format:</p>
-            <div class="table-wrapper">
-                <table>
-                    <tr><th>Indices</th><th>Purpose</th></tr>
-                    <tr><td>[0:8]</td><td>Domain tag (identifies encoder)</td></tr>
-                    <tr><td>[8:72]</td><td>Domain-specific content (64 dims)</td></tr>
-                    <tr><td>[72:96]</td><td>Shared semantic features (24 dims)</td></tr>
-                    <tr><td>[96:128]</td><td>Cross-domain composition (32 dims)</td></tr>
-                </table>
-            </div>
-        </section>
+	            <div class="table-wrapper">
+	                <table>
+	                    <tr><th>Indices</th><th>Purpose</th></tr>
+	                    <tr><td>[0:8]</td><td>Domain tag (identifies encoder)</td></tr>
+	                    <tr><td>[8:72]</td><td>Domain-specific content (64 dims)</td></tr>
+	                    <tr><td>[72:96]</td><td>Shared semantic features (24 dims)</td></tr>
+	                    <tr><td>[96:128]</td><td>Cross-domain composition (32 dims)</td></tr>
+	                </table>
+	            </div>
+	        </section>
 
-        <section>
-            <h2>4. Precision</h2>
-            <p>
-                The magnitude homomorphism is defined over the reals. Under IEEE-754 float32/float64,
-                precision is bounded by log()/exp() function rounding.
-            </p>
+	        <section>
+	            <h2>4. Domains</h2>
+	            <p>
+	                FluxEM is not a single numeric embedding, but a family of deterministic encoders that share a common
+	                128-dimensional layout. The first 8 dimensions identify the domain; the remaining regions store domain-specific
+	                content and optional cross-domain features.
+	            </p>
+	            <p>
+	                The current implementation includes eleven domains. Each domain is designed around an algebra (or a small set of
+	                algebraic invariants) so that basic operations correspond to predictable geometric operations in embedding space.
+	            </p>
+	            <div class="table-wrapper">
+	                <table>
+	                    <tr><th>Domain</th><th>Examples</th><th>Encodes / supports</th></tr>
+	                    <tr><td>Physics</td><td><code>9.8 m/s²</code>, <code>[M L T^-2]</code></td><td>Units, dimensions, quantities, constants; conversion and dimensional analysis</td></tr>
+	                    <tr><td>Chemistry</td><td><code>H2O</code>, <code>2H2 + O2 → 2H2O</code></td><td>Elements, formulas, bonds, reactions; stoichiometry and mass-balance structure</td></tr>
+	                    <tr><td>Biology</td><td><code>ATGCCGTAG</code>, proteins</td><td>DNA/RNA/protein sequences, pathways, taxonomy; simple sequence statistics and structure</td></tr>
+	                    <tr><td>Mathematics</td><td><code>3 + 4i</code>, matrices</td><td>Reals, complex numbers, rationals, vectors, matrices, polynomials; arithmetic closed under float precision</td></tr>
+	                    <tr><td>Logic</td><td><code>p ∧ q → r</code></td><td>Propositional and predicate logic, type structure; satisfiability-oriented features</td></tr>
+	                    <tr><td>Music</td><td><code>{0,4,7}</code></td><td>Pitch, chords, scales, rhythm, atonal set theory; transposition/inversion (TnI) structure</td></tr>
+	                    <tr><td>Geometry</td><td>points, triangles</td><td>Points/vectors, transforms, shapes; distances and geometric invariants (e.g. area, centroid)</td></tr>
+	                    <tr><td>Graphs</td><td><code>G=(V,E)</code></td><td>Directed/undirected graphs; adjacency structure, connectivity, cycles, shortest paths</td></tr>
+	                    <tr><td>Sets</td><td><code>A ∪ B</code></td><td>Finite sets, relations, functions; union/intersection/composition-style operations</td></tr>
+	                    <tr><td>Number Theory</td><td><code>360 = 2³·3²·5</code></td><td>Integers, primes, modular arithmetic; factorization and arithmetic invariants</td></tr>
+	                    <tr><td>Data</td><td>arrays, tables</td><td>Arrays, records, tables; typed structure and summary statistics</td></tr>
+	                </table>
+	            </div>
+	        </section>
+
+	        <section>
+	            <h2>5. Precision</h2>
+	            <p>
+	                The magnitude homomorphism is defined over the reals. Under IEEE-754 float32/float64,
+	                precision is bounded by log()/exp() function rounding.
+	            </p>
             <div class="table-wrapper">
                 <table>
                     <tr><th>Operation</th><th>Relative Error (float32)</th></tr>
@@ -394,24 +422,24 @@
                 "Closed under operations" means the result of any supported operation on valid
                 inputs is a valid output, not that results are mathematically exact.
             </p>
-        </section>
+	        </section>
 
-        <section>
-            <h2>5. Limitations</h2>
-            <div class="table-wrapper">
-                <table>
-                    <tr><th>Case</th><th>Behavior</th></tr>
-                    <tr><td>Zero</td><td>Explicit flag; log(0) masked to zero vector</td></tr>
-                    <tr><td>Sign</td><td>Tracked separately from magnitude</td></tr>
-                    <tr><td>Negative base + fractional exponent</td><td>Unsupported; returns real-valued surrogate</td></tr>
-                    <tr><td>Division by zero</td><td>Returns signed infinity</td></tr>
-                </table>
-            </div>
-        </section>
+	        <section>
+	            <h2>6. Limitations</h2>
+	            <div class="table-wrapper">
+	                <table>
+	                    <tr><th>Case</th><th>Behavior</th></tr>
+	                    <tr><td>Zero</td><td>Explicit flag; log(0) masked to zero vector</td></tr>
+	                    <tr><td>Sign</td><td>Tracked separately from magnitude</td></tr>
+	                    <tr><td>Negative base + fractional exponent</td><td>Unsupported; returns real-valued surrogate</td></tr>
+	                    <tr><td>Division by zero</td><td>Returns signed infinity</td></tr>
+	                </table>
+	            </div>
+	        </section>
 
-        <section>
-            <h2>6. Usage</h2>
-            <pre>pip install fluxem
+	        <section>
+	            <h2>7. Usage</h2>
+	            <pre>pip install fluxem
 
 from fluxem import create_unified_model
 
@@ -419,13 +447,13 @@ model = create_unified_model()
 model.compute("1847 * 392")    # → 724024.0
 model.compute("123456 + 789")  # → 124245.0
 model.compute("2 ** 16")       # → 65536.0</pre>
-        </section>
+	        </section>
 
-        <section>
-            <h2>7. Related Work</h2>
-            <div class="table-wrapper">
-                <table>
-                    <tr><th>Approach</th><th>Method</th><th>Difference</th></tr>
+	        <section>
+	            <h2>8. Related Work</h2>
+	            <div class="table-wrapper">
+	                <table>
+	                    <tr><th>Approach</th><th>Method</th><th>Difference</th></tr>
                     <tr>
                         <td>NALU (Trask 2018)</td>
                         <td>Learned log/exp gates</td>
@@ -456,13 +484,13 @@ model.compute("2 ** 16")       # → 65536.0</pre>
             </ul>
         </section>
 
-        <footer>
-            <p>Hunter Bown · Shannon Labs · 2025</p>
-            <p>
-                <a href="https://github.com/Hmbown/FluxEM">GitHub</a> ·
-                <a href="https://pypi.org/project/fluxem/">PyPI</a>
-            </p>
-        </footer>
+	        <footer>
+	            <p>Hunter Bown · Shannon Labs · 2026</p>
+	            <p>
+	                <a href="https://github.com/Hmbown/FluxEM">GitHub</a> ·
+	                <a href="https://pypi.org/project/fluxem/">PyPI</a>
+	            </p>
+	        </footer>
     </article>
 </body>
 </html>

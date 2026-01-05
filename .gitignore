@@ -103,3 +103,6 @@ artifacts/datasets/
 # Experiment artifacts (regeneratable)
 experiments/data/
 experiments/results/
+
+# Local planning docs (intentionally untracked)
+hybrid_training_plan.md

@@ -569,13 +569,13 @@
         </div>
     </nav>
 
-    <section class="hero">
-        <div class="hero-equation">encode(a) + encode(b) = encode(a + b)</div>
-        <h1>What if embeddings were <em>algebraic?</em></h1>
-        <p class="hero-subtitle">
-            Deterministic encodings where arithmetic operations become vector operations.
-            No training. No weights. Structure by construction.
-        </p>
+	    <section class="hero">
+	        <div class="hero-equation">encode(a) + encode(b) = encode(a + b)</div>
+	        <h1>What if embeddings were <em>algebraic?</em></h1>
+	        <p class="hero-subtitle">
+	            Deterministic encodings where arithmetic operations become vector operations:
+	            no training, no weights—structure by construction.
+	        </p>
 
         <div class="vector-animation">
             <svg viewBox="0 0 600 200">
@@ -608,28 +608,28 @@
         </div>
     </section>
 
-    <section id="about" class="intro">
-        <div class="intro-text">
-            <div class="section-label">The premise</div>
-            <h2>We've been teaching neural networks arithmetic the hard way</h2>
-            <p>For a decade, we've scaled parameters and optimized attention mechanisms. We've built models that can discuss calculus and explain quantum mechanics. And yet they still stumble on multiplication.</p>
-            <p>The problem isn't capacity. It's representation. When you tokenize "1234" into arbitrary symbols, you're asking the model to rediscover—through gradient descent—that these symbols have algebraic structure. Every model, every time, from scratch.</p>
-            <p>FluxEM tries something different: encode numbers so that vector addition <em>is</em> arithmetic addition. The structure isn't learned. It's given.</p>
-            <p>This extends beyond arithmetic. Physical units, molecular formulas, musical pitch classes, logical propositions—any domain with algebraic structure can be embedded so that the operations are geometric.</p>
-        </div>
-        <aside class="intro-aside">
-            <h3>What this means</h3>
+	    <section id="about" class="intro">
+	        <div class="intro-text">
+	            <div class="section-label">The premise</div>
+	            <h2>We've been teaching neural networks arithmetic the hard way</h2>
+	            <p>For a decade we've scaled parameters and tuned attention mechanisms. Models can discuss calculus and explain quantum mechanics, yet they still stumble on multiplication.</p>
+	            <p>It's not a capacity problem; it's representation. Tokenize "1234" into arbitrary symbols and you're asking the model to rediscover—through gradient descent—that those symbols have algebraic structure, again and again.</p>
+	            <p>FluxEM takes the opposite tack: encode numbers so that vector addition <em>is</em> arithmetic addition. The structure is given up front, not learned.</p>
+	            <p>And it doesn't stop at arithmetic: physical units, molecular formulas, musical pitch classes, logical propositions—any domain with algebraic structure can be embedded so its operations become geometric.</p>
+	        </div>
+	        <aside class="intro-aside">
+	            <h3>What this means</h3>
             <ul>
                 <li><strong>Addition</strong> becomes vector addition</li>
                 <li><strong>Multiplication</strong> becomes addition in log-space</li>
                 <li><strong>Transposition</strong> becomes translation</li>
                 <li><strong>Inversion</strong> becomes reflection</li>
-            </ul>
-            <p style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--charcoal-light);">
-                The embedding doesn't represent the structure. The embedding <em>is</em> the structure.
-            </p>
-        </aside>
-    </section>
+	            </ul>
+	            <p style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--charcoal-light);">
+	                The embedding doesn't just represent the structure—the embedding <em>is</em> the structure.
+	            </p>
+	        </aside>
+	    </section>
 
     <section id="domains" class="domains-section">
         <div class="section-label">Eleven domains</div>
@@ -728,16 +728,16 @@ glucose = mol.encode(Formula.parse(<span class="string">'C6H12O6'</span>))</code
         <a href="vision.html" class="btn btn-primary">Read the full story</a>
     </section>
 
-    <footer>
-        <div class="footer-links">
-            <a href="https://github.com/Hmbown/FluxEM">GitHub</a>
-            <a href="https://pypi.org/project/fluxem/">PyPI</a>
-            <a href="paper.html">Paper</a>
-        </div>
-        <p>FluxEM · Hunter Bown · MIT License</p>
-        <p class="footer-note">
-            This is research software. We're exploring whether algebraic structure in embeddings can enable new kinds of cross-domain learning.
-        </p>
-    </footer>
+	    <footer>
+	        <div class="footer-links">
+	            <a href="https://github.com/Hmbown/FluxEM">GitHub</a>
+	            <a href="https://pypi.org/project/fluxem/">PyPI</a>
+	            <a href="paper.html">Paper</a>
+	        </div>
+	        <p>FluxEM · Hunter Bown · MIT License</p>
+	        <p class="footer-note">
+	            This is research software; we're exploring whether algebraic structure in embeddings can enable new kinds of cross-domain learning.
+	        </p>
+	    </footer>
 </body>
 </html>

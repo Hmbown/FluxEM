@@ -207,6 +207,7 @@ class HybridDataset(Dataset):
         self.fluxem = fluxem_model
         self.max_len = max_len
         self.max_spans = max_spans
+        self.fluxem_dim = fluxem_model.linear_encoder.dim
 
     def __len__(self):
         return len(self.data)
@@ -237,7 +238,7 @@ class HybridDataset(Dataset):
 
         # Pad spans
         while len(fluxem_embeddings) < self.max_spans:
-            fluxem_embeddings.append([0.0] * 128)
+            fluxem_embeddings.append([0.0] * self.fluxem_dim)
             span_positions.append(-1)
 
         fluxem_embeddings = fluxem_embeddings[:self.max_spans]

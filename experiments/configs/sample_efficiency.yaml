@@ -2,7 +2,7 @@ task: arithmetic
 seed: 42
 
 # Training sample sizes to evaluate
-sample_sizes: [100, 500, 1000, 5000, 10000]
+sample_sizes: [100, 500, 1000, 2000]
 
 data:
   # In-distribution: 2-digit numbers (0-99)
@@ -10,7 +10,7 @@ data:
   # Out-of-distribution: 5-6 digit numbers
   ood_range: [10000, 999999]
   operations: ["+", "*"]
-  test_size: 500
+  test_size: 200
 
 model:
   hidden_dim: 128
@@ -20,7 +20,7 @@ model:
   max_seq_len: 48
 
 training:
-  epochs: 50
+  epochs: 30
   batch_size: 32
   learning_rate: 0.001
   device: cpu

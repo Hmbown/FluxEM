@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "fluxem"
 version = "1.0.0"
-description = "Algebraic embeddings for exact neural computation across 11 scientific domains"
+description = "Algebraic embeddings for deterministic neural computation across scientific domains"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

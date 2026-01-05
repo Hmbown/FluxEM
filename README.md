@@ -2,24 +2,27 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/fluxem)](https://pypi.org/project/fluxem/)
 [![Python versions](https://img.shields.io/pypi/pyversions/fluxem)](https://pypi.org/project/fluxem/)
+[![CI](https://github.com/Hmbown/FluxEM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hmbown/FluxEM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Deterministic encoders that map structured domain objects to fixed-dimensional embeddings with closed-form operations. The library includes arithmetic (linear/log encodings) and domain-specific encoders (e.g., dimensional quantities, chemical formulas). Backends: JAX, MLX, NumPy.
+Deterministic encoders that map typed domain values to fixed-dimensional embeddings. Some operations are implemented directly in embedding space (e.g., arithmetic in linear/log components); other operations use decode/operate/encode. Backends: NumPy (core) with optional JAX and MLX.
 
 ## Overview
 
 - Domains: Physics, chemistry, biology, mathematics, logic, music, geometry, graphs, sets, number theory, data.
 - Semantics: Operations are defined by encoder/operator implementations.
-- Embedding format: Unified layout with a domain tag and domain-specific content.
+- Embedding format: Unified layout with an 8-dim domain tag and domain-specific content.
 
 ## Method
 
-FluxEM provides algebraic encoders where selected operations correspond to closed-form operations in embedding space.
+FluxEM provides algebraic encoders where selected operations correspond to deterministic operations in embedding space.
 
 ```python
 # Linear: encode(a) + encode(b) = encode(a + b)
 # Log: log_encode(a) + log_encode(b) = log_encode(a * b)
 ```
+
+Results follow floating-point semantics and may be affected by encoder scale and clamping; see [docs/ERROR_MODEL.md](docs/ERROR_MODEL.md).
 
 ## Implementation
 
@@ -28,9 +31,10 @@ FluxEM provides algebraic encoders where selected operations correspond to close
 FluxEM uses a unified 128-dimensional embedding format:
 
 ```
-[0:8]    Domain tag (identifies which domain)
-[8:72]   Domain-specific content (64 dims)
-[72:128] Reserved for cross-domain composition
+[0:8]     Domain tag (identifies which domain)
+[8:72]    Domain-specific content (64 dims)
+[72:96]   Shared semantic features (24 dims)
+[96:128]  Cross-domain composition (32 dims)
 ```
 
 ### Backend selection
@@ -38,7 +42,7 @@ FluxEM uses a unified 128-dimensional embedding format:
 ```python
 from fluxem.backend import set_backend, get_backend, BackendType
 
-# Auto-detect (JAX > MLX > NumPy)
+# Auto-detect (JAX > MLX > NumPy; MLX is only auto-selected on Apple Silicon)
 backend = get_backend()
 print(f"Using: {backend.name}")
 
@@ -46,6 +50,9 @@ print(f"Using: {backend.name}")
 set_backend(BackendType.JAX)
 set_backend(BackendType.MLX)
 set_backend(BackendType.NUMPY)
+
+# Environment override
+# export FLUXEM_BACKEND=numpy  # or jax/mlx
 ```
 
 ### Supported domains
@@ -53,9 +60,9 @@ set_backend(BackendType.NUMPY)
 | Domain | Key Encoders | Example Operations |
 |--------|-------------|-------------------|
 | Physics | `DimensionalQuantity`, `UnitEncoder` | Unit conversion, dimensional analysis |
-| Chemistry | `ElementEncoder`, `MoleculeEncoder`, `ReactionEncoder` | Formula parsing, reaction balancing |
+| Chemistry | `ElementEncoder`, `MoleculeEncoder`, `ReactionEncoder` | Formula parsing, balance checking |
 | Biology | `DNAEncoder`, `ProteinEncoder`, `TaxonomyEncoder` | Sequence encoding, taxonomy hierarchies |
-| Math | `ArithmeticEncoder`, `ComplexEncoder`, `MatrixEncoder`, `VectorEncoder` | Closed-form arithmetic, complex operations |
+| Math | `ArithmeticEncoder`, `ComplexEncoder`, `MatrixEncoder`, `VectorEncoder` | Arithmetic operations, complex/matrix/vector encoding |
 | Logic | `PropositionalEncoder`, `PredicateEncoder` | Logical inference, truth evaluation |
 | Music | `PitchEncoder`, `ChordEncoder`, `AtonalSetEncoder` | Transposition, pitch class analysis |
 | Geometry | `PointEncoder`, `VectorEncoder`, `TransformEncoder` | Transformations, distance calculations |
@@ -71,10 +78,10 @@ from fluxem import create_unified_model
 
 model = create_unified_model()
 
-model.compute("1234 + 5678")  # -> 6912.0
-model.compute("250 * 4")      # -> 1000.0
-model.compute("1000 / 8")     # -> 125.0
-model.compute("3 ** 4")       # -> 81.0
+model.compute("1234 + 5678")  # -> ~6912.0
+model.compute("250 * 4")      # -> ~1000.0
+model.compute("1000 / 8")     # -> ~125.0
+model.compute("3 ** 4")       # -> ~81.0
 ```
 
 ### Domain examples
@@ -104,7 +111,7 @@ seq = dna_enc.encode('ATCGATCG')
 # Math: Complex numbers, matrices, polynomials
 from fluxem.domains.math import ComplexEncoder, MatrixEncoder
 complex_enc = ComplexEncoder()
-z = complex_enc.encode(3, 4)  # 3 + 4i
+z = complex_enc.encode((3, 4))  # 3 + 4i
 ```
 
 ## Reproducibility
@@ -117,11 +124,13 @@ python experiments/scripts/train_hybrid.py --config experiments/configs/arithmet
 python experiments/scripts/eval.py --config experiments/configs/arithmetic_small.yaml
 ```
 
+`train_*` scripts require PyTorch. Most comparison scripts can run without torch and emit TSV tables plus artifact paths under `experiments/results/`.
+
 See [docs/HYBRID_TRAINING.md](docs/HYBRID_TRAINING.md) for the mixed-sequence format and [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) for runnable experiments.
 
 ## Result schema
 
-The comparison scripts emit a summary table with fields like:
+The comparison scripts emit machine-parsable output. Tables are emitted as TSV blocks preceded by a `table=<name>` line, and many scripts also print `results_path\t...`.
 
 | Approach | ID Accuracy | OOD-Mag | OOD-Length | Training | Median Error |
 |----------|-------------|---------|------------|----------|--------------|
@@ -176,7 +185,7 @@ See [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md) and [ERROR_MODEL.md](docs/
 
 ```bibtex
 @software{fluxem2025,
-  title={FluxEM: Algebraic Embeddings for Exact Neural Computation},
+  title={FluxEM: Algebraic Embeddings for Deterministic Neural Computation},
   author={Bown, Hunter},
   year={2025},
   url={https://github.com/Hmbown/FluxEM}

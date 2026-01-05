@@ -13,6 +13,18 @@ Deterministic encoders that map typed domain values to fixed-dimensional embeddi
 - Semantics: Operations are defined by encoder/operator implementations.
 - Embedding format: Unified layout with an 8-dim domain tag and domain-specific content.
 
+## Why embeddings for structured values?
+
+Embeddings are already the interface most ML systems use to move information into and through transformer models (token embeddings, vision patch embeddings, audio embeddings, etc.). FluxEM applies the same interface to *typed domain values* (numbers, units/dimensions, formulas, sequences, music constructs).
+
+This can be a good fit when you want to:
+
+- Represent a domain object as a single token-level vector instead of a variable-length text tokenization.
+- Define parts of the computation deterministically (e.g., arithmetic in linear/log components), shifting learning toward parsing/routing and away from memorizing digit-level patterns.
+- Mix multiple domains in one sequence via an explicit domain tag and consistent 128‑d layout (useful for “typed span” training setups).
+
+This is not a general-purpose semantic embedding model; if you want similarity tuned to natural-language meaning, use learned text/vision embedding models.
+
 ## Method
 
 FluxEM provides algebraic encoders where selected operations correspond to deterministic operations in embedding space.

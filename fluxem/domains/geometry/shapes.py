@@ -1,8 +1,8 @@
 """
 Geometric Shapes for FluxEM-Domains
 
-Provides 2D shapes with exact geometric properties.
-All area, perimeter, and property calculations are exact.
+Provides 2D shapes with geometric properties.
+All area, perimeter, and property calculations use closed-form formulas.
 
 Supported shapes:
 - Triangle: defined by 3 vertices
@@ -44,7 +44,7 @@ class Triangle:
     """
     Triangle defined by three vertices.
 
-    All geometric properties are computed exactly from vertices.
+    All geometric properties are computed from vertices.
     """
     p1: Point2D
     p2: Point2D
@@ -62,7 +62,7 @@ class Triangle:
         return (a, b, c)
 
     def perimeter(self) -> float:
-        """Compute perimeter. EXACT: sum of side lengths."""
+        """Compute perimeter. sum of side lengths."""
         a, b, c = self.sides()
         return a + b + c
 
@@ -70,7 +70,7 @@ class Triangle:
         """
         Compute area using the shoelace formula.
 
-        EXACT: |det([p2-p1, p3-p1])| / 2
+        |det([p2-p1, p3-p1])| / 2
         """
         return abs(
             (self.p2.x - self.p1.x) * (self.p3.y - self.p1.y)
@@ -78,7 +78,7 @@ class Triangle:
         ) / 2
 
     def centroid(self) -> Point2D:
-        """Compute centroid (center of mass). EXACT: average of vertices."""
+        """Compute centroid (center of mass). average of vertices."""
         return Point2D(
             (self.p1.x + self.p2.x + self.p3.x) / 3,
             (self.p1.y + self.p2.y + self.p3.y) / 3
@@ -109,11 +109,11 @@ class Triangle:
         return Point2D(ux, uy)
 
     def inradius(self) -> float:
-        """Radius of inscribed circle. EXACT: area / semi-perimeter."""
+        """Radius of inscribed circle. area / semi-perimeter."""
         return self.area() / (self.perimeter() / 2)
 
     def circumradius(self) -> float:
-        """Radius of circumscribed circle. EXACT from formula."""
+        """Radius of circumscribed circle computed from formula."""
         a, b, c = self.sides()
         area = self.area()
         if area < 1e-10:
@@ -121,7 +121,7 @@ class Triangle:
         return (a * b * c) / (4 * area)
 
     def angles(self) -> Tuple[float, float, float]:
-        """Compute interior angles in radians. EXACT from dot products."""
+        """Compute interior angles in radians from dot products."""
         v1 = self.p2 - self.p1
         v2 = self.p3 - self.p1
         v3 = self.p1 - self.p2
@@ -214,15 +214,15 @@ class Rectangle:
         return tuple(result)
 
     def perimeter(self) -> float:
-        """Compute perimeter. EXACT: 2*(width + height)."""
+        """Compute perimeter. 2*(width + height)."""
         return 2 * (self.width + self.height)
 
     def area(self) -> float:
-        """Compute area. EXACT: width * height."""
+        """Compute area. width * height."""
         return self.width * self.height
 
     def diagonal(self) -> float:
-        """Length of diagonal. EXACT: sqrt(w² + h²)."""
+        """Length of diagonal. sqrt(w² + h²)."""
         return math.sqrt(self.width ** 2 + self.height ** 2)
 
     def is_square(self, tolerance: float = 1e-9) -> bool:
@@ -249,21 +249,21 @@ class Circle:
     """
     Circle defined by center and radius.
 
-    All properties are exact.
+    All properties are computed from center and radius.
     """
     center: Point2D
     radius: float
 
     def perimeter(self) -> float:
-        """Compute circumference. EXACT: 2*pi*r."""
+        """Compute circumference. 2*pi*r."""
         return 2 * math.pi * self.radius
 
     def area(self) -> float:
-        """Compute area. EXACT: pi*r²."""
+        """Compute area. pi*r²."""
         return math.pi * self.radius ** 2
 
     def diameter(self) -> float:
-        """Compute diameter. EXACT: 2*r."""
+        """Compute diameter. 2*r."""
         return 2 * self.radius
 
     def contains(self, point: Point2D) -> bool:
@@ -325,7 +325,7 @@ class Polygon:
         return result
 
     def perimeter(self) -> float:
-        """Compute perimeter. EXACT: sum of edge lengths."""
+        """Compute perimeter. sum of edge lengths."""
         total = 0.0
         for p1, p2 in self.edges():
             total += p1.distance_to(p2)
@@ -335,7 +335,7 @@ class Polygon:
         """
         Compute area using shoelace formula.
 
-        EXACT: Sum of signed areas of triangles from origin.
+        Sum of signed areas of triangles from origin.
         """
         n = len(self.vertices)
         area = 0.0
@@ -346,7 +346,7 @@ class Polygon:
         return abs(area) / 2
 
     def centroid(self) -> Point2D:
-        """Compute centroid. EXACT for simple polygons."""
+        """Compute centroid for simple polygons."""
         n = len(self.vertices)
         area = self.area()
         if area < 1e-10:
@@ -366,7 +366,7 @@ class Polygon:
         return Point2D(cx * factor, cy * factor)
 
     def is_convex(self) -> bool:
-        """Check if polygon is convex. EXACT: all cross products same sign."""
+        """Check if polygon is convex. all cross products same sign."""
         n = len(self.vertices)
         if n < 3:
             return False

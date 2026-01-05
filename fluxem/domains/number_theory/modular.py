@@ -1,7 +1,7 @@
 """
 Modular arithmetic for FluxEM-Domains.
 
-Provides EXACT operations on integers mod n, including ModularInt class.
+Provides deterministic operations on integers mod n, including ModularInt class.
 """
 
 from dataclasses import dataclass
@@ -38,26 +38,26 @@ class ModularInt:
         object.__setattr__(self, "value", normalized)
 
     def __add__(self, other: "ModularInt") -> "ModularInt":
-        """Addition. EXACT: (a + b) mod n."""
+        """Addition modulo n."""
         if self.modulus != other.modulus:
             raise ValueError(f"Moduli must match: {self.modulus} vs {other.modulus}")
         return ModularInt(self.value + other.value, self.modulus)
 
     def __sub__(self, other: "ModularInt") -> "ModularInt":
-        """Subtraction. EXACT: (a - b) mod n."""
+        """Subtraction modulo n."""
         if self.modulus != other.modulus:
             raise ValueError(f"Moduli must match: {self.modulus} vs {other.modulus}")
         return ModularInt(self.value - other.value, self.modulus)
 
     def __mul__(self, other: "ModularInt") -> "ModularInt":
-        """Multiplication. EXACT: (a * b) mod n."""
+        """Multiplication modulo n."""
         if self.modulus != other.modulus:
             raise ValueError(f"Moduli must match: {self.modulus} vs {other.modulus}")
         return ModularInt(self.value * other.value, self.modulus)
 
     def __pow__(self, exp: int) -> "ModularInt":
         """
-        Exponentiation. EXACT: binary exponentiation.
+        Exponentiation via binary exponentiation.
 
         Computes a^exp mod n efficiently.
         """
@@ -84,7 +84,6 @@ class ModularInt:
 
         Returns ModularInt such that self * result = 1 (mod n).
         Returns None if inverse doesn't exist (not coprime with modulus).
-        EXACT.
         """
         g, x, _ = extended_gcd(self.value, self.modulus)
 
@@ -110,7 +109,7 @@ class ModularInt:
 
 def mod_add(a: int, b: int, m: int) -> int:
     """
-    (a + b) mod m. EXACT.
+    (a + b) mod m.
 
     Returns the sum of a and b, reduced modulo m.
     """
@@ -121,7 +120,7 @@ def mod_add(a: int, b: int, m: int) -> int:
 
 def mod_mul(a: int, b: int, m: int) -> int:
     """
-    (a * b) mod m. EXACT.
+    (a * b) mod m.
 
     Returns the product of a and b, reduced modulo m.
     """
@@ -132,7 +131,7 @@ def mod_mul(a: int, b: int, m: int) -> int:
 
 def mod_pow(base: int, exp: int, m: int) -> int:
     """
-    (base ^ exp) mod m. EXACT: binary exponentiation.
+    (base ^ exp) mod m via binary exponentiation.
 
     Computes base^exp mod m efficiently using binary exponentiation.
     Handles negative exponents by computing modular inverse.
@@ -164,7 +163,7 @@ def mod_pow(base: int, exp: int, m: int) -> int:
 
 def mod_inverse(a: int, m: int) -> Optional[int]:
     """
-    Modular inverse of a mod m, or None if not coprime. EXACT.
+    Modular inverse of a mod m, or None if not coprime.
 
     Returns x such that a * x ≡ 1 (mod m).
     Returns None if no inverse exists (gcd(a, m) != 1).
@@ -253,13 +252,11 @@ class ModularEncoder:
         tag = emb[0:8]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
-    # === OPERATIONS ON EMBEDDINGS ===
+    # Operations on embeddings
 
     def add(self, emb1: Any, emb2: Any) -> Any:
         """
         Add two modular integers.
-
-        EXACT: Decode, add, re-encode.
         """
         m1 = self.decode(emb1)
         m2 = self.decode(emb2)
@@ -268,8 +265,6 @@ class ModularEncoder:
     def subtract(self, emb1: Any, emb2: Any) -> Any:
         """
         Subtract two modular integers.
-
-        EXACT: Decode, subtract, re-encode.
         """
         m1 = self.decode(emb1)
         m2 = self.decode(emb2)
@@ -278,8 +273,6 @@ class ModularEncoder:
     def multiply(self, emb1: Any, emb2: Any) -> Any:
         """
         Multiply two modular integers.
-
-        EXACT: Decode, multiply, re-encode.
         """
         m1 = self.decode(emb1)
         m2 = self.decode(emb2)
@@ -288,8 +281,6 @@ class ModularEncoder:
     def power(self, embedding: Any, exp: int) -> Any:
         """
         Raise modular integer to a power.
-
-        EXACT: Decode, exponentiate, re-encode.
         """
         m = self.decode(embedding)
         return self.encode(m**exp)
@@ -297,8 +288,6 @@ class ModularEncoder:
     def inverse(self, embedding: Any) -> Optional[backend.array]:
         """
         Compute modular inverse.
-
-        EXACT: Decode, compute inverse, re-encode.
         Returns None if inverse doesn't exist.
         """
         m = self.decode(embedding)
@@ -307,7 +296,7 @@ class ModularEncoder:
             return None
         return self.encode(inv)
 
-    # === QUERIES ===
+    # Queries
 
     def has_inverse(self, embedding: Any) -> bool:
         """Check if modular integer has an inverse."""

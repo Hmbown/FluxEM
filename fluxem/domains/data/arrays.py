@@ -75,7 +75,7 @@ class ArrayEncoder:
     Encoder for typed arrays.
 
     Encodes arrays with statistical summaries (mean, std, min, max)
-    and stores first N values for exact reconstruction of small arrays.
+    and stores first N values for reconstruction of small arrays.
     """
 
     domain_tag = DATA_ARRAY_TAG

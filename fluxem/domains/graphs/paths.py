@@ -1,7 +1,7 @@
 """
 Path Operations for Graph Embeddings
 
-Provides exact path-finding operations on graph embeddings.
+Provides path-finding operations on graph embeddings.
 These operations work directly on adjacency matrix representations.
 """
 
@@ -53,7 +53,7 @@ class PathEncoder:
         """
         Check if a path is valid in the given graph.
 
-        EXACT: Verifies each consecutive pair has an edge.
+        Verifies each consecutive pair has an edge.
         """
         if len(path) < 2:
             return True
@@ -74,7 +74,7 @@ def find_path(graph: Graph, start: int, end: int) -> Optional[List[int]]:
 
     Returns None if no path exists.
 
-    EXACT: Uses breadth-first search for correctness.
+    Uses breadth-first search for correctness.
     """
     if start not in graph.nodes or end not in graph.nodes:
         return None
@@ -116,7 +116,7 @@ def find_all_paths(
 
     Returns list of paths (each path is a list of nodes).
 
-    EXACT: Uses DFS with backtracking to enumerate all paths.
+    Uses DFS with backtracking to enumerate all paths.
     """
     if start not in graph.nodes or end not in graph.nodes:
         return []
@@ -152,7 +152,7 @@ def shortest_path(graph: Graph, start: int, end: int) -> Optional[List[int]]:
 
     Returns None if no path exists.
 
-    EXACT: BFS guarantees shortest path in unweighted graphs.
+    BFS guarantees shortest path in unweighted graphs.
     """
     # BFS naturally finds shortest path
     return find_path(graph, start, end)
@@ -162,7 +162,7 @@ def path_exists(graph: Graph, start: int, end: int) -> bool:
     """
     Check if any path exists from start to end.
 
-    EXACT: Uses reachability analysis.
+    Uses reachability analysis.
     """
     return find_path(graph, start, end) is not None
 
@@ -171,7 +171,7 @@ def reachable_nodes(graph: Graph, start: int) -> Set[int]:
     """
     Find all nodes reachable from start.
 
-    EXACT: BFS traversal from start node.
+    BFS traversal from start node.
     """
     if start not in graph.nodes:
         return set()
@@ -195,7 +195,7 @@ def distance(graph: Graph, start: int, end: int) -> int:
 
     Returns -1 if no path exists.
 
-    EXACT: BFS distance computation.
+    BFS distance computation.
     """
     if start not in graph.nodes or end not in graph.nodes:
         return -1
@@ -226,7 +226,7 @@ def all_pairs_shortest_paths(graph: Graph) -> dict:
 
     Returns dict mapping (src, tgt) -> distance (-1 if unreachable).
 
-    EXACT: Floyd-Warshall algorithm.
+    Floyd-Warshall algorithm.
     """
     nodes = list(graph.nodes)
     n = len(nodes)
@@ -269,7 +269,7 @@ def diameter(graph: Graph) -> int:
 
     Returns -1 if graph is disconnected.
 
-    EXACT: Maximum of all-pairs shortest paths.
+    Maximum of all-pairs shortest paths.
     """
     if graph.num_nodes == 0:
         return 0
@@ -291,7 +291,7 @@ def eccentricity(graph: Graph, node: int) -> int:
 
     Returns -1 if some node is unreachable.
 
-    EXACT: Maximum BFS distance from node.
+    Maximum BFS distance from node.
     """
     if node not in graph.nodes:
         return -1
@@ -310,7 +310,7 @@ def center(graph: Graph) -> Set[int]:
     """
     Find the center of the graph (nodes with minimum eccentricity).
 
-    EXACT: Nodes that minimize maximum distance to all other nodes.
+    Nodes that minimize maximum distance to all other nodes.
     """
     if graph.num_nodes == 0:
         return set()
@@ -330,7 +330,7 @@ def has_cycle(graph: Graph) -> bool:
     """
     Check if the graph contains a cycle.
 
-    EXACT: DFS-based cycle detection.
+    DFS-based cycle detection.
     """
     if graph.directed:
         # For directed graphs, use color-based DFS
@@ -364,7 +364,7 @@ def find_cycle(graph: Graph) -> Optional[List[int]]:
 
     Returns the cycle as a list of nodes, or None if acyclic.
 
-    EXACT: DFS-based cycle finding.
+    DFS-based cycle finding.
     """
     if not has_cycle(graph):
         return None

@@ -1,7 +1,7 @@
 """
 Prime number utilities and encoder for FluxEM-Domains.
 
-Provides EXACT primality testing, factorization, and prime-related operations.
+Provides deterministic primality testing, factorization, and prime-related operations.
 """
 
 from typing import Any, Dict, List, Tuple
@@ -17,9 +17,7 @@ from ...core.base import (
 
 def is_prime(n: int) -> bool:
     """
-    Check if n is prime. EXACT: deterministic primality test.
-
-    Uses trial division up to sqrt(n) for exactness.
+    Check if n is prime using trial division up to sqrt(n).
     """
     if n <= 1:
         return False
@@ -39,7 +37,7 @@ def is_prime(n: int) -> bool:
 
 def prime_factorization(n: int) -> Dict[int, int]:
     """
-    Return prime factorization as {prime: exponent}. EXACT.
+    Return prime factorization as {prime: exponent}.
 
     Example: 12 -> {2: 2, 3: 1}
     """
@@ -70,7 +68,7 @@ def prime_factorization(n: int) -> Dict[int, int]:
 
 def primes_up_to(n: int) -> List[int]:
     """
-    Return all primes <= n using Sieve of Eratosthenes. EXACT.
+    Return all primes <= n using Sieve of Eratosthenes.
     """
     if n < 2:
         return []
@@ -91,7 +89,7 @@ def primes_up_to(n: int) -> List[int]:
 
 def nth_prime(n: int) -> int:
     """
-    Return the nth prime (1-indexed). EXACT.
+    Return the nth prime (1-indexed).
 
     Example: nth_prime(1) = 2, nth_prime(4) = 7
     """
@@ -123,7 +121,7 @@ def nth_prime(n: int) -> int:
 
 def prime_index(p: int) -> int:
     """
-    Return the index of prime p (1-indexed). EXACT.
+    Return the index of prime p (1-indexed).
 
     Example: prime_index(2) = 1, prime_index(7) = 4
 

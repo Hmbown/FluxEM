@@ -1,7 +1,7 @@
 """
 Divisibility functions for FluxEM-Domains.
 
-Provides EXACT operations for divisibility, GCD, LCM, and related concepts.
+Provides deterministic operations for divisibility, GCD, LCM, and related concepts.
 """
 
 from typing import List
@@ -10,7 +10,7 @@ import math
 
 def gcd(a: int, b: int) -> int:
     """
-    Greatest common divisor. EXACT: Euclidean algorithm.
+    Greatest common divisor via the Euclidean algorithm.
 
     Returns the largest positive integer that divides both a and b.
     """
@@ -22,7 +22,7 @@ def gcd(a: int, b: int) -> int:
 
 def lcm(a: int, b: int) -> int:
     """
-    Least common multiple. EXACT: lcm(a,b) = |a*b| / gcd(a,b).
+    Least common multiple via lcm(a,b) = |a*b| / gcd(a,b).
 
     Returns the smallest positive integer divisible by both a and b.
     """
@@ -33,7 +33,7 @@ def lcm(a: int, b: int) -> int:
 
 def divides(a: int, b: int) -> bool:
     """
-    Check if a divides b evenly. EXACT.
+    Check if a divides b evenly.
 
     Returns True if b % a == 0 and a != 0.
     """
@@ -44,7 +44,7 @@ def divides(a: int, b: int) -> bool:
 
 def divisors(n: int) -> List[int]:
     """
-    Return all positive divisors of n. EXACT.
+    Return all positive divisors of n.
 
     Example: divisors(12) -> [1, 2, 3, 4, 6, 12]
     """
@@ -65,7 +65,7 @@ def divisors(n: int) -> List[int]:
 
 def is_coprime(a: int, b: int) -> bool:
     """
-    Check if gcd(a, b) == 1. EXACT.
+    Check if gcd(a, b) == 1.
 
     Two integers are coprime if their only common divisor is 1.
     """
@@ -74,7 +74,7 @@ def is_coprime(a: int, b: int) -> bool:
 
 def euler_totient(n: int) -> int:
     """
-    Euler's totient function φ(n). EXACT from factorization.
+    Euler's totient function φ(n) from factorization.
 
     Returns the count of integers 1 <= k <= n that are coprime to n.
 
@@ -99,7 +99,7 @@ def euler_totient(n: int) -> int:
 
 def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
     """
-    Extended Euclidean algorithm. EXACT.
+    Extended Euclidean algorithm.
 
     Returns (g, x, y) such that g = gcd(a, b) and g = a*x + b*y.
     """

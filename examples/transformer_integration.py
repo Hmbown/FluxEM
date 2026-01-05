@@ -140,8 +140,8 @@ class NumericTokenizer:
 
 
 def demo():
-    """Demonstrate FluxEM transformer integration."""
-    print("FluxEM Transformer Integration Demo")
+    """Example FluxEM transformer integration."""
+    print("FluxEM Transformer Integration Example")
     print("=" * 50)
 
     # Create numeric embedding layer
@@ -152,7 +152,7 @@ def demo():
     embeddings = num_emb(numbers)
     print(f"\nEmbedding shape: {embeddings.shape}")
 
-    # Demonstrate that FluxEM structure is preserved through untrained projection
+    # Show that FluxEM structure is preserved through untrained projection
     # (This would be stronger after training the projection layer)
     emb_40 = num_emb(torch.tensor([40.0]))
     emb_2 = num_emb(torch.tensor([2.0]))
@@ -164,7 +164,7 @@ def demo():
     print(f"emb(42) shape: {emb_42.shape}")
 
     print("\n" + "=" * 50)
-    print("Tokenizer Demo")
+    print("Tokenizer Example")
     print("=" * 50)
 
     tokenizer = NumericTokenizer()

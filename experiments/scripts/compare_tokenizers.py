@@ -1,21 +1,8 @@
 #!/usr/bin/env python3
-"""
-Benchmark: FluxEM vs Different Tokenization Strategies for Arithmetic
+"""Benchmark tokenization strategies for arithmetic.
 
-This script demonstrates the fundamental difference between:
-1. Character-level tokenization: "123" -> ['1', '2', '3']
-2. BPE/WordPiece style: "123" -> ['12', '3'] or ['123']
-3. Digit-by-digit with position: "123" -> [('1', pos=2), ('2', pos=1), ('3', pos=0)]
-4. FluxEM algebraic embedding: "123" -> 128-dim embedding where embed(a) + embed(b) = embed(a+b)
-
-Key Insight:
------------
-Character tokenization forces the model to LEARN addition from scratch.
-FluxEM embeddings ENCODE addition in the algebra itself.
-
-This is the difference between:
-- "Learn the pattern 9+1=10 from data" (token-based)
-- "Addition is vector addition in embedding space" (FluxEM)
+Compares character-level, BPE-like, positional digit tokenization, and an
+algebraic embedding approach.
 """
 
 from __future__ import annotations
@@ -375,19 +362,16 @@ class FluxEMTokenizer(ArithmeticTokenizer):
                 f"    embed({a_str}) {op_char} embed({b_str}) = embed({a_str}{op_char}{b_str})"
             ),
             what_model_must_learn=(
-                "Nothing for arithmetic! The algebra is built-in:\n"
+                "Arithmetic constraints are defined by the encoder:\n"
                 "  - embed(a) + embed(b) = embed(a + b) by construction\n"
-                "  - No carry rules to learn\n"
-                "  - No digit patterns to memorize\n"
-                "  - Works for ANY numbers in the scale range"
+                "  - No carry rules encoded in tokens\n"
+                "  - Training focuses on routing and parsing"
             ),
             ood_capability=(
-                "PERFECT: Works for:\n"
-                "  - Any number magnitude (up to scale limit)\n"
-                "  - Any digit length\n"
-                "  - Any carry pattern\n"
-                "  - Numbers never seen in training\n"
-                "  Because: it's algebra, not pattern matching"
+                "Behavior depends on parsing and scale limits:\n"
+                "  - Supports magnitudes within configured scale\n"
+                "  - Supports varying digit lengths within scale\n"
+                "  - Uses algebraic encoder rather than digit patterns"
             ),
             computed_result=result,
         )
@@ -429,101 +413,46 @@ class TokenizerEvaluator:
 
     def run_benchmark(self):
         """Run the full benchmark."""
-        print("=" * 80)
-        print("TOKENIZATION STRATEGY BENCHMARK FOR ARITHMETIC")
-        print("=" * 80)
-        print()
-        print("Key Insight: Character tokenization forces models to LEARN addition.")
-        print("             FluxEM embeddings ENCODE addition in the algebra.")
-        print()
+        print("table=tokenizer_benchmark")
+        print("case\texpression\texpected\tdifficulty\ttokenizer\ttokens\trepresentation\twhat_model_must_learn\tood_capability\tcomputed_result\tcorrect\trel_error")
 
         for case_name, case in TEST_CASES.items():
-            self._print_case_header(case_name, case)
             results = self.evaluate_case(case_name, case)
-            self._print_case_results(case, results)
+            self._emit_case_results(case_name, case, results)
 
-        self._print_summary()
+    @staticmethod
+    def _format_field(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).replace("\n", "\\n").replace("\t", " ")
 
-    def _print_case_header(self, case_name: str, case: Dict[str, Any]):
-        print("-" * 80)
-        print(f"TEST CASE: {case_name.upper()}")
-        print("-" * 80)
-        print(f"Expression: {case['expr']}")
-        print(f"Expected:   {case['expected']}")
-        print(f"Difficulty: {case['difficulty']}")
-        print()
-
-    def _print_case_results(self, case: Dict[str, Any], results: Dict[str, TokenizerResult]):
+    def _emit_case_results(self, case_name: str, case: Dict[str, Any], results: Dict[str, TokenizerResult]):
         for name, result in results.items():
-            print(f"  [{name}]")
-            print(f"    Tokens: {result.representation}")
-            print()
-            print(f"    What model must learn:")
-            for line in result.what_model_must_learn.split("\n"):
-                print(f"      {line}")
-            print()
-            print(f"    OOD Generalization:")
-            for line in result.ood_capability.split("\n"):
-                print(f"      {line}")
-
+            computed_result = ""
+            correct = ""
+            rel_error = ""
             if result.computed_result is not None:
-                # Use relative error for correctness check (1% tolerance)
                 expected = case["expected"]
-                rel_error = abs(result.computed_result - expected) / max(abs(expected), 1)
-                correct = rel_error < 0.01
-                status = "CORRECT" if correct else "WRONG"
-                print(f"\n    Computed Result: {result.computed_result:.2f} [{status}]")
-            else:
-                print(f"\n    Computed Result: N/A (requires learned model)")
-            print()
+                rel_error_val = abs(result.computed_result - expected) / max(abs(expected), 1)
+                correct = "1" if rel_error_val < 0.01 else "0"
+                rel_error = f"{rel_error_val:.6e}"
+                computed_result = f"{result.computed_result:.6f}"
 
-    def _print_summary(self):
-        print("=" * 80)
-        print("SUMMARY: WHY FLUXEM GENERALIZES")
-        print("=" * 80)
-        print("""
-Token-Based Approaches (Character, BPE, Positional):
-----------------------------------------------------
-- Must LEARN arithmetic from examples
-- Model sees: "99 + 1 = 100", "98 + 2 = 100", ...
-- Must memorize/interpolate these patterns
-- Struggles with:
-  * Numbers longer than training examples
-  * Carry chains longer than seen
-  * Novel digit combinations
-
-Why carries are hard:
-  "99 + 1" requires:
-  1. 9 + 1 = 10, write 0, carry 1
-  2. 9 + 0 + carry = 10, write 0, carry 1
-  3. 0 + 0 + carry = 1, write 1
-
-  Each step depends on previous. This is sequential reasoning
-  that transformers must learn to simulate via attention.
-
-FluxEM Algebraic Embedding:
----------------------------
-- Arithmetic is a PROPERTY of the embedding, not learned
-- embed(99) + embed(1) = embed(100) by construction
-- No carries, no digits, no positions
-- Just vector addition in embedding space
-
-Why FluxEM generalizes perfectly:
-  embed(999999) + embed(1) = embed(1000000)
-
-  This is a single vector addition, regardless of:
-  - Number of digits
-  - Carry chain length
-  - Whether 999999 was ever in training
-
-The Fundamental Difference:
----------------------------
-Token-based: Learn f(tokens) -> answer from data
-FluxEM:      f(embed(a), embed(b)) = embed(answer) by algebra
-
-This is why FluxEM achieves 100% OOD accuracy on arithmetic
-while token-based models degrade with number length.
-""")
+            row = [
+                case_name,
+                case["expr"],
+                str(case["expected"]),
+                case["difficulty"],
+                name,
+                self._format_field(" ".join(str(t) for t in result.tokens)),
+                self._format_field(result.representation),
+                self._format_field(result.what_model_must_learn),
+                self._format_field(result.ood_capability),
+                computed_result,
+                correct,
+                rel_error,
+            ]
+            print("\t".join(row))
 
 
 # =============================================================================
@@ -532,10 +461,6 @@ while token-based models degrade with number length.
 
 def test_ood_accuracy():
     """Test OOD accuracy of FluxEM vs simulated token-based model."""
-    print("\n" + "=" * 80)
-    print("OOD ACCURACY COMPARISON")
-    print("=" * 80)
-
     fluxem = FluxEMTokenizer(dim=128)
 
     # Test cases of increasing difficulty
@@ -551,8 +476,8 @@ def test_ood_accuracy():
         ("Adversarial", [(99999, 1), (999999, 1), (9999999, 1), (99999999, 1), (999999999, 1)]),
     ]
 
-    print(f"\n{'Test Set':<20} {'FluxEM Acc':<15} {'Token-Only (sim)':<15}")
-    print("-" * 50)
+    print("table=ood_accuracy")
+    print("test_set\tfluxem_acc\ttoken_only_acc")
 
     for name, pairs in test_cases:
         fluxem_correct = 0
@@ -578,10 +503,11 @@ def test_ood_accuracy():
         else:  # Adversarial
             token_acc = 0.05  # Very poor on max carry chains
 
-        print(f"{name:<20} {fluxem_acc*100:>12.0f}% {token_acc*100:>14.0f}%")
+        print(f"{name}\t{fluxem_acc:.6f}\t{token_acc:.6f}")
 
-    print("\nNote: Token-only accuracy is simulated based on typical LLM behavior.")
-    print("      FluxEM accuracy is computed exactly via algebraic embeddings.")
+    print("table=ood_accuracy_notes")
+    print("note\tvalue")
+    print("token_only_accuracy\tsimulated")
 
 
 # =============================================================================
@@ -596,28 +522,7 @@ def main():
 
     test_ood_accuracy()
 
-    print("\n" + "=" * 80)
-    print("CONCLUSION")
-    print("=" * 80)
-    print("""
-The benchmark demonstrates that:
-
-1. Character/BPE tokenization treats numbers as sequences of symbols
-   - Model must learn arithmetic rules from data
-   - Generalizes poorly to OOD (longer numbers, more carries)
-
-2. Positional digit tokenization helps but doesn't solve the core issue
-   - Position info helps with alignment
-   - Still must learn carry propagation
-
-3. FluxEM algebraic embeddings solve arithmetic by construction
-   - embed(a) + embed(b) = embed(a + b) is a mathematical identity
-   - Zero learning required for addition
-   - Perfect generalization to any number in scale range
-
-This is the core thesis of FluxEM: for domains with algebraic structure,
-encode that structure into the embedding rather than learning it from data.
-""")
+    return
 
 
 if __name__ == "__main__":

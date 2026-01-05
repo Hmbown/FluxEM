@@ -1,20 +1,8 @@
 """
-Set Theory Encoder.
+Set theory encoder.
 
-Embeds finite sets with exact algebraic operations.
-Key insight: Finite sets over a bounded universe can be represented as
-characteristic functions (bitmaps), where set operations become bitwise ops.
-
-All operations are EXACT - no approximation:
-- Union = bitwise OR
-- Intersection = bitwise AND
-- Complement = bitwise NOT
-- Difference = A AND (NOT B)
-- Symmetric difference = XOR
-- Subset = (A AND B) == A
-- Membership = bit check
-
-Supports sets with up to 64 elements from a finite universe.
+Embeds finite sets over a bounded universe using characteristic vectors.
+Set operations map to bitwise operations. Supports universes up to 64 elements.
 """
 
 from dataclasses import dataclass, field
@@ -119,7 +107,7 @@ class FiniteSet:
         return FiniteSet(self.elements & other.elements)
 
     def __sub__(self, other: 'FiniteSet') -> 'FiniteSet':
-        """Difference: self \ other."""
+        """Difference: self \\ other."""
         return FiniteSet(self.elements - other.elements)
 
     def __xor__(self, other: 'FiniteSet') -> 'FiniteSet':
@@ -127,7 +115,7 @@ class FiniteSet:
         return FiniteSet(self.elements ^ other.elements)
 
     def complement(self, universe: Optional['FiniteSet'] = None) -> 'FiniteSet':
-        """Complement relative to universe: U \ self."""
+        """Complement relative to universe: U \\ self."""
         if universe is None:
             if self.universe is not None:
                 univ = self.universe
@@ -209,8 +197,7 @@ class SetEncoder:
     """
     Encoder for finite sets.
 
-    All set operations are EXACT:
-    - Union, intersection, difference via bitwise operations
+    All set operations are - Union, intersection, difference via bitwise operations
     - Membership and subset checking via bit comparison
     - Cardinality via popcount
 
@@ -270,7 +257,7 @@ class SetEncoder:
             s: A FiniteSet, set, frozenset, or iterable of elements
 
         Returns:
-            128-dim embedding with exact set representation
+            128-dim embedding with set representation
         """
         backend = get_backend()
         # Normalize input
@@ -341,14 +328,14 @@ class SetEncoder:
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
-    # EXACT Set Operations
+    # Set operations
     # =========================================================================
 
     def union(self, emb1: Any, emb2: Any) -> Any:
         """
         Set union: A ∪ B
 
-        EXACT: Bitwise OR on element bitmaps.
+        Bitwise OR on element bitmaps.
         """
         backend = get_backend()
         result = create_embedding()
@@ -380,7 +367,7 @@ class SetEncoder:
         """
         Set intersection: A ∩ B
 
-        EXACT: Bitwise AND on element bitmaps.
+        Bitwise AND on element bitmaps.
         """
         backend = get_backend()
         result = create_embedding()
@@ -410,9 +397,9 @@ class SetEncoder:
 
     def difference(self, emb1: Any, emb2: Any) -> Any:
         """
-        Set difference: A \ B (elements in A but not in B)
+        Set difference: A \\ B (elements in A but not in B)
 
-        EXACT: A AND (NOT B) on bitmaps.
+        A AND (NOT B) on bitmaps.
         """
         backend = get_backend()
         result = create_embedding()
@@ -444,7 +431,7 @@ class SetEncoder:
         """
         Symmetric difference: A △ B (elements in exactly one of A or B)
 
-        EXACT: XOR on bitmaps.
+        XOR on bitmaps.
         """
         backend = get_backend()
         result = create_embedding()
@@ -478,7 +465,7 @@ class SetEncoder:
         """
         Set complement: A^c (elements not in A, within universe)
 
-        EXACT: Bitwise NOT (within universe bounds).
+        Bitwise NOT (within universe bounds).
         """
         backend = get_backend()
         if universe_size is None:
@@ -513,14 +500,14 @@ class SetEncoder:
         return result
 
     # =========================================================================
-    # EXACT Predicates
+    # Predicates
     # =========================================================================
 
     def is_subset(self, emb1: Any, emb2: Any) -> bool:
         """
         Check subset: A ⊆ B
 
-        EXACT: A ⊆ B iff A ∩ B = A iff (for all i: A[i] → B[i])
+        A ⊆ B iff A ∩ B = A iff (for all i: A[i] → B[i])
         """
         for i in range(BITMAP_SIZE):
             in_a = emb1[BITMAP_START + i].item() > 0.5
@@ -533,7 +520,7 @@ class SetEncoder:
         """
         Check proper subset: A ⊂ B
 
-        EXACT: A ⊂ B iff A ⊆ B and A ≠ B
+        A ⊂ B iff A ⊆ B and A ≠ B
         """
         if not self.is_subset(emb1, emb2):
             return False
@@ -543,7 +530,7 @@ class SetEncoder:
         """
         Check superset: A ⊇ B
 
-        EXACT: A ⊇ B iff B ⊆ A
+        A ⊇ B iff B ⊆ A
         """
         return self.is_subset(emb2, emb1)
 
@@ -551,7 +538,7 @@ class SetEncoder:
         """
         Check set equality: A = B
 
-        EXACT: Compare bitmaps.
+        Compare bitmaps.
         """
         for i in range(BITMAP_SIZE):
             in1 = emb1[BITMAP_START + i].item() > 0.5
@@ -564,7 +551,7 @@ class SetEncoder:
         """
         Check disjointness: A ∩ B = ∅
 
-        EXACT: No overlapping bits.
+        No overlapping bits.
         """
         for i in range(BITMAP_SIZE):
             in1 = emb1[BITMAP_START + i].item() > 0.5
@@ -577,7 +564,7 @@ class SetEncoder:
         """
         Check membership: element ∈ A
 
-        EXACT: Check bit at element's index.
+        Check bit at element's index.
         """
         idx = self._element_to_index(element)
         if 0 <= idx < BITMAP_SIZE:
@@ -588,7 +575,7 @@ class SetEncoder:
         """
         Check if set is empty: A = ∅
 
-        EXACT: Check empty flag or all bits zero.
+        Check empty flag or all bits zero.
         """
         if emb[EMPTY_FLAG_POS].item() > 0.5:
             return True
@@ -598,7 +585,7 @@ class SetEncoder:
         """
         Get set cardinality: |A|
 
-        EXACT: Popcount of bitmap.
+        Popcount of bitmap.
         """
         count = 0
         for i in range(BITMAP_SIZE):

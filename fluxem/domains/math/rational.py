@@ -2,7 +2,7 @@
 Rational Number Encoder.
 
 Embeds rational numbers p/q in canonical form (gcd(p,q)=1, q>0).
-Multiplication is EXACT: numerators multiply, denominators multiply.
+Multiplication multiplies numerators and denominators.
 Addition requires common denominator computation.
 """
 
@@ -63,8 +63,8 @@ class RationalEncoder:
     """
     Encoder for rational numbers.
 
-    Stores p/q in canonical form with exact integer values.
-    Multiplication is EXACT in embedding space.
+    Stores p/q in canonical form with integer values.
+    Multiplication is implemented in embedding space.
     """
 
     domain_tag = DOMAIN_TAGS["math_rational"]

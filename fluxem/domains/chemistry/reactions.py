@@ -2,7 +2,7 @@
 Reaction Encoder for Chemistry.
 
 Embeds chemical reactions for stoichiometric analysis.
-The key operation is EXACT balance checking - no approximation.
+The key operation is deterministic balance checking.
 
 Stoichiometry is integer linear algebra:
 - Conservation of mass = sum of reactants equals sum of products
@@ -143,12 +143,12 @@ class ReactionEncoder:
     """
     Encoder for chemical reactions.
 
-    Embedding structure uses FULL 128 dims:
+    Embedding structure uses the full 128 dims:
         dims 0-7:    Domain tag
         dims 8-71:   Reactant side composition (same as molecule encoding)
         dims 72-127: Product side composition (56 dims)
 
-    This enables EXACT balance checking by comparing element counts
+    This enables deterministic balance checking by comparing element counts
     between the two halves of the embedding.
     """
 
@@ -254,14 +254,12 @@ class ReactionEncoder:
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
-    # Balance Checking - EXACT
+    # Balance checking
     # =========================================================================
 
     def is_balanced(self, emb: Any) -> bool:
         """
         Check if the reaction is balanced (mass conservation).
-
-        This is EXACT - compares integer element counts.
         """
         backend = get_backend()
         # Compare element counts between reactant and product sides

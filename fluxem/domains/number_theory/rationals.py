@@ -1,7 +1,7 @@
 """
 Rational numbers for FluxEM-Domains.
 
-Provides exact rational numbers as numerator/denominator with proper normalization.
+Provides rational numbers as numerator/denominator with proper normalization.
 """
 
 from typing import Any
@@ -23,7 +23,7 @@ from .divisibility import gcd
 @dataclass(frozen=True)
 class Rational:
     """
-    Exact rational number as numerator/denominator.
+    Rational number as numerator/denominator.
 
     Denominator is always positive and in lowest terms.
     All operations return new Rational instances.
@@ -56,7 +56,7 @@ class Rational:
 
     def __add__(self, other: "Rational") -> "Rational":
         """
-        Addition. EXACT: (a/b) + (c/d) = (ad + bc) / bd.
+        Addition. (a/b) + (c/d) = (ad + bc) / bd.
         """
         if self.denominator == other.denominator:
             return Rational(self.numerator + other.numerator, self.denominator)
@@ -67,7 +67,7 @@ class Rational:
 
     def __sub__(self, other: "Rational") -> "Rational":
         """
-        Subtraction. EXACT: (a/b) - (c/d) = (ad - bc) / bd.
+        Subtraction. (a/b) - (c/d) = (ad - bc) / bd.
         """
         if self.denominator == other.denominator:
             return Rational(self.numerator - other.numerator, self.denominator)
@@ -78,7 +78,7 @@ class Rational:
 
     def __mul__(self, other: "Rational") -> "Rational":
         """
-        Multiplication. EXACT: (a/b) * (c/d) = (ac) / (bd).
+        Multiplication. (a/b) * (c/d) = (ac) / (bd).
         """
         num = self.numerator * other.numerator
         den = self.denominator * other.denominator
@@ -86,7 +86,7 @@ class Rational:
 
     def __truediv__(self, other: "Rational") -> "Rational":
         """
-        Division. EXACT: (a/b) / (c/d) = (ad) / (bc).
+        Division. (a/b) / (c/d) = (ad) / (bc).
         """
         if other.numerator == 0:
             raise ZeroDivisionError("division by zero")
@@ -96,16 +96,16 @@ class Rational:
         return Rational(num, den)
 
     def __neg__(self) -> "Rational":
-        """Negation. EXACT: -(a/b) = (-a)/b."""
+        """Negation. -(a/b) = (-a)/b."""
         return Rational(-self.numerator, self.denominator)
 
     def __abs__(self) -> "Rational":
-        """Absolute value. EXACT."""
+        """Absolute value."""
         return Rational(abs(self.numerator), self.denominator)
 
     def __eq__(self, other: object) -> bool:
         """
-        Equality check. EXACT: use cross-multiplication.
+        Equality check via cross-multiplication.
 
         a/b == c/d iff ad == bc
         """
@@ -115,22 +115,22 @@ class Rational:
 
     def __lt__(self, other: "Rational") -> bool:
         """
-        Less than. EXACT: use cross-multiplication.
+        Less than via cross-multiplication.
 
         a/b < c/d iff ad < bc (when b,d > 0)
         """
         return self.numerator * other.denominator < other.numerator * self.denominator
 
     def __le__(self, other: "Rational") -> bool:
-        """Less than or equal. EXACT."""
+        """Less than or equal."""
         return self.numerator * other.denominator <= other.numerator * self.denominator
 
     def __gt__(self, other: "Rational") -> bool:
-        """Greater than. EXACT."""
+        """Greater than."""
         return self.numerator * other.denominator > other.numerator * self.denominator
 
     def __ge__(self, other: "Rational") -> bool:
-        """Greater than or equal. EXACT."""
+        """Greater than or equal."""
         return self.numerator * other.denominator >= other.numerator * self.denominator
 
     def __hash__(self) -> int:
@@ -146,27 +146,27 @@ class Rational:
         return self.numerator // self.denominator
 
     def floor(self) -> int:
-        """Floor value. EXACT."""
+        """Floor value."""
         return int(self)
 
     def ceil(self) -> int:
-        """Ceiling value. EXACT."""
+        """Ceiling value."""
         return -((-self.numerator) // self.denominator)
 
     def is_integer(self) -> bool:
-        """Check if rational is an integer. EXACT: denominator == 1."""
+        """Check if rational is an integer (denominator == 1)."""
         return self.denominator == 1
 
     def is_positive(self) -> bool:
-        """Check if positive. EXACT."""
+        """Check if positive."""
         return self.numerator > 0
 
     def is_negative(self) -> bool:
-        """Check if negative. EXACT."""
+        """Check if negative."""
         return self.numerator < 0
 
     def is_zero(self) -> bool:
-        """Check if zero. EXACT."""
+        """Check if zero."""
         return self.numerator == 0
 
     def to_float(self) -> float:
@@ -294,7 +294,7 @@ class RationalEncoder:
         """
         Add two rationals.
 
-        EXACT: Decode, add, re-encode.
+        Decode, add, re-encode.
         """
         r1 = self.decode(emb1)
         r2 = self.decode(emb2)
@@ -304,7 +304,7 @@ class RationalEncoder:
         """
         Subtract two rationals.
 
-        EXACT: Decode, subtract, re-encode.
+        Decode, subtract, re-encode.
         """
         r1 = self.decode(emb1)
         r2 = self.decode(emb2)
@@ -314,7 +314,7 @@ class RationalEncoder:
         """
         Multiply two rationals.
 
-        EXACT: Decode, multiply, re-encode.
+        Decode, multiply, re-encode.
         """
         r1 = self.decode(emb1)
         r2 = self.decode(emb2)
@@ -324,7 +324,7 @@ class RationalEncoder:
         """
         Divide two rationals.
 
-        EXACT: Decode, divide, re-encode.
+        Decode, divide, re-encode.
         """
         r1 = self.decode(emb1)
         r2 = self.decode(emb2)
@@ -334,7 +334,7 @@ class RationalEncoder:
         """
         Negate a rational.
 
-        EXACT: Decode, negate, re-encode.
+        Decode, negate, re-encode.
         """
         r = self.decode(embedding)
         return self.encode(-r)
@@ -343,7 +343,7 @@ class RationalEncoder:
         """
         Absolute value of rational.
 
-        EXACT: Decode, abs, re-encode.
+        Decode, abs, re-encode.
         """
         r = self.decode(embedding)
         return self.encode(abs(r))
@@ -372,7 +372,7 @@ class RationalEncoder:
         Compare two rationals.
 
         Returns: -1 if r1 < r2, 0 if equal, 1 if r1 > r2.
-        EXACT: Decode and compare.
+        Decode and compare.
         """
         r1 = self.decode(emb1)
         r2 = self.decode(emb2)

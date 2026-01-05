@@ -6,7 +6,7 @@ Supports matrices up to 4x4 (16 elements).
 
 Matrix addition is component-wise (requires decode-operate-encode due to log).
 Matrix multiplication requires decode-operate-encode.
-Scalar multiplication is EXACT in log-space.
+Scalar multiplication is computed in log-space.
 """
 
 import math
@@ -309,7 +309,7 @@ class MatrixEncoder:
         """
         Multiply matrix by scalar.
 
-        This is EXACT in log-space: add log(|scalar|) to each log-magnitude.
+        Computed in log-space: add log(|scalar|) to each log-magnitude.
         """
         backend = get_backend()
         if abs(scalar) < EPSILON:

@@ -1,10 +1,12 @@
-# FluxEM Experiments Guide
+# Experiments
 
-This document provides exact commands to run hybrid training experiments and evaluate FluxEM's benefits.
+## Overview
 
----
+Commands to run training and evaluation scripts and compare token-only and hybrid pipelines.
 
-## Prerequisites
+## Implementation
+
+### Prerequisites
 
 ```bash
 # Install FluxEM with development dependencies
@@ -14,9 +16,7 @@ pip install -e ".[dev]"
 pip install torch  # CPU is sufficient for minimal experiments
 ```
 
----
-
-## Quick Start (< 5 minutes)
+### Usage (minimal run)
 
 ```bash
 # Generate small arithmetic dataset
@@ -32,15 +32,13 @@ python experiments/scripts/train_hybrid.py --config experiments/configs/arithmet
 python experiments/scripts/eval.py --config experiments/configs/arithmetic_small.yaml
 ```
 
----
-
-## Experiment Structure
+### Experiment structure
 
 ```
 experiments/
 ├── README.md              # Quick reference
 ├── configs/
-│   ├── arithmetic_small.yaml   # Quick test (~2 min)
+│   ├── arithmetic_small.yaml   # Small configuration
 │   ├── arithmetic_full.yaml    # Full arithmetic experiment
 │   └── units_full.yaml         # Dimensional analysis experiment
 ├── scripts/
@@ -52,11 +50,9 @@ experiments/
 └── results/               # Model outputs (gitignored)
 ```
 
----
+### Dataset generation
 
-## Dataset Generation
-
-### Arithmetic Dataset
+#### Arithmetic dataset
 
 ```bash
 python experiments/scripts/generate_data.py \
@@ -65,12 +61,12 @@ python experiments/scripts/generate_data.py \
 ```
 
 Generates:
-- `data/arithmetic/train.jsonl` — 10K samples, small integers [0, 999]
-- `data/arithmetic/test_id.jsonl` — 1K in-distribution samples
-- `data/arithmetic/test_ood_magnitude.jsonl` — 1K large integers [10^6, 10^9]
-- `data/arithmetic/test_ood_length.jsonl` — 1K long chains (5+ operations)
+- `data/arithmetic/train.jsonl` - 10K samples, small integers [0, 999]
+- `data/arithmetic/test_id.jsonl` - 1K in-distribution samples
+- `data/arithmetic/test_ood_magnitude.jsonl` - 1K large integers [10^6, 10^9]
+- `data/arithmetic/test_ood_length.jsonl` - 1K long chains (5+ operations)
 
-### Units Dataset
+#### Units dataset
 
 ```bash
 python experiments/scripts/generate_data.py \
@@ -79,16 +75,14 @@ python experiments/scripts/generate_data.py \
 ```
 
 Generates:
-- `data/units/train.jsonl` — Unit conversions and dimensional checks
-- `data/units/test_id.jsonl` — In-distribution
-- `data/units/test_ood_magnitude.jsonl` — Extreme magnitudes
-- `data/units/test_ood_types.jsonl` — Novel unit combinations
+- `data/units/train.jsonl` - unit conversions and dimensional checks
+- `data/units/test_id.jsonl` - in-distribution
+- `data/units/test_ood_magnitude.jsonl` - extreme magnitudes
+- `data/units/test_ood_types.jsonl` - novel unit combinations
 
----
+### Training
 
-## Training
-
-### Token-Only Baseline
+#### Token-only baseline
 
 ```bash
 python experiments/scripts/train_token_only.py \
@@ -97,11 +91,11 @@ python experiments/scripts/train_token_only.py \
     --seed 42
 ```
 
-- Standard character-level transformer
+- Character-level transformer baseline
 - No FluxEM embeddings
 - Model saved to `results/arithmetic/token_only/`
 
-### Hybrid Model
+#### Hybrid model
 
 ```bash
 python experiments/scripts/train_hybrid.py \
@@ -110,50 +104,36 @@ python experiments/scripts/train_hybrid.py \
     --seed 42
 ```
 
-- Detects numeric spans → encodes with FluxEM
-- Projects 128-d → hidden dim
+- Detects numeric spans and encodes with FluxEM
+- Projects 128-d -> hidden dim
 - Adds type embeddings for domain routing
 - Model saved to `results/arithmetic/hybrid/`
 
----
-
-## Evaluation
+### Evaluation
 
 ```bash
 python experiments/scripts/eval.py \
     --config experiments/configs/arithmetic_full.yaml
 ```
 
-### Metrics
+#### Metrics
 
 | Metric | Description |
 |--------|-------------|
-| **Exact Match** | Output exactly equals target |
-| **Relative Error** | `|pred - target| / |target|` (for numeric) |
-| **Dimensional Correctness** | Correct dimensions in output (for units) |
-| **Boolean Accuracy** | Correct true/false (for `can_add` tasks) |
+| Exact Match | Output equals target |
+| Relative Error | `|pred - target| / |target|` (for numeric) |
+| Dimensional Correctness | Correct dimensions in output (for units) |
+| Boolean Accuracy | Correct true/false (for `can_add` tasks) |
 
-### Expected Output
+#### Output artifacts
 
-```
-=== Arithmetic Evaluation ===
+The evaluation script writes metrics to:
 
-                    Token-Only    Hybrid
-ID Test             85.2%         99.8%
-OOD-A (magnitude)   12.1%         99.7%
-OOD-B (length)      23.4%         99.5%
+- `results_dir/evaluation_results.json`
 
-Relative Error (median):
-ID Test             0.02          <0.001
-OOD-A               0.45          <0.001
-OOD-B               0.31          <0.001
-```
+### Configuration reference
 
----
-
-## Configuration Reference
-
-### `arithmetic_small.yaml`
+#### `arithmetic_small.yaml`
 
 ```yaml
 task: arithmetic
@@ -177,13 +157,13 @@ training:
   epochs: 20
   batch_size: 32
   learning_rate: 0.001
-  
+
 paths:
   data_dir: experiments/data/arithmetic_small
   results_dir: experiments/results/arithmetic_small
 ```
 
-### `units_full.yaml`
+#### `units_full.yaml`
 
 ```yaml
 task: units
@@ -211,11 +191,9 @@ paths:
   results_dir: experiments/results/units
 ```
 
----
+## Reproducibility
 
-## Reproducing Paper Results
-
-For exact reproduction:
+To reproduce the default configurations:
 
 ```bash
 # Full arithmetic experiment
@@ -231,17 +209,20 @@ python experiments/scripts/train_hybrid.py --config experiments/configs/units_fu
 python experiments/scripts/eval.py --config experiments/configs/units_full.yaml
 ```
 
-All experiments are seeded and deterministic (CPU).
+Experiments are seeded; CPU runs are supported.
 
----
+## Limitations
 
-## Troubleshooting
+### Troubleshooting
 
-### "No module named 'torch'"
+#### "No module named 'torch'"
+
 Install PyTorch: `pip install torch` (CPU version is fine)
 
-### "CUDA out of memory"
+#### "CUDA out of memory"
+
 Set `device: cpu` in config or use `--device cpu` flag
 
-### Slow training
-Use `arithmetic_small.yaml` for quick iteration (~2 min on CPU)
+#### Slow training
+
+Use `arithmetic_small.yaml` for a smaller run.

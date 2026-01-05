@@ -174,8 +174,6 @@ class TaxonomyEncoder:
     def common_ancestor(self, emb1: Any, emb2: Any) -> Any:
         """
         Find the most recent common ancestor (MRCA) of two taxa.
-
-        EXACT: Based on shared taxonomic hierarchy.
         """
         backend = get_backend()
         # Find lowest common rank

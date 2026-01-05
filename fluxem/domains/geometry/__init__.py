@@ -1,12 +1,12 @@
 """
 Geometry Module for FluxEM-Domains
 
-Provides exact embeddings for geometric objects and operations.
-All operations preserve mathematical exactness where possible.
+Provides embeddings for geometric objects and operations.
+All operations preserve mathematical structure where possible.
 
 Supports:
 - Points in 2D and 3D space
-- Vectors with exact arithmetic
+- Vectors with component arithmetic
 - Geometric transformations (translation, rotation, scaling, reflection)
 - Shapes (triangles, rectangles, circles, polygons)
 - Distances and angles

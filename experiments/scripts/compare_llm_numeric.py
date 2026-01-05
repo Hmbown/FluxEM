@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
-"""
-Comparison: LLM Numeric Encoding vs FluxEM Algebraic Embeddings
+"""Numeric encoding comparison.
 
-This script demonstrates the fundamental differences between how traditional
-LLMs (GPT, T5, character-level models) handle numeric data versus FluxEM's
-algebraic embedding approach.
-
-Key insight: Traditional tokenizers treat numbers as arbitrary symbols with
-no mathematical structure. FluxEM embeds numbers such that arithmetic
-operations become geometric transformations.
-
-Usage:
-    python compare_llm_numeric.py [--interactive]
+Prints example tokenizations and arithmetic results for several tokenizer
+simulators and FluxEM.
 """
 
 import argparse
@@ -213,27 +204,19 @@ class CharacterLevelTokenizer:
 
 
 # =============================================================================
-# FLUXEM DEMONSTRATION
+# FluxEM example
 # =============================================================================
 
-class FluxEMDemonstrator:
-    """
-    Demonstrates FluxEM's algebraic embedding approach.
-
-    Key properties:
-    - embed(a) + embed(b) = embed(a + b)  [for linear embeddings]
-    - log_embed(a) + log_embed(b) = log_embed(a * b)  [for log embeddings]
-    - No learning required for basic arithmetic
-    - Perfect generalization to any magnitude
-    """
+class FluxEMExampleRunner:
+    """Example FluxEM arithmetic via embedding operations."""
 
     def __init__(self):
         self.model = create_unified_model(dim=256)
         self.linear_encoder = self.model.linear_encoder
         self.log_encoder = self.model.log_encoder
 
-    def demonstrate_addition(self, a: float, b: float) -> Dict[str, Any]:
-        """Demonstrate exact addition via embedding arithmetic."""
+    def example_addition(self, a: float, b: float) -> Dict[str, Any]:
+        """Example addition via embedding arithmetic."""
         # Encode numbers
         emb_a = self.linear_encoder.encode_number(a)
         emb_b = self.linear_encoder.encode_number(b)
@@ -260,11 +243,11 @@ class FluxEMDemonstrator:
             "exact": is_accurate,
             "method": "embed(a) + embed(b) = embed(a + b)",
             "embedding_dim": 256,
-            "learning_required": "NONE - arithmetic is built into representation",
+            "learning_required": "No training required for the arithmetic operator",
         }
 
-    def demonstrate_multiplication(self, a: float, b: float) -> Dict[str, Any]:
-        """Demonstrate exact multiplication via log embedding arithmetic."""
+    def example_multiplication(self, a: float, b: float) -> Dict[str, Any]:
+        """Example multiplication via log embedding arithmetic."""
         # Encode numbers
         emb_a = self.log_encoder.encode_number(a)
         emb_b = self.log_encoder.encode_number(b)
@@ -289,8 +272,8 @@ class FluxEMDemonstrator:
             "note": "Uses logarithmic representation for multiplication",
         }
 
-    def demonstrate_ood_generalization(self) -> Dict[str, Any]:
-        """Demonstrate out-of-distribution generalization."""
+    def example_ood_generalization(self) -> Dict[str, Any]:
+        """Example out-of-distribution generalization."""
         test_cases = [
             # Small numbers (in-distribution for most LLMs)
             (42, 58, "+"),
@@ -341,41 +324,29 @@ class FluxEMDemonstrator:
 
 def print_header(title: str, width: int = 78):
     """Print a formatted header."""
-    print("\n" + "=" * width)
-    print(f"  {title}")
-    print("=" * width)
+    _ = width
+    table_name = title.strip().lower().replace(" ", "_")
+    print(f"table={table_name}")
 
 
 def print_section(title: str, width: int = 78):
     """Print a section header."""
-    print(f"\n{title}")
-    print("-" * len(title))
+    _ = width
+    section_name = title.strip().lower().replace(" ", "_")
+    print(f"section={section_name}")
 
 
 def print_comparison_table(headers: List[str], rows: List[List[str]], col_widths: Optional[List[int]] = None):
     """Print a formatted comparison table."""
-    if col_widths is None:
-        col_widths = [max(len(str(row[i])) for row in [headers] + rows) + 2 for i in range(len(headers))]
-
-    # Header
-    header_line = "|".join(f" {h:<{w-2}} " for h, w in zip(headers, col_widths))
-    separator = "+".join("-" * w for w in col_widths)
-
-    print(f"+{separator}+")
-    print(f"|{header_line}|")
-    print(f"+{separator}+")
-
-    # Rows
+    _ = col_widths
+    print("\t".join(headers))
     for row in rows:
-        row_line = "|".join(f" {str(c):<{w-2}} " for c, w in zip(row, col_widths))
-        print(f"|{row_line}|")
-
-    print(f"+{separator}+")
+        print("\t".join(str(c) for c in row))
 
 
 def visualize_tokenization_difference():
     """Visualize how different tokenizers handle the same number."""
-    print_header("TOKENIZATION COMPARISON: How LLMs See Numbers")
+    print_header("Tokenization")
 
     test_numbers = ["123456", "67890", "80235"]
 
@@ -383,89 +354,59 @@ def visualize_tokenization_difference():
     t5 = T5TokenizerSimulator()
     char = CharacterLevelTokenizer()
 
+    print("number\ttokenizer\ttokens\tcount")
     for num in test_numbers:
-        print_section(f"Number: {num}")
-
         bpe_result = bpe.analyze_number(num)
         t5_tokens = t5.tokenize(num)
         char_tokens = char.tokenize(num)
 
-        print(f"  GPT BPE:      {bpe_result['tokens']} ({len(bpe_result['tokens'])} tokens)")
-        print(f"  T5 SentPiece: {[t[0] for t in t5_tokens]} ({len(t5_tokens)} tokens)")
-        print(f"  Char-level:   {[t[0] for t in char_tokens]} ({len(char_tokens)} tokens)")
-        print(f"  FluxEM:       [single 256-dim embedding] (1 embedding)")
+        print(f"{num}\tgpt_bpe\t{bpe_result['tokens']}\t{len(bpe_result['tokens'])}")
+        print(f"{num}\tt5_sentencepiece\t{[t[0] for t in t5_tokens]}\t{len(t5_tokens)}")
+        print(f"{num}\tchar_level\t{[t[0] for t in char_tokens]}\t{len(char_tokens)}")
+        print(f"{num}\tfluxem\t[single_256_dim_embedding]\t1")
 
 
 def visualize_arithmetic_example():
     """Visualize the arithmetic example: 12345 + 67890 = 80235."""
-    print_header("ARITHMETIC EXAMPLE: 12345 + 67890 = ?")
+    print_header("Arithmetic example")
 
     a, b = 12345, 67890
     expected = a + b
 
     # Show BPE approach
-    print_section("1. GPT-style BPE Approach")
     bpe = BPETokenizerSimulator()
 
-    print(f"  Input:  \"What is {a} + {b}?\"")
     tokens = bpe.tokenize(f"What is {a} + {b}?")
-    print(f"  Tokens: {[t[0] for t in tokens]}")
-    print(f"  IDs:    {[t[1] for t in tokens]}")
-    print()
-    print("  Problem: Token embeddings have NO arithmetic relationship!")
-    print("           embed('12345') + embed('67890') != embed('80235')")
-    print("           Model must memorize or learn patterns from data")
-    print("           Fails on out-of-distribution numbers")
+    print("table=arithmetic_bpe")
+    print("expression\ttokens\tids")
+    print(f"What is {a} + {b}?\t{[t[0] for t in tokens]}\t{[t[1] for t in tokens]}")
 
     # Show character-level approach
-    print_section("2. Character-Level Approach")
     char = CharacterLevelTokenizer()
     analysis = char.analyze_addition_complexity(str(a), str(b))
 
-    print(f"  {a}: tokens = {analysis['a_tokens']}")
-    print(f"  {b}: tokens = {analysis['b_tokens']}")
-    print(f"  Result: {analysis['result']}")
-    print(f"  Carries needed: {analysis['carries_needed']}")
-    print()
-    print("  Learning required:")
-    for req in analysis['learning_required']:
-        print(f"    - {req}")
+    print("table=arithmetic_char_analysis")
+    print("a\tb\ta_tokens\tb_tokens\tresult\tcarries_needed\tlearning_required")
+    learning_required = "|".join(analysis["learning_required"])
+    print(f"{a}\t{b}\t{analysis['a_tokens']}\t{analysis['b_tokens']}\t{analysis['result']}\t{analysis['carries_needed']}\t{learning_required}")
 
     # Show FluxEM approach
-    print_section("3. FluxEM Algebraic Approach")
-    fluxem = FluxEMDemonstrator()
-    result = fluxem.demonstrate_addition(a, b)
+    fluxem = FluxEMExampleRunner()
+    result = fluxem.example_addition(a, b)
 
-    print(f"  embed({a}) --> 256-dimensional vector e_a")
-    print(f"  embed({b}) --> 256-dimensional vector e_b")
-    print()
-    print(f"  e_a + e_b = e_sum  (vector addition)")
-    print(f"  decode(e_sum) = {result['computed']}")
-    print()
-    print(f"  Expected: {expected}")
-    print(f"  Exact match: {result['exact']}")
-    print()
-    print(f"  KEY INSIGHT: {result['method']}")
-    print(f"  Learning required: {result['learning_required']}")
+    print("table=arithmetic_fluxem")
+    print("a\tb\texpected\tcomputed\texact\tmethod\tlearning_required")
+    print(f"{a}\t{b}\t{expected}\t{result['computed']}\t{result['exact']}\t{result['method']}\t{result['learning_required']}")
 
 
 def visualize_ood_comparison():
     """Compare OOD generalization."""
-    print_header("OUT-OF-DISTRIBUTION GENERALIZATION")
+    print_header("OOD magnitude")
 
-    print("""
-  LLMs are trained on text corpora where certain number patterns appear:
-  - Common: 1-100, years (1990-2024), prices ($10, $99.99)
-  - Rare: Large arithmetic (e.g., 987654 + 123456)
+    fluxem = FluxEMExampleRunner()
+    ood_results = fluxem.example_ood_generalization()
 
-  When numbers fall outside training distribution, LLMs fail dramatically.
-  FluxEM handles ANY magnitude with consistent accuracy.
-""")
-
-    fluxem = FluxEMDemonstrator()
-    ood_results = fluxem.demonstrate_ood_generalization()
-
-    headers = ["Expression", "Expected", "FluxEM Result", "Rel. Error", "Accurate"]
+    headers = ["expression", "expected", "fluxem_result", "relative_error", "accurate"]
     rows = []
 
     for r in ood_results["test_cases"]:
@@ -474,124 +415,64 @@ def visualize_ood_comparison():
             str(r["expected"]),
             f"{r['computed']:.0f}",
             r["relative_error"],
-            "Yes" if r["accurate"] else "NO",
+            "1" if r["accurate"] else "0",
         ])
 
     print_comparison_table(headers, rows, [25, 18, 18, 12, 10])
 
-    print(f"\n  All test cases accurate: {ood_results['all_accurate']}")
-    print(f"  Note: {ood_results['note']}")
+    print("table=ood_summary")
+    print("all_accurate")
+    print(f"{ood_results['all_accurate']}")
 
 
 def visualize_scientific_notation():
     """Show scientific notation challenges."""
-    print_header("SCIENTIFIC NOTATION CHALLENGES")
+    print_header("Scientific notation")
 
     t5 = T5TokenizerSimulator()
 
     examples = ["1e6", "6.022e23", "1.38e-23"]
 
+    print("number\ttokens\tissues")
     for ex in examples:
-        print_section(f"Number: {ex}")
         analysis = t5.analyze_scientific_notation(ex)
-        print(f"  Tokens: {analysis['tokens']}")
-        print(f"  Issues:")
-        for issue in analysis['issues']:
-            print(f"    - {issue}")
+        issues = "|".join(analysis["issues"])
+        print(f"{ex}\t{analysis['tokens']}\t{issues}")
 
 
 def visualize_embedding_structure():
     """Visualize the embedding structure difference."""
-    print_header("EMBEDDING STRUCTURE COMPARISON")
+    print_header("Embedding structure")
 
-    print("""
-  +-----------------+-------------------+----------------------------------+
-  | Approach        | Embedding Type    | Arithmetic Property              |
-  +-----------------+-------------------+----------------------------------+
-  | GPT BPE         | Learned vectors   | None (arbitrary directions)      |
-  | T5 SentPiece    | Learned vectors   | None (arbitrary directions)      |
-  | Char-level      | Learned vectors   | None (must learn place value)    |
-  +-----------------+-------------------+----------------------------------+
-  | FluxEM Linear   | Algebraic vectors | embed(a+b) = embed(a) + embed(b) |
-  | FluxEM Log      | Algebraic vectors | log_emb(a*b) = log(a) + log(b)   |
-  +-----------------+-------------------+----------------------------------+
-""")
-
-    print("  FluxEM embedding structure (256-dimensional):")
-    print("  +--------------------------------------------------+")
-    print("  |  [8 bits: domain tag] [248 bits: value encoding] |")
-    print("  +--------------------------------------------------+")
-    print()
-    print("  Linear encoding (for addition/subtraction):")
-    print("    - Number n encoded as n * direction_vector / scale")
-    print("    - Vector addition = number addition")
-    print()
-    print("  Logarithmic encoding (for multiplication/division):")
-    print("    - Number n encoded as log(|n|) * direction_vector")
-    print("    - Vector addition = number multiplication")
-    print("    - Sign tracked separately")
+    print("field\tvalue")
+    print("embedding_dim\t256")
+    print("domain_tag_bits\t8")
+    print("value_encoding_bits\t248")
+    print("linear_encoding\tNumber n encoded as n * direction_vector / scale")
+    print("linear_operator\tVector addition equals number addition")
+    print("log_encoding\tNumber n encoded as log(|n|) * direction_vector")
+    print("log_operator\tVector addition equals number multiplication")
+    print("sign_tracking\tstored separately")
 
 
 def visualize_summary():
     """Print final summary."""
-    print_header("SUMMARY: Why FluxEM Matters for Numeric Reasoning")
-
-    print("""
-  Traditional LLM Tokenization:
-  +-----------------------------------------------------------------------+
-  | Problem                        | Consequence                          |
-  +-----------------------------------------------------------------------+
-  | Numbers split into arbitrary   | No inherent arithmetic structure     |
-  | subword tokens                 |                                      |
-  +-----------------------------------------------------------------------+
-  | Token embeddings are learned   | Must memorize arithmetic from data   |
-  | from text statistics           | Limited by training distribution     |
-  +-----------------------------------------------------------------------+
-  | No mathematical relationships  | Catastrophic OOD failures            |
-  | between number representations | (e.g., large number arithmetic)      |
-  +-----------------------------------------------------------------------+
-
-  FluxEM Algebraic Embeddings:
-  +-----------------------------------------------------------------------+
-  | Property                       | Benefit                              |
-  +-----------------------------------------------------------------------+
-  | Arithmetic IS geometry         | embed(a) + embed(b) = embed(a+b)     |
-  |                                | No learning required for arithmetic  |
-  +-----------------------------------------------------------------------+
-  | Scale-invariant encoding       | Works for any magnitude uniformly    |
-  |                                | No OOD degradation                   |
-  +-----------------------------------------------------------------------+
-  | Hybrid integration             | Detect numbers, embed algebraically, |
-  |                                | project to LLM hidden space          |
-  +-----------------------------------------------------------------------+
-
-  The Hybrid Approach:
-
-    Text: "What is 12345 + 67890?"
-           |       |       |
-           v       v       v
-         [LLM]  [FluxEM] [FluxEM]
-         tokens  embed    embed
-           |       |       |
-           +-------+-------+
-                   |
-                   v
-            [Hybrid Transformer]
-                   |
-                   v
-            Exact: 80235
-""")
+    print_header("Summary")
+    print("identity\tformula")
+    print("linear_addition\tembed(a) + embed(b) = embed(a+b)")
+    print("log_multiplication\tlog_embed(a*b) = log_embed(a) + log_embed(b)")
 
 
 def interactive_demo():
-    """Run interactive demonstration."""
-    print_header("INTERACTIVE FLUXEM DEMO")
+    """Run interactive example."""
+    print_header("Interactive")
 
-    fluxem = FluxEMDemonstrator()
+    fluxem = FluxEMExampleRunner()
 
-    print("\n  Enter arithmetic expressions to compute (or 'quit' to exit).")
-    print("  Examples: 12345+67890, 999*888, 1000000-1")
-    print()
+    print("note\tvalue")
+    print("interactive_prompt\tenter arithmetic expressions or 'quit'")
+    print("examples\t12345+67890, 999*888, 1000000-1")
+    print("expression\tcomputed\texpected\trelative_error")
 
     while True:
         try:
@@ -627,23 +508,16 @@ def interactive_demo():
 
                 if expected is not None:
                     rel_error = abs(result - expected) / abs(expected) if expected != 0 else abs(result)
-                    print(f"    FluxEM result: {result}")
-                    print(f"    Expected:      {expected}")
-                    print(f"    Relative error: {rel_error:.2e}")
+                    print(f"{expr}\t{result}\t{expected}\t{rel_error:.6e}")
                 else:
-                    print(f"    Result: {result}")
+                    print(f"{expr}\t{result}\t\t")
             except:
-                print(f"    Result: {result}")
-
-            print()
+                print(f"{expr}\t{result}\t\t")
 
         except KeyboardInterrupt:
             break
         except Exception as e:
-            print(f"    Error: {e}")
-            print()
-
-    print("\n  Demo complete.\n")
+            print(f"error\t{e}")
 
 
 # =============================================================================
@@ -667,9 +541,7 @@ def main():
     )
     args = parser.parse_args()
 
-    print("\n" + "=" * 78)
-    print("  LLM NUMERIC ENCODING vs FLUXEM: A Comparative Analysis")
-    print("=" * 78)
+    print_header("Numeric encoding comparison")
 
     sections = {
         "tokenization": visualize_tokenization_difference,
@@ -688,10 +560,6 @@ def main():
 
     if args.interactive:
         interactive_demo()
-
-    print("\n" + "=" * 78)
-    print("  Comparison complete.")
-    print("=" * 78 + "\n")
 
 
 if __name__ == "__main__":

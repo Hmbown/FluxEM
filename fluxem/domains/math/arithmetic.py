@@ -1,11 +1,9 @@
 """
-Arithmetic Encoder for basic integer and float operations.
+Arithmetic encoder.
 
-This is the MLX-native version of the original FluxEM arithmetic encoder.
-Provides EXACT addition/subtraction via linear embeddings and
-multiplication/division via log-magnitude embeddings.
-
-Key insight: Addition is linear, multiplication is addition in log-space.
+Encodes scalar values into embeddings supporting closed-form arithmetic.
+Addition/subtraction use a linear component; multiplication/division/powers use
+a log-magnitude component. Results follow IEEE-754 floating-point semantics.
 """
 
 import math
@@ -44,14 +42,18 @@ LINEAR_SCALE = 1e15
 
 
 class ArithmeticEncoder:
-    """
-    Encoder for basic arithmetic (integers and floats).
-    
-    Properties:
-    - Addition is EXACT: embed(a) + embed(b) = embed(a + b) (in linear component)
-    - Multiplication is EXACT: log(a) + log(b) = log(a * b) (in log component)
-    
-    This enables an LLM to do arithmetic by geometric operations on embeddings.
+    """Encode scalar values into arithmetic embeddings.
+
+    Parameters
+    ----------
+    scale : float, optional
+        Linear scale used for the additive component.
+
+    Notes
+    -----
+    Addition/subtraction operate on the linear component. Multiplication and
+    division are implemented in log-magnitude space and are subject to
+    floating-point error in `log`/`exp`.
     """
     
     @property
@@ -60,23 +62,27 @@ class ArithmeticEncoder:
     domain_name = "arithmetic"
     
     def __init__(self, scale: float = LINEAR_SCALE):
-        """
-        Initialize arithmetic encoder.
-        
-        Args:
-            scale: Maximum representable value for linear operations
+        """Initialize the encoder.
+
+        Parameters
+        ----------
+        scale : float, optional
+            Maximum representable value for linear operations.
         """
         self.scale = scale
     
     def encode(self, value: Union[int, float]) -> Any:
-        """
-        Encode a number.
-        
-        Args:
-            value: Integer or float to encode
-            
-        Returns:
-            128-dim embedding
+        """Encode a scalar value.
+
+        Parameters
+        ----------
+        value : int or float
+            Value to encode.
+
+        Returns
+        -------
+        Any
+            Embedding of shape `(EMBEDDING_DIM,)`.
         """
         backend = get_backend()
         emb = create_embedding()
@@ -102,14 +108,14 @@ class ArithmeticEncoder:
         emb = backend.at_add(emb, 8 + IS_ZERO_FLAG, 1.0 if abs(value) < EPSILON else 0.0)
         emb = backend.at_add(emb, 8 + IS_NEG_FLAG, 1.0 if value < 0 else 0.0)
         
-        # Digit encoding (for exact integer representation)
+        # Digit encoding (for direct integer representation)
         if is_int and abs(value) < 1e16:
             emb = self._encode_digits(emb, int(value))
         
         return emb
     
     def _encode_digits(self, emb: Any, value: int) -> Any:
-        """Encode individual digits for exact integer representation."""
+        """Encode individual digits for direct integer representation."""
         backend = get_backend()
         abs_val = abs(value)
         digits = []
@@ -176,7 +182,7 @@ class ArithmeticEncoder:
         """
         Add two numbers.
         
-        This is EXACT in the linear component:
+        Computed in the linear component:
         embed(a).linear + embed(b).linear = embed(a+b).linear
         """
         # Get linear values
@@ -190,7 +196,7 @@ class ArithmeticEncoder:
         """
         Subtract two numbers.
         
-        This is EXACT in the linear component.
+        Computed in the linear component.
         """
         lin1 = emb1[8 + LINEAR_OFFSET + 1].item() * self.scale
         lin2 = emb2[8 + LINEAR_OFFSET + 1].item() * self.scale
@@ -202,7 +208,7 @@ class ArithmeticEncoder:
         """
         Multiply two numbers.
         
-        This is EXACT in log-space:
+        Computed in log-space:
         log(a) + log(b) = log(a * b)
         """
         # Check for zeros
@@ -231,7 +237,7 @@ class ArithmeticEncoder:
         """
         Divide two numbers.
         
-        This is EXACT in log-space:
+        Computed in log-space:
         log(a) - log(b) = log(a / b)
         """
         # Check for zero divisor
@@ -273,7 +279,7 @@ class ArithmeticEncoder:
         """
         Raise to integer power.
         
-        This is EXACT in log-space: n * log(a) = log(a^n)
+        Computed in log-space: n * log(a) = log(a^n)
         """
         if n == 0:
             return self.encode(1)
@@ -306,7 +312,7 @@ class ArithmeticEncoder:
         """
         Square root.
         
-        This is EXACT in log-space: log(a) / 2 = log(sqrt(a))
+        Computed in log-space: log(a) / 2 = log(sqrt(a))
         """
         is_neg = emb[8 + IS_NEG_FLAG].item() > 0.5
         if is_neg:

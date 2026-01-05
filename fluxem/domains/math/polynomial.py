@@ -2,8 +2,8 @@
 Polynomial Encoder.
 
 Embeds polynomials by their coefficient vectors.
-Addition is EXACT: add corresponding coefficients.
-Scalar multiplication is EXACT: multiply all coefficients.
+Addition is add corresponding coefficients.
+Scalar multiplication is multiply all coefficients.
 Polynomial multiplication requires convolution (decode-operate-encode).
 """
 
@@ -41,7 +41,7 @@ class PolynomialEncoder:
     Encoder for polynomials over the reals.
 
     Stores coefficient vector with log-magnitude encoding.
-    Addition is EXACT in embedding space.
+    Addition is performed in embedding space.
     """
 
     domain_tag = DOMAIN_TAGS["math_polynomial"]
@@ -145,7 +145,7 @@ class PolynomialEncoder:
         """
         Add two polynomials.
 
-        Coefficient-wise addition is EXACT.
+        Coefficient-wise addition.
         """
         backend = get_backend()
         result = create_embedding()
@@ -246,7 +246,7 @@ class PolynomialEncoder:
         """
         Multiply polynomial by a scalar.
 
-        This is EXACT: multiply all coefficients.
+        This is multiply all coefficients.
         """
         backend = get_backend()
         if abs(scalar) < EPSILON:

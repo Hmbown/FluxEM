@@ -11,8 +11,20 @@ import math
 import os
 import random
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Set
 import yaml
+
+EMITTED_TABLES: Set[str] = set()
+
+
+def emit_table(name: str, columns: List[str], row: List[Any]) -> None:
+    """Emit a TSV table with a one-time header."""
+    if name not in EMITTED_TABLES:
+        print(f"table={name}")
+        print("\t".join(columns))
+        EMITTED_TABLES.add(name)
+    values = ["" if v is None else str(v) for v in row]
+    print("\t".join(values))
 
 try:
     import torch
@@ -22,7 +34,6 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
-    print("Warning: PyTorch not installed. Install with: pip install torch")
 
 
 def load_config(config_path: str) -> Dict:
@@ -219,7 +230,7 @@ def evaluate(model, dataloader, device):
 
 def main():
     if not TORCH_AVAILABLE:
-        print("Error: PyTorch is required. Install with: pip install torch")
+        emit_table("error", ["type", "detail"], ["pytorch_not_installed", "install_torch"])
         return
     
     parser = argparse.ArgumentParser(description="Train token-only baseline")
@@ -239,14 +250,15 @@ def main():
     # Device
     device_str = args.device or config.get("training", {}).get("device", "cpu")
     device = torch.device(device_str)
-    print(f"Using device: {device}")
+    emit_table("run_context", ["field", "value"], ["device", device])
     
     # Load data
     data_dir = Path(config["paths"]["data_dir"])
     train_data = load_jsonl(data_dir / "train.jsonl")
     test_data = load_jsonl(data_dir / "test_id.jsonl")
     
-    print(f"Loaded {len(train_data)} train, {len(test_data)} test samples")
+    emit_table("dataset_counts", ["split", "count"], ["train", len(train_data)])
+    emit_table("dataset_counts", ["split", "count"], ["test_id", len(test_data)])
     
     # Create tokenizer and datasets
     tokenizer = CharTokenizer()
@@ -270,7 +282,11 @@ def main():
         max_len=max_len,
     ).to(device)
     
-    print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
+    emit_table(
+        "model_info",
+        ["field", "value"],
+        ["parameter_count", sum(p.numel() for p in model.parameters())],
+    )
     
     # Optimizer
     lr = config.get("training", {}).get("learning_rate", 0.001)
@@ -290,7 +306,11 @@ def main():
             best_epoch = epoch
         
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"Epoch {epoch+1}/{epochs}: train_loss={train_loss:.4f}, test_loss={test_loss:.4f}")
+            emit_table(
+                "training_epoch",
+                ["epoch", "total_epochs", "train_loss", "test_loss"],
+                [epoch + 1, epochs, f"{train_loss:.6f}", f"{test_loss:.6f}"],
+            )
     
     # Save model
     results_dir = Path(config["paths"]["results_dir"]) / "token_only"
@@ -304,8 +324,12 @@ def main():
         "best_epoch": best_epoch,
     }, results_dir / "model.pt")
     
-    print(f"\nTraining complete. Best test loss: {best_loss:.4f} at epoch {best_epoch+1}")
-    print(f"Model saved to {results_dir / 'model.pt'}")
+    emit_table(
+        "training_summary",
+        ["min_test_loss", "min_test_loss_epoch"],
+        [f"{best_loss:.6f}", best_epoch + 1],
+    )
+    emit_table("results_path", ["path"], [str(results_dir / "model.pt")])
 
 
 if __name__ == "__main__":

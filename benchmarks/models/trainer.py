@@ -178,7 +178,7 @@ class Trainer:
                     f"val_acc={val_metrics['accuracy_1pct']:.1%}"
                 )
 
-            # Save best model
+            # Save lowest validation MAE model
             if checkpoint_dir and val_metrics["mae"] < best_val_mae:
                 best_val_mae = val_metrics["mae"]
                 checkpoint_dir.mkdir(parents=True, exist_ok=True)

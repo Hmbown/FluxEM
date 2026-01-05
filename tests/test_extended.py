@@ -53,8 +53,8 @@ class TestPower:
 class TestSqrt:
     """Tests for square root."""
 
-    def test_sqrt_perfect_squares(self, ops):
-        """Test sqrt of perfect squares."""
+    def test_sqrt_square_numbers(self, ops):
+        """Test sqrt of square numbers."""
         test_cases = [(4, 2), (9, 3), (16, 4), (25, 5), (100, 10)]
         for n, expected in test_cases:
             result = ops.sqrt(n)
@@ -73,8 +73,8 @@ class TestSqrt:
 class TestCbrt:
     """Tests for cube root."""
 
-    def test_cbrt_perfect_cubes(self, ops):
-        """Test cbrt of perfect cubes."""
+    def test_cbrt_cube_numbers(self, ops):
+        """Test cbrt of cube numbers."""
         test_cases = [(8, 2), (27, 3), (64, 4), (125, 5), (1000, 10)]
         for n, expected in test_cases:
             result = ops.cbrt(n)

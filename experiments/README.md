@@ -1,8 +1,10 @@
 # FluxEM Experiments
 
-Minimal end-to-end experiments comparing token-only vs hybrid (FluxEM) training.
+## Overview
 
-## Quick Start
+End-to-end experiments comparing token-only vs hybrid (FluxEM) training.
+
+## Usage (minimal run)
 
 ```bash
 # Generate data, train both models, evaluate
@@ -12,7 +14,9 @@ python scripts/train_hybrid.py --config configs/arithmetic_small.yaml
 python scripts/eval.py --config configs/arithmetic_small.yaml
 ```
 
-## Structure
+## Implementation
+
+### Structure
 
 ```
 experiments/
@@ -22,17 +26,16 @@ experiments/
 └── results/           # Model outputs (gitignored)
 ```
 
-## Experiments
+### Configurations
 
-| Config | Task | Train Size | Time (CPU) |
-|--------|------|------------|------------|
-| `arithmetic_small.yaml` | Arithmetic | 1K | ~2 min |
-| `arithmetic_full.yaml` | Arithmetic | 10K | ~20 min |
-| `units_full.yaml` | Dimensional analysis | 5K | ~15 min |
+| Config | Task | Train Size |
+|--------|------|------------|
+| `arithmetic_small.yaml` | Arithmetic | 1K |
+| `arithmetic_full.yaml` | Arithmetic | 10K |
+| `units_full.yaml` | Dimensional analysis | 5K |
 
-## Expected Results
+## Reproducibility
 
-Hybrid models show near-perfect OOD generalization on arithmetic/units tasks
-where token-only models fail (< 25% accuracy).
+Scripts write datasets under `experiments/data/` and results under `experiments/results/` (both typically gitignored).
 
-See `docs/EXPERIMENTS.md` for detailed documentation.
+See [docs/EXPERIMENTS.md](../docs/EXPERIMENTS.md) for detailed documentation.

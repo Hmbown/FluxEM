@@ -1,15 +1,15 @@
 """
 Number Theory Module for FluxEM-Domains
 
-Provides exact embeddings for number-theoretic objects and operations.
-All operations are mathematically guaranteed correct.
+Provides embeddings for number-theoretic objects and operations.
+Operations use integer arithmetic and standard algorithms.
 
 Supports:
-- Integers with exact arithmetic
+- Integers with arbitrary-precision arithmetic
 - Prime numbers and factorization
 - Divisibility and GCD/LCM
 - Modular arithmetic
-- Rational numbers (exact fractions)
+- Rational numbers (fractions in canonical form)
 """
 
 from .integers import Integer, IntegerEncoder

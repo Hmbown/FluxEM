@@ -1,13 +1,7 @@
 """
-Propositional Logic Encoder.
+Propositional logic encoder.
 
-Embeds propositional formulas with Boolean algebra structure.
-The key insight: Boolean algebra is a lattice where:
-- AND = meet (greatest lower bound)
-- OR = join (least upper bound)
-- NOT = complement
-
-Truth table operations are EXACT - no approximation.
+Embeds propositional formulas and implements Boolean operators deterministically.
 """
 
 from dataclasses import dataclass, field
@@ -43,10 +37,19 @@ class PropFormula:
     """
     Propositional formula as a tree structure.
 
-    Examples:
-        PropFormula(FormulaType.ATOM, atom_id=0)  # p
-        PropFormula(FormulaType.NOT, children=[p])  # ¬p
-        PropFormula(FormulaType.AND, children=[p, q])  # p ∧ q
+    Parameters
+    ----------
+    type : FormulaType
+        Type of formula.
+    atom_id : int, optional
+        Atom ID (for ATOM type).
+    children : list[PropFormula], optional
+        Child formulas.
+
+    Examples
+    --------
+    >>> p = PropFormula(FormulaType.ATOM, atom_id=0)
+    >>> PropFormula(FormulaType.NOT, children=[p])
     """
     type: FormulaType
     atom_id: Optional[int] = None  # For ATOM type
@@ -105,14 +108,17 @@ class PropFormula:
         return PropFormula(FormulaType.IFF, children=[self, other])
 
     def evaluate(self, assignment: Dict[int, bool]) -> Optional[bool]:
-        """
-        Evaluate formula under given truth assignment.
+        """Evaluate formula under a truth assignment.
 
-        Args:
-            assignment: Mapping from atom_id to truth value
+        Parameters
+        ----------
+        assignment : dict[int, bool]
+            Mapping from atom id to truth value.
 
-        Returns:
-            Truth value, or None if assignment is incomplete
+        Returns
+        -------
+        bool or None
+            Truth value, or None if the assignment is incomplete.
         """
         if self.type == FormulaType.TRUE:
             return True
@@ -255,21 +261,24 @@ class PropositionalEncoder:
     """
     Encoder for propositional logic formulas.
 
-    Truth operations are EXACT - lattice operations preserve truth values.
+    Truth operations are implemented deterministically.
     """
 
     domain_tag = DOMAIN_TAGS["logic_prop"]
     domain_name = "logic_prop"
 
     def encode(self, formula: PropFormula) -> Any:
-        """
-        Encode a propositional formula.
+        """Encode a propositional formula.
 
-        Args:
-            formula: PropFormula object
+        Parameters
+        ----------
+        formula : PropFormula
+            Input formula.
 
-        Returns:
-            128-dim embedding
+        Returns
+        -------
+        Any
+            Embedding of shape ``(EMBEDDING_DIM,)``.
         """
         backend = get_backend()
         emb = create_embedding()
@@ -339,10 +348,12 @@ class PropositionalEncoder:
         return counts
 
     def decode(self, emb: Any) -> PropFormula:
-        """
-        Decode embedding to a formula.
+        """Decode an embedding to a formula.
 
-        Note: Full structure is not preserved - only type and truth value.
+        Notes
+        -----
+        Full formula structure is not preserved. The decoder returns a formula
+        consistent with the encoded type/truth indicators.
         """
         # Determine type from one-hot encoding
         type_idx = 0
@@ -384,7 +395,7 @@ class PropositionalEncoder:
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
-    # Lattice Operations - EXACT
+    # Lattice operations
     # =========================================================================
 
     def meet(self, emb1: Any, emb2: Any) -> Any:
@@ -392,7 +403,7 @@ class PropositionalEncoder:
         Lattice meet operation (AND).
 
         Truth: min(t1, t2)
-        This is EXACT for truth values.
+        Exact with respect to the stored truth value.
         """
         backend = get_backend()
         result = create_embedding()
@@ -439,7 +450,7 @@ class PropositionalEncoder:
         Lattice join operation (OR).
 
         Truth: max(t1, t2)
-        This is EXACT for truth values.
+        Exact with respect to the stored truth value.
         """
         backend = get_backend()
         result = create_embedding()
@@ -486,7 +497,7 @@ class PropositionalEncoder:
         Complement operation (NOT).
 
         Truth: 1 - t
-        This is EXACT.
+        Exact with respect to the stored truth value.
         """
         backend = get_backend()
         result = create_embedding()

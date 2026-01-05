@@ -1,13 +1,12 @@
 """
 Graph Theory Module for FluxEM-Domains
 
-Provides exact embeddings for graphs with operations that are
-mathematically guaranteed correct by construction.
+Provides embeddings for graphs with operations defined by adjacency matrices.
 
 Supports:
 - Finite graphs (directed and undirected)
 - Adjacency matrix encoding (8x8 = up to 8 nodes)
-- Exact graph operations (union, intersection, complement)
+- Graph operations (union, intersection, complement)
 - Path and connectivity operations
 - Property detection (connected, acyclic, bipartite, etc.)
 """

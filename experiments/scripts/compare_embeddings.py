@@ -2,9 +2,8 @@
 """
 Compare embedding approaches for arithmetic tasks.
 
-Demonstrates that FluxEM algebraic embeddings achieve near-perfect accuracy
-on out-of-distribution (OOD) arithmetic because the algebra is exact,
-while learned/tokenized approaches fail to generalize.
+Compares deterministic algebraic embeddings with token-based baselines on ID/OOD
+arithmetic benchmarks.
 
 Embedding approaches compared:
 1. FluxEM: Algebraic embeddings (exact arithmetic via linear algebra)
@@ -94,7 +93,7 @@ class BenchmarkConfig:
     def from_yaml(cls, path: str) -> "BenchmarkConfig":
         """Load configuration from YAML file."""
         if not YAML_AVAILABLE:
-            print("Warning: pyyaml not installed, using default config")
+            print("warning\tpyyaml_not_installed")
             return cls()
 
         with open(path) as f:
@@ -184,7 +183,7 @@ def generate_expression(
     return expr, result
 
 
-def generate_test_data(
+def generate_datasets(
     config: BenchmarkConfig,
 ) -> Dict[str, List[Tuple[str, float]]]:
     """Generate ID and OOD test datasets."""
@@ -207,8 +206,6 @@ def generate_test_data(
     # OOD-length: small numbers, long chains
     # Note: For chains, we use only + and - to avoid decimal intermediate results
     # which the current FluxEM byte parser doesn't handle correctly.
-    # This still demonstrates the key insight: FluxEM generalizes to longer chains
-    # because the algebra is exact, while learned approaches fail.
     chain_ops = ["+", "-"]
     datasets["ood_length"] = [
         generate_expression(
@@ -384,7 +381,7 @@ class CharacterTokenizationApproach(EmbeddingApproach):
         return [self.char_to_idx.get(c, 0) for c in expr]
 
     def _eval_simple(self, expr: str) -> float:
-        """Evaluate using Python (simulates perfect ID performance)."""
+        """Evaluate using Python (simulates ID evaluation)."""
         # Remove spaces and evaluate
         expr_clean = expr.replace(" ", "")
         # Safe eval for arithmetic only
@@ -500,10 +497,10 @@ class LearnedEmbeddingApproach(EmbeddingApproach):
     def train(self, data: List[Tuple[str, float]]) -> None:
         """Train the model on ID data."""
         if not TORCH_AVAILABLE or self.model is None:
-            print("  [Learned] Skipping training (PyTorch not available)")
+            print("training_status\tapproach=learned\tstatus=skipped\treason=pytorch_unavailable")
             return
 
-        print(f"  [Learned] Training on {len(data)} samples...")
+        print(f"training_status\tapproach=learned\tstatus=started\tsamples={len(data)}")
 
         # Prepare training data
         X = torch.tensor([self._tokenize(expr) for expr, _ in data], dtype=torch.long)
@@ -546,7 +543,7 @@ class LearnedEmbeddingApproach(EmbeddingApproach):
 
             if (epoch + 1) % 10 == 0:
                 avg_loss = epoch_loss / n_batches
-                print(f"    Epoch {epoch + 1}/{self.config.learned_train_epochs}, Loss: {avg_loss:.4f}")
+                print(f"training_epoch\tapproach=learned\tepoch={epoch + 1}\tavg_loss={avg_loss:.6f}")
 
         self.trained = True
         self.model.eval()
@@ -763,20 +760,12 @@ def evaluate_approach(
 
 def run_benchmark(config: BenchmarkConfig) -> Dict[str, Dict[str, EvaluationResult]]:
     """Run the full benchmark."""
-    print("=" * 70)
-    print("  EMBEDDING COMPARISON BENCHMARK")
-    print("  Comparing algebraic (FluxEM) vs learned/tokenized approaches")
-    print("=" * 70)
-
     # Set random seed
     np.random.seed(config.seed)
     random.seed(config.seed)
 
     # Generate test data
-    print("\n[1] Generating test data...")
     datasets = generate_test_data(config)
-    for name, data in datasets.items():
-        print(f"    {name}: {len(data)} samples")
 
     # Generate training data for learned approach
     train_data = [
@@ -785,7 +774,6 @@ def run_benchmark(config: BenchmarkConfig) -> Dict[str, Dict[str, EvaluationResu
     ]
 
     # Initialize approaches
-    print("\n[2] Initializing embedding approaches...")
     approaches = [
         FluxEMApproach(config),
         CharacterTokenizationApproach(config),
@@ -794,17 +782,14 @@ def run_benchmark(config: BenchmarkConfig) -> Dict[str, Dict[str, EvaluationResu
     ]
 
     # Train approaches that need training
-    print("\n[3] Training learned approaches...")
     for approach in approaches:
         approach.train(train_data)
 
     # Evaluate
-    print("\n[4] Evaluating approaches...")
     results: Dict[str, Dict[str, EvaluationResult]] = {}
 
     for approach in approaches:
         results[approach.name] = {}
-        print(f"\n  Evaluating {approach.name}...")
 
         # Re-seed for consistent evaluation across runs
         # (simulated approaches use np.random for noise)
@@ -815,109 +800,52 @@ def run_benchmark(config: BenchmarkConfig) -> Dict[str, Dict[str, EvaluationResu
             results[approach.name][dataset_name] = result
 
             if config.verbose:
-                print(f"    {dataset_name}: acc={result.numeric_accuracy:.1%}, "
-                      f"med_err={result.median_relative_error:.4f}")
+                print(
+                    "evaluation_status\tapproach={}\tdataset={}\taccuracy={:.6f}\tmedian_error={:.6e}".format(
+                        approach.name,
+                        dataset_name,
+                        result.numeric_accuracy,
+                        result.median_relative_error,
+                    )
+                )
 
     return results
 
 
 def print_results_table(results: Dict[str, Dict[str, EvaluationResult]]) -> None:
     """Print a formatted comparison table."""
-    print("\n" + "=" * 70)
-    print("  RESULTS")
-    print("=" * 70)
+    print("table=accuracy_by_encoder")
+    print("approach\tdataset\tn_samples\texact_match\tnumeric_accuracy\tmean_relative_error\tmedian_relative_error")
+    for approach, datasets in results.items():
+        for ds_name, result in datasets.items():
+            print(
+                f"{approach}\t{ds_name}\t{result.n_samples}\t{result.exact_match:.6f}\t"
+                f"{result.numeric_accuracy:.6f}\t{result.mean_relative_error:.6e}\t"
+                f"{result.median_relative_error:.6e}"
+            )
 
-    approaches = list(results.keys())
-    datasets = list(list(results.values())[0].keys())
+    print("table=ood_gap")
+    print("approach\tgap_magnitude\tgap_length")
+    for approach, datasets in results.items():
+        id_acc = datasets["id"].numeric_accuracy
+        gap_mag = id_acc - datasets["ood_magnitude"].numeric_accuracy
+        gap_len = id_acc - datasets["ood_length"].numeric_accuracy
+        print(f"{approach}\t{gap_mag:.6f}\t{gap_len:.6f}")
 
-    # Header
-    print("\n" + "-" * 70)
-    print(f"{'Accuracy (within 1% error)':<30}", end="")
-    for ds in datasets:
-        ds_short = ds.replace("ood_", "OOD-").replace("_", " ").title()
-        if ds == "id":
-            ds_short = "ID"
-        print(f"{ds_short:>13}", end="")
-    print()
-    print("-" * 70)
-
-    # Results by approach
-    for approach in approaches:
-        print(f"{approach:<30}", end="")
-        for ds in datasets:
-            acc = results[approach][ds].numeric_accuracy
-            print(f"{acc:>12.1%}", end="")
-        print()
-
-    print("-" * 70)
-
-    # OOD Generalization Gap
-    print("\n" + "-" * 70)
-    print("OOD Generalization Gap (ID accuracy - OOD accuracy)")
-    print("-" * 70)
-
-    for approach in approaches:
-        id_acc = results[approach]["id"].numeric_accuracy
-        ood_mag_acc = results[approach]["ood_magnitude"].numeric_accuracy
-        ood_len_acc = results[approach]["ood_length"].numeric_accuracy
-
-        gap_mag = id_acc - ood_mag_acc
-        gap_len = id_acc - ood_len_acc
-
-        print(f"{approach:<20} Magnitude: {gap_mag:>+6.1%}   Length: {gap_len:>+6.1%}")
-
-    print("-" * 70)
-
-    # Median Relative Error
-    print("\n" + "-" * 70)
-    print(f"{'Median Relative Error':<30}", end="")
-    for ds in datasets:
-        ds_short = ds.replace("ood_", "OOD-").replace("_", " ").title()
-        if ds == "id":
-            ds_short = "ID"
-        print(f"{ds_short:>13}", end="")
-    print()
-    print("-" * 70)
-
-    for approach in approaches:
-        print(f"{approach:<30}", end="")
-        for ds in datasets:
-            err = results[approach][ds].median_relative_error
-            if err < 0.0001:
-                print(f"{'<0.0001':>13}", end="")
-            elif err > 1.0:
-                print(f"{'>100%':>13}", end="")
-            else:
-                print(f"{err:>12.4f}", end="")
-        print()
-
-    print("-" * 70)
+    print("table=median_relative_error")
+    print("approach\tdataset\tmedian_relative_error")
+    for approach, datasets in results.items():
+        for ds, result in datasets.items():
+            err = result.median_relative_error
+            print(f"{approach}\t{ds}\t{err:.6e}")
 
 
 def print_summary() -> None:
-    """Print key insights summary."""
-    print("\n" + "=" * 70)
-    print("  KEY INSIGHT")
-    print("=" * 70)
-    print("""
-FluxEM achieves near-perfect OOD accuracy because arithmetic is computed
-via exact algebraic operations in embedding space:
-
-    embed(a) + embed(b) = embed(a + b)      [Linear encoding]
-    log_embed(a) + log_embed(b) = log_embed(a * b)  [Log encoding]
-
-The algebra is built into the representation, not learned from data.
-This enables systematic generalization that learned approaches cannot achieve.
-
-Learned/tokenized approaches fail on OOD because they:
-1. Memorize patterns rather than learning structure
-2. Cannot extrapolate beyond training distribution
-3. Treat numbers as opaque symbols without numeric semantics
-
-This demonstrates the core thesis of FluxEM:
-"Tokenize natural language; embed structured domain objects."
-""")
-    print("=" * 70)
+    """Print a short summary."""
+    print("table=identities")
+    print("identity\tformula")
+    print("linear_addition\tencode(a) + encode(b) = encode(a + b)")
+    print("log_multiplication\tlog_encode(a) + log_encode(b) = log_encode(a * b)")
 
 
 def save_results(results: Dict[str, Dict[str, EvaluationResult]], path: str) -> None:
@@ -937,7 +865,7 @@ def save_results(results: Dict[str, Dict[str, EvaluationResult]], path: str) -> 
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         json.dump(output, f, indent=2)
-    print(f"\nResults saved to {path}")
+    print(f"results_path\t{path}")
 
 
 def main():
@@ -980,6 +908,24 @@ def main():
         config.seed = args.seed
     if args.verbose:
         config.verbose = True
+
+    print("table=run_context")
+    print("field\tvalue")
+    print(f"seed\t{config.seed}")
+    print(f"n_samples_id\t{config.n_samples_id}")
+    print(f"n_samples_ood\t{config.n_samples_ood}")
+    print(f"id_range\t{config.id_range}")
+    print(f"ood_magnitude_range\t{config.ood_magnitude_range}")
+    print(f"ood_chain_length\t{config.ood_chain_length}")
+    print(f"operations\t{','.join(config.operations)}")
+    print(f"tolerance\t{config.tolerance}")
+    print(f"fluxem_dim\t{config.fluxem_dim}")
+    print(f"fluxem_linear_scale\t{config.fluxem_linear_scale}")
+    print(f"fluxem_log_scale\t{config.fluxem_log_scale}")
+    print(f"learned_train_samples\t{config.learned_train_samples}")
+    print(f"learned_train_epochs\t{config.learned_train_epochs}")
+    print(f"positional_max_digits\t{config.positional_max_digits}")
+    print(f"verbose\t{'1' if config.verbose else '0'}")
 
     # Run benchmark
     results = run_benchmark(config)

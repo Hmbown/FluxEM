@@ -2,11 +2,11 @@
 Music Theory Domain for FluxEM.
 
 Provides algebraic embeddings for:
-- Pitch and intervals (exact frequency ratios)
-- Chords and harmony (exact structures)
-- Scales and modes (exact patterns)
-- Atonal theory (12-TONE SETS AS MATRICES!)
-- Rhythm and meter (exact time relationships)
+- Pitch and intervals (frequency ratios)
+- Chords and harmony (interval structures)
+- Scales and modes (scale patterns)
+- Atonal theory (12-tone sets as matrices)
+- Rhythm and meter (time relationships)
 
 All encoded using the mathematical structure of music theory.
 """
@@ -80,9 +80,9 @@ INTERVALS = {
     "major second": 2,
     "minor third": 3,
     "major third": 4,
-    "perfect fourth": 5,
+    "fourth": 5,
     "tritone": 6,
-    "perfect fifth": 7,
+    "fifth": 7,
     "minor sixth": 8,
     "major sixth": 9,
     "minor seventh": 10,
@@ -166,7 +166,7 @@ class PitchEncoder:
     Encoder for musical pitches with both physics and notation.
 
     Combines:
-    - Exact frequency representation (physics)
+    - Frequency representation (physics)
     - Musical notation (note name, octave, accidental)
     - Harmonic content (sound)
     """
@@ -256,15 +256,11 @@ class PitchEncoder:
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
-    # Pitch Operations (EXACT)
+    # Pitch operations (deterministic)
     # ========================================================================
 
     def transpose(self, emb: Any, semitones: int) -> Any:
-        """
-        Transpose a pitch by exact semitone interval.
-
-        EXACT: Adds semitones to MIDI number.
-        """
+        """Transpose a pitch by semitone interval."""
         midi_norm = emb[8 + PITCH_MIDI_OFFSET].item()
         midi = int(round(midi_norm * 127.0))
 
@@ -276,22 +272,14 @@ class PitchEncoder:
         return self.encode(new_midi)
 
     def interval(self, emb1: Any, emb2: Any) -> int:
-        """
-        Calculate the interval between two pitches in semitones.
-
-        EXACT: Difference of MIDI numbers.
-        """
+        """Calculate the interval between two pitches in semitones."""
         midi1 = int(round(emb1[8 + PITCH_MIDI_OFFSET].item() * 127.0))
         midi2 = int(round(emb2[8 + PITCH_MIDI_OFFSET].item() * 127.0))
 
         return midi2 - midi1
 
     def frequency_ratio(self, emb1: Any, emb2: Any) -> float:
-        """
-        Calculate the frequency ratio between two pitches.
-
-        EXACT: Based on exact frequencies.
-        """
+        """Calculate the frequency ratio between two pitches."""
         log_freq1 = emb1[8 + PITCH_FREQ_OFFSET].item()
         log_freq2 = emb2[8 + PITCH_FREQ_OFFSET].item()
 
@@ -498,25 +486,17 @@ class ChordEncoder:
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
-    # Chord Operations (EXACT)
+    # Chord operations (deterministic)
     # ========================================================================
 
     def transpose(self, emb: Any, semitones: int) -> Any:
-        """
-        Transpose a chord by exact semitone interval.
-
-        EXACT: Adds semitones to all notes.
-        """
+        """Transpose a chord by semitone interval."""
         root_midi, quality, inversion = self.decode(emb)
         new_root = root_midi + semitones
         return self.encode(new_root, quality, inversion)
 
     def interval_between(self, emb1: Any, emb2: Any) -> int:
-        """
-        Calculate interval between chord roots.
-
-        EXACT: Difference of root MIDI numbers.
-        """
+        """Calculate interval between chord roots."""
         root1 = int(round(emb1[8 + CHORD_ROOT_OFFSET].item() * 127.0))
         root2 = int(round(emb2[8 + CHORD_ROOT_OFFSET].item() * 127.0))
         return root2 - root1
@@ -525,17 +505,13 @@ class ChordEncoder:
         """
         Check if chord is consonant.
 
-        Based on interval content (exact).
+        Based on interval content.
         """
         tension = emb[8 + CHORD_TENSION_OFFSET].item()
         return tension < 0.5  # Simple threshold
 
     def has_common_tones(self, emb1: Any, emb2: Any) -> bool:
-        """
-        Check if two chords have common tones.
-
-        EXACT: Based on interval patterns.
-        """
+        """Check if two chords have common tones."""
         root1 = int(round(emb1[8 + CHORD_ROOT_OFFSET].item() * 127.0))
         root2 = int(round(emb2[8 + CHORD_ROOT_OFFSET].item() * 127.0))
 
@@ -697,15 +673,11 @@ class ScaleEncoder:
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
-    # Scale Operations (EXACT)
+    # Scale operations (deterministic)
     # ========================================================================
 
     def relative_minor(self, emb: Any) -> Any:
-        """
-        Get relative minor of a major scale.
-
-        EXACT: Root moves down 3 semitones.
-        """
+        """Get relative minor of a major scale."""
         root_midi, scale_type = self.decode(emb)
         if scale_type == "major":
             new_root = root_midi - 3
@@ -713,11 +685,7 @@ class ScaleEncoder:
         return emb  # Already minor
 
     def parallel_minor(self, emb: Any) -> Any:
-        """
-        Get parallel minor (same root, different scale).
-
-        EXACT: Change scale type, keep root.
-        """
+        """Get parallel minor (same root, different scale)."""
         root_midi, scale_type = self.decode(emb)
         if scale_type == "major":
             return self.encode(root_midi, "natural minor")
@@ -726,11 +694,7 @@ class ScaleEncoder:
         return emb
 
     def contains_note(self, emb: Any, note_midi: int) -> bool:
-        """
-        Check if a note is in the scale.
-
-        EXACT: Based on chromatic degree.
-        """
+        """Check if a note is in the scale."""
         root_midi = int(round(emb[8 + SCALE_ROOT_OFFSET].item() * 127.0))
         chromatic_degree = (note_midi - root_midi) % 12
 
@@ -739,11 +703,7 @@ class ScaleEncoder:
         return degree_flag > 0.5
 
     def modulation_distance(self, emb1: Any, emb2: Any) -> int:
-        """
-        Calculate modulation distance (number of common tones).
-
-        EXACT: Count shared scale degrees.
-        """
+        """Calculate modulation distance (number of common tones)."""
         common = 0
         for i in range(12):
             deg1 = emb1[8 + SCALE_DEGREES_OFFSET + i].item()
@@ -767,9 +727,9 @@ def get_interval_name(semitones: int) -> str:
         2: "major second",
         3: "minor third",
         4: "major third",
-        5: "perfect fourth",
+        5: "fourth",
         6: "tritone",
-        7: "perfect fifth",
+        7: "fifth",
         8: "minor sixth",
         9: "major sixth",
         10: "minor seventh",
@@ -817,12 +777,11 @@ FORTEAN_MATRIX_OFFSET = 48
 
 
 def pitch_class_set_to_vector(pcs: List[int]) -> Any:
-    """Convert pitch class set to 12-dimensional binary vector.
+    """Convert pitch class set to a 12-dimensional indicator vector.
 
-    This is a CORE of atonal theory - EXACT matrix representation!
-
-    Example: {0, 3, 7, 11} (C, D#, G, B)
-    → [1,0,0,1,0,0,0,1,0,0,0,1]
+    Notes
+    -----
+    Example: {0, 3, 7, 11} -> [1,0,0,1,0,0,0,1,0,0,0,1]
     """
     backend = get_backend()
     vec = backend.zeros(12)
@@ -838,7 +797,9 @@ def normal_form(pcs: List[int]) -> List[int]:
 
     Normal form = most compact left-packed rotation.
 
-    EXACT algorithm from Forte (1973).
+    Notes
+    -----
+    Follows the normal-form heuristic described by Forte (1973).
     """
     if not pcs:
         return []
@@ -870,7 +831,6 @@ def prime_form(pcs: List[int]) -> List[int]:
 
     Prime form = normal form or its inverse, whichever is most compact.
 
-    EXACT matrix operation!
     """
     nf = normal_form(pcs)
 
@@ -897,9 +857,8 @@ def interval_class_vector(pcs: List[int]) -> Any:
     ICV = counts of interval classes 1-6.
 
     Example: {0, 4, 7} (C, E, G - major triad)
-    → ICV = [0, 0, 1, 0, 1, 1] (major 3rd, perfect 5th, minor 6th)
+    → ICV = [0, 0, 1, 0, 1, 1] (major 3rd, P5, minor 6th)
 
-    EXACT: This is a dot product of set with its transposition!
     """
     backend = get_backend()
     icv = backend.zeros(6)
@@ -926,7 +885,6 @@ def forte_number_helper(pcs: List[int]) -> int:
 
     Example: {0, 3, 7, 11} = 100100010001₂ = 2337
 
-    EXACT: Binary-to-decimal conversion.
     """
     vec = pitch_class_set_to_vector(pcs)
     forte = 0
@@ -942,9 +900,9 @@ def transposition(pcs: List[int], n: int) -> List[int]:
     """
     Transpose pitch class set by n semitones (Tn operation).
 
-    EXACT: (pc + n) mod 12 for each element.
-
-    This is a MATRIX ROTATION!
+    Notes
+    -----
+    Applies ``(pc + n) mod 12`` to each element.
     """
     return [(pc + n) % 12 for pc in pcs]
 
@@ -953,9 +911,9 @@ def inversion(pcs: List[int]) -> List[int]:
     """
     Invert pitch class set (I operation).
 
-    EXACT: (11 - pc) mod 12 for each element.
-
-    This is MATRIX COMPLEMENT!
+    Notes
+    -----
+    Applies ``(11 - pc) mod 12`` to each element.
     """
     return [((11 - pc) % 12) for pc in pcs]
 
@@ -963,8 +921,6 @@ def inversion(pcs: List[int]) -> List[int]:
 def tn_operation(pcs: List[int], n: int) -> List[int]:
     """
     Tn operation (transposition by n semitones).
-
-    EXACT: Matrix rotation.
     """
     return transposition(pcs, n)
 
@@ -972,8 +928,6 @@ def tn_operation(pcs: List[int], n: int) -> List[int]:
 def tin_operation(pcs: List[int], n: int) -> List[int]:
     """
     TnI operation (invert then transpose by n).
-
-    EXACT: Matrix complement + rotation.
     """
     inv = inversion(pcs)
     return transposition(inv, n)
@@ -985,7 +939,6 @@ def interval_class_similarity(icv1: Any, icv2: Any) -> float:
 
     ISIM = dot product of IC vectors, normalized.
 
-    EXACT: This is a cosine similarity!
     """
     backend = get_backend()
     dot = backend.sum(icv1 * icv2).item()
@@ -1004,7 +957,6 @@ def asim(icv1: Any, icv2: Any) -> float:
 
     ASIM = 6 - sum(|ICV1 - ICV2|)
 
-    EXACT: L1 distance.
     """
     backend = get_backend()
     diff = backend.abs(icv1 - icv2)
@@ -1016,7 +968,6 @@ def invariant_under_Tn(pcs: List[int]) -> List[int]:
     """
     Find all transposition invariants (Tn where Tn(S) = S).
 
-    EXACT: Matrix equality check for all rotations.
     """
     invariants = []
 
@@ -1034,7 +985,6 @@ def invariant_under_TnI(pcs: List[int]) -> List[int]:
     """
     Find all TnI invariants (TnI(S) = S).
 
-    EXACT: Matrix equality for all rotations + inverses.
     """
     invariants = []
 
@@ -1056,7 +1006,6 @@ def z_related(pcs1: List[int], pcs2: List[int]) -> bool:
 
     Z-relation = same interval class content, but different notes.
 
-    EXACT: ICV equality + set inequality.
     """
     backend = get_backend()
     icv1 = interval_class_vector(pcs1)
@@ -1076,7 +1025,6 @@ def subset_of(pcs1: List[int], pcs2: List[int]) -> bool:
     """
     Check if pcs1 is a subset of pcs2.
 
-    EXACT: Set inclusion check.
     """
     set1 = set(pc % 12 for pc in pcs1)
     set2 = set(pc % 12 for pc in pcs2)
@@ -1087,7 +1035,6 @@ def complement(pcs: List[int]) -> List[int]:
     """
     Compute complement (12-tone scale minus the set).
 
-    EXACT: Set complement.
     """
     universe = set(range(12))
     pcs_set = set(pc % 12 for pc in pcs)
@@ -1101,7 +1048,6 @@ def multiplication(pcs: List[int], n: int) -> List[int]:
 
     Used for serial music (12-tone rows).
 
-    EXACT: (pc * n) mod 12 for each element.
     """
     return [((pc * n) % 12) for pc in pcs]
 
@@ -1112,7 +1058,6 @@ def row_matrix_helper(row: List[int]) -> Any:
 
     Each row is Tn(I(row)) operation.
 
-    EXACT: Matrix generation via TnI operations.
     """
     backend = get_backend()
     matrix = backend.zeros((12, 12))
@@ -1129,7 +1074,6 @@ def matrix_multiply_row(matrix: Any, row: Any) -> Any:
     """
     Multiply row by atonal matrix (serial operation).
 
-    EXACT: Matrix multiplication!
     """
     backend = get_backend()
     result = backend.zeros(12)
@@ -1147,16 +1091,12 @@ class AtonalSetEncoder:
     """
     Encoder for atonal pitch class sets.
 
-    This is LITERALLY matrix/vector operations!
-
     Embeds:
     - Pitch class set (12-dim binary vector)
     - Interval class vector (6-dim counts)
     - Prime form (normalized representation)
     - Fortean number (decimal encoding)
     - Invariance properties
-
-    All operations are EXACT matrix operations!
     """
 
     domain_tag = DOMAIN_TAGS["music_atonal"]
@@ -1229,14 +1169,12 @@ class AtonalSetEncoder:
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
-    # Atonal Operations (ALL EXACT MATRIX OPS!)
+    # Atonal operations (matrix operations)
     # ========================================================================
 
     def Tn(self, emb: Any, n: int) -> Any:
         """
         Transpose by n semitones.
-
-        EXACT: Matrix rotation.
         """
         pcs = self.decode(emb)
         transposed = transposition(pcs, n)
@@ -1245,8 +1183,6 @@ class AtonalSetEncoder:
     def I(self, emb: Any) -> Any:
         """
         Invert (I operation).
-
-        EXACT: Matrix complement.
         """
         pcs = self.decode(emb)
         inverted = inversion(pcs)
@@ -1255,8 +1191,6 @@ class AtonalSetEncoder:
     def TnI(self, emb: Any, n: int) -> Any:
         """
         Invert then transpose by n (TnI operation).
-
-        EXACT: Matrix complement + rotation.
         """
         pcs = self.decode(emb)
         transformed = tin_operation(pcs, n)
@@ -1265,8 +1199,6 @@ class AtonalSetEncoder:
     def M_n(self, emb: Any, n: int) -> Any:
         """
         Multiply by n (M-n operation).
-
-        EXACT: Element-wise multiplication mod 12.
         """
         pcs = self.decode(emb)
         multiplied = multiplication(pcs, n)
@@ -1275,8 +1207,6 @@ class AtonalSetEncoder:
     def similarity(self, emb1: Any, emb2: Any) -> float:
         """
         Compute ISIM (interval class similarity).
-
-        EXACT: Cosine similarity of IC vectors!
         """
         pcs1 = self.decode(emb1)
         pcs2 = self.decode(emb2)
@@ -1289,8 +1219,6 @@ class AtonalSetEncoder:
     def is_z_related(self, emb1: Any, emb2: Any) -> bool:
         """
         Check if two sets are Z-related.
-
-        EXACT: ICV equality + set inequality.
         """
         pcs1 = self.decode(emb1)
         pcs2 = self.decode(emb2)
@@ -1299,8 +1227,6 @@ class AtonalSetEncoder:
     def is_subset(self, emb1: Any, emb2: Any) -> bool:
         """
         Check if emb1 is subset of emb2.
-
-        EXACT: Set inclusion.
         """
         pcs1 = self.decode(emb1)
         pcs2 = self.decode(emb2)
@@ -1309,8 +1235,6 @@ class AtonalSetEncoder:
     def get_prime_form(self, emb: Any) -> Any:
         """
         Get prime form embedding.
-
-        EXACT: Normalized representation.
         """
         backend = get_backend()
         pcs = self.decode(emb)
@@ -1329,8 +1253,6 @@ class AtonalSetEncoder:
     def is_invariant_under_Tn(self, emb: Any, n: int) -> bool:
         """
         Check if set is invariant under Tn.
-
-        EXACT: Matrix equality after rotation.
         """
         pcs = self.decode(emb)
         invariants = invariant_under_Tn(pcs)
@@ -1339,8 +1261,6 @@ class AtonalSetEncoder:
     def get_icv(self, emb: Any) -> Any:
         """
         Extract interval class vector.
-
-        EXACT: 6-dimensional vector.
         """
         pcs = self.decode(emb)
         return interval_class_vector(pcs)
@@ -1348,8 +1268,6 @@ class AtonalSetEncoder:
     def create_row_matrix(self, emb: Any) -> Any:
         """
         Create 12x12 row matrix for serial composition.
-
-        EXACT: Matrix of all TnI operations.
         """
         pcs = self.decode(emb)
         return row_matrix(pcs)
@@ -1357,8 +1275,6 @@ class AtonalSetEncoder:
     def get_icv(self, emb: Any) -> Any:
         """
         Extract interval class vector.
-
-        EXACT: 6-dimensional vector.
         """
         pcs = self.decode(emb)
         return interval_class_vector(pcs)
@@ -1366,8 +1282,6 @@ class AtonalSetEncoder:
     def create_row_matrix(self, emb: Any) -> Any:
         """
         Create 12x12 row matrix for serial composition.
-
-        EXACT: Matrix of all TnI operations.
         """
         pcs = self.decode(emb)
         return row_matrix(pcs)

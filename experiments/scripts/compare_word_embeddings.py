@@ -1,21 +1,8 @@
 #!/usr/bin/env python3
-"""
-Compare FluxEM vs classical word embeddings (word2vec/GloVe style).
+"""Compare learned token embeddings and algebraic embeddings.
 
-This script demonstrates the fundamental difference between:
-1. Word embeddings: Capture distributional semantics (what words appear together)
-2. FluxEM embeddings: Capture algebraic structure (homomorphisms)
-
-Key insight: Word2Vec/GloVe can do "King - Man + Woman = Queen" because
-these are LEARNED associations from co-occurrence statistics. But they
-CANNOT do "5 - 3 + 2 = 4" because numbers are just arbitrary tokens
-with no algebraic structure in the embedding space.
-
-FluxEM embeddings are designed so that:
-    embed(a) + embed(b) = embed(a + b)  [EXACT]
-
-This is not learned - it's a mathematical construction that guarantees
-the homomorphism property.
+Runs small arithmetic experiments for a learned embedding baseline and a
+deterministic algebraic encoder.
 """
 
 from __future__ import annotations
@@ -41,15 +28,10 @@ except ImportError:
 # =============================================================================
 
 class LearnedNumberEmbeddings:
-    """
-    Simulates word2vec/GloVe-style learned embeddings for numbers.
+    """Simulated learned embeddings for numbers.
 
-    Numbers are treated as arbitrary tokens, just like words.
-    The embedding is learned via distributional statistics, NOT algebraic structure.
-
-    This class demonstrates WHY learned embeddings fail on arithmetic:
-    - They can memorize patterns seen in training
-    - They cannot generalize algebraically to OOD numbers
+    Numbers are treated as discrete tokens and assigned learned vectors. This
+    baseline is intended for comparison with algebraic encoders.
     """
 
     def __init__(
@@ -101,13 +83,16 @@ class LearnedNumberEmbeddings:
         This simulates what would happen if we tried to learn embeddings
         from examples like "5 + 3 = 8".
 
-        Even with training, the embeddings cannot perfectly satisfy:
-            embed(a) + embed(b) = embed(a + b) for ALL a, b
+        Even with training, the embeddings cannot satisfy:
+            embed(a) + embed(b) = embed(a + b) for all a, b
 
         because embeddings are finite-dimensional and the constraint
         is fundamentally about algebraic structure, not statistics.
         """
-        print(f"Training learned embeddings on {n_samples} arithmetic examples...")
+        print(
+            "training_status\tbackend=numpy\tstatus=started\t"
+            f"samples={n_samples}\tepochs={epochs}"
+        )
 
         # Generate training data (only in-distribution: small numbers)
         train_a = np.random.randint(0, 50, n_samples)
@@ -148,13 +133,16 @@ class LearnedNumberEmbeddings:
 
             if (epoch + 1) % 20 == 0:
                 avg_loss = total_loss / len(train_a)
-                print(f"  Epoch {epoch+1}/{epochs}: avg_loss = {avg_loss:.6f}")
+                print(
+                    "training_epoch\tbackend=numpy\t"
+                    f"epoch={epoch+1}\tavg_loss={avg_loss:.6f}"
+                )
 
         # Re-normalize after training
         norms = np.linalg.norm(self.embeddings, axis=1, keepdims=True)
         self.embeddings = self.embeddings / (norms + 1e-8)
 
-        print("Training complete.")
+        print("training_status\tbackend=numpy\tstatus=complete")
 
 
 class LearnedNumberEmbeddingsTorch:
@@ -210,7 +198,10 @@ class LearnedNumberEmbeddingsTorch:
         batch_size: int = 256,
     ):
         """Train with PyTorch optimizer."""
-        print(f"Training learned embeddings (PyTorch) on {n_samples} samples...")
+        print(
+            "training_status\tbackend=torch\tstatus=started\t"
+            f"samples={n_samples}\tepochs={epochs}"
+        )
 
         optimizer = optim.Adam(self.embeddings.parameters(), lr=lr)
 
@@ -250,9 +241,12 @@ class LearnedNumberEmbeddingsTorch:
 
             if (epoch + 1) % 50 == 0:
                 avg_loss = total_loss / n_batches
-                print(f"  Epoch {epoch+1}/{epochs}: avg_loss = {avg_loss:.6f}")
+                print(
+                    "training_epoch\tbackend=torch\t"
+                    f"epoch={epoch+1}\tavg_loss={avg_loss:.6f}"
+                )
 
-        print("Training complete.")
+        print("training_status\tbackend=torch\tstatus=complete")
 
 
 # =============================================================================
@@ -266,22 +260,16 @@ def get_fluxem_encoder():
         return NumberEncoder(dim=64, scale=1e12, basis="canonical")
     except ImportError:
         # Fallback: implement the linear embedding directly
-        print("Note: Using standalone FluxEM implementation")
-        return StandaloneLinearEncoder(dim=64, scale=1e12)
+        print("note\tfluxem_encoder_fallback\tstandalone")
+        return FluxEMLinearEncoder(dim=64, scale=1e12)
 
 
-class StandaloneLinearEncoder:
+class FluxEMLinearEncoder:
     """
     Standalone implementation of FluxEM's linear encoder.
 
-    The key insight: embed(n) = n * direction / scale
-
-    This trivially satisfies:
-        embed(a) + embed(b) = (a/scale + b/scale) * direction
-                            = ((a+b)/scale) * direction
-                            = embed(a + b)
-
-    The homomorphism is EXACT by construction.
+    Implements a linear map such that vector addition corresponds to scalar
+    addition (up to floating-point precision).
     """
 
     def __init__(self, dim: int = 64, scale: float = 1e12):
@@ -308,30 +296,18 @@ class StandaloneLinearEncoder:
 
 def test_word_analogy_simulation():
     """
-    Demonstrate the famous word2vec analogy: King - Man + Woman = Queen
+    Example word2vec analogy: King - Man + Woman = Queen
 
     This works in word2vec because:
     - "King" and "Queen" share context (royalty, rules, etc.)
     - "Man" and "Woman" share context (human, adult, etc.)
     - The difference vector captures the gender dimension
 
-    It's a STATISTICAL regularity, not an algebraic one.
+    It's a statistical regularity, not an algebraic one.
     """
-    print("\n" + "=" * 70)
-    print("WORD2VEC ANALOGY: King - Man + Woman = Queen")
-    print("=" * 70)
-    print()
-    print("In word2vec, this works because:")
-    print("  - Words with similar contexts get similar embeddings")
-    print("  - 'King' and 'Queen' share royalty context")
-    print("  - 'Man' and 'Woman' share human/gender context")
-    print("  - The difference vector captures semantic dimensions")
-    print()
-    print("This is DISTRIBUTIONAL SEMANTICS, not algebra.")
-    print("The relationship is learned from text co-occurrence statistics.")
-    print()
-    print("Critical limitation: This only works for WORDS that appeared")
-    print("in the training corpus. It cannot generalize to new concepts.")
+    print("table=word_analogy_context")
+    print("example\texpected")
+    print("king - man + woman\tqueen")
 
 
 def test_learned_vs_fluxem(
@@ -342,9 +318,9 @@ def test_learned_vs_fluxem(
     """
     Compare learned embeddings vs FluxEM on arithmetic.
     """
-    print("\n" + "=" * 70)
-    print("COMPARISON: Learned Embeddings vs FluxEM")
-    print("=" * 70)
+    print("table=learned_vs_fluxem_context")
+    print("field\tvalue")
+    print(f"backend\t{'torch' if use_torch and TORCH_AVAILABLE else 'numpy'}")
 
     # Create learned embeddings
     if use_torch and TORCH_AVAILABLE:
@@ -357,9 +333,8 @@ def test_learned_vs_fluxem(
     # Create FluxEM encoder
     fluxem = get_fluxem_encoder()
 
-    print("\n" + "-" * 70)
-    print("TEST 1: In-Distribution Arithmetic (numbers 0-50)")
-    print("-" * 70)
+    print("table=learned_vs_fluxem_id")
+    print("expression\texpected\tlearned_result\tfluxem_result\tlearned_error\tfluxem_error")
 
     test_cases_id = [
         (5, 3, 2),   # 5 - 3 + 2 = 4
@@ -368,10 +343,6 @@ def test_learned_vs_fluxem(
         (30, 20, 15), # 30 - 20 + 15 = 25
         (40, 25, 10), # 40 - 25 + 10 = 25
     ]
-
-    print()
-    print(f"{'Expression':<25} {'Expected':>10} {'Learned':>10} {'FluxEM':>10} {'Learned Err':>12} {'FluxEM Err':>12}")
-    print("-" * 85)
 
     learned_errors_id = []
     fluxem_errors_id = []
@@ -386,7 +357,7 @@ def test_learned_vs_fluxem(
         result_vec = emb_a - emb_b + emb_c
         learned_result, _ = learned.find_nearest(result_vec)
 
-        # FluxEM: exact computation
+        # FluxEM: embedding-level computation
         fluxem_a = fluxem.encode_number(a)
         fluxem_b = fluxem.encode_number(b)
         fluxem_c = fluxem.encode_number(c)
@@ -400,19 +371,14 @@ def test_learned_vs_fluxem(
         fluxem_errors_id.append(fluxem_err)
 
         expr = f"{a} - {b} + {c}"
-        print(f"{expr:<25} {expected:>10} {learned_result:>10} {fluxem_result:>10.2f} {learned_err:>12} {fluxem_err:>12.2e}")
+        print(f"{expr}\t{expected}\t{learned_result}\t{fluxem_result:.2f}\t{learned_err:.2f}\t{fluxem_err:.6e}")
 
-    print("-" * 85)
-    print(f"{'Mean Error':<47} {'':<10} {np.mean(learned_errors_id):>12.2f} {np.mean(fluxem_errors_id):>12.2e}")
+    print("table=learned_vs_fluxem_id_summary")
+    print("mean_learned_error\tmean_fluxem_error")
+    print(f"{np.mean(learned_errors_id):.6f}\t{np.mean(fluxem_errors_id):.6e}")
 
-    print("\n" + "-" * 70)
-    print("TEST 2: Out-of-Distribution Arithmetic (large numbers)")
-    print("-" * 70)
-    print()
-    print("Numbers beyond training vocabulary (0-100):")
-    print("  - Learned embeddings have NO representation for these")
-    print("  - FluxEM works EXACTLY (no training required)")
-    print()
+    print("table=learned_vs_fluxem_ood")
+    print("expression\texpected\tlearned_result\tfluxem_result")
 
     test_cases_ood = [
         (500, 300, 200),      # 500 - 300 + 200 = 400
@@ -421,9 +387,6 @@ def test_learned_vs_fluxem(
         (1000000, 999999, 1), # 1000000 - 999999 + 1 = 2
         (123456789, 123456788, 1),  # = 2
     ]
-
-    print(f"{'Expression':<35} {'Expected':>15} {'Learned':>10} {'FluxEM':>15}")
-    print("-" * 80)
 
     for a, b, c in test_cases_ood:
         expected = a - b + c
@@ -435,7 +398,7 @@ def test_learned_vs_fluxem(
         result_vec = emb_a - emb_b + emb_c
         learned_result, _ = learned.find_nearest(result_vec)
 
-        # FluxEM: exact
+        # FluxEM
         fluxem_a = fluxem.encode_number(a)
         fluxem_b = fluxem.encode_number(b)
         fluxem_c = fluxem.encode_number(c)
@@ -443,35 +406,17 @@ def test_learned_vs_fluxem(
         fluxem_result = fluxem.decode(fluxem_vec)
 
         expr = f"{a} - {b} + {c}"
-        print(f"{expr:<35} {expected:>15} {learned_result:>10} {fluxem_result:>15.2f}")
+        print(f"{expr}\t{expected}\t{learned_result}\t{fluxem_result:.2f}")
 
-    print("-" * 80)
-    print()
-    print("Note: Learned embeddings return arbitrary values for OOD numbers")
-    print("      because they have NO embedding for numbers > 100.")
-    print("      FluxEM returns EXACT results for ANY number.")
+    print("table=learned_vs_fluxem_notes")
+    print("note\tvalue")
+    print("vocabulary\tfixed (oov maps to default vector)")
 
 
 def test_homomorphism_property():
-    """
-    Demonstrate the fundamental homomorphism property of FluxEM.
-    """
-    print("\n" + "=" * 70)
-    print("FLUXEM HOMOMORPHISM PROPERTY")
-    print("=" * 70)
-    print()
-    print("Definition: A homomorphism h satisfies h(a + b) = h(a) + h(b)")
-    print()
-    print("FluxEM's linear encoder is designed so that:")
-    print("    encode(n) = n * (direction / scale)")
-    print()
-    print("Therefore:")
-    print("    encode(a) + encode(b) = a/scale * dir + b/scale * dir")
-    print("                          = (a + b)/scale * dir")
-    print("                          = encode(a + b)")
-    print()
-    print("This is EXACT by construction, not learned.")
-    print()
+    """Check the homomorphism property of FluxEM."""
+    print("table=homomorphism_check")
+    print("a\tb\ta_plus_b\tembedding_error")
 
     fluxem = get_fluxem_encoder()
 
@@ -483,9 +428,6 @@ def test_homomorphism_property():
         (123456789, 987654321),
     ]
 
-    print(f"{'a':>15} {'b':>15} {'a + b':>20} {'||e(a)+e(b) - e(a+b)||':>25}")
-    print("-" * 80)
-
     for a, b in test_values:
         emb_a = fluxem.encode_number(a)
         emb_b = fluxem.encode_number(b)
@@ -494,93 +436,31 @@ def test_homomorphism_property():
         computed = emb_a + emb_b
         error = np.linalg.norm(computed - emb_sum)
 
-        print(f"{a:>15} {b:>15} {a + b:>20} {error:>25.2e}")
-
-    print("-" * 80)
-    print()
-    print("The error is at machine precision (< 1e-10).")
-    print("This holds for ANY numbers, not just those seen in training.")
+        print(f"{a}\t{b}\t{a + b}\t{error:.6e}")
 
 
 def print_comparison_table():
     """
     Print a summary comparison table.
     """
-    print("\n" + "=" * 70)
-    print("SUMMARY: Word Embeddings vs FluxEM")
-    print("=" * 70)
-    print()
-    print("""
-+-------------------------+-----------------------------+-----------------------------+
-|        Property         |   Word2Vec/GloVe            |   FluxEM                    |
-+-------------------------+-----------------------------+-----------------------------+
-| Representation          | Learned from data           | Algebraic construction      |
-| Training required       | Yes (large corpus)          | No (zero-shot)              |
-| King - Man + Woman      | = Queen (works!)            | N/A (not for words)         |
-| 5 - 3 + 2               | ~= ??? (random)             | = 4 (EXACT)                 |
-| OOD generalization      | Fails (unknown tokens)      | Perfect (any number)        |
-| Homomorphism            | Approximate (statistical)   | Exact (by construction)     |
-| What it captures        | Distributional semantics    | Algebraic structure         |
-+-------------------------+-----------------------------+-----------------------------+
-
-KEY INSIGHT:
-------------
-Word embeddings capture WHAT WORDS MEAN based on context (distributional semantics).
-FluxEM embeddings capture HOW NUMBERS BEHAVE under operations (algebraic structure).
-
-These are fundamentally different goals:
-- Word2Vec: "dog" and "cat" are similar because they appear in similar contexts
-- FluxEM: embed(a + b) = embed(a) + embed(b) because that's how addition works
-
-You cannot learn algebraic structure from distributional statistics alone.
-FluxEM builds the structure directly into the embedding construction.
-""")
+    print("table=summary")
+    print("property\tlearned_token_embeddings\talgebraic_embeddings")
+    print("training_required\tyes\tno (encoder/operator)")
+    print("vocabulary\tfinite\tunbounded (subject to float range)")
+    print("addition_constraint\tnot enforced\tenforced by construction")
 
 
 def main():
     """Run all comparisons."""
-    print()
-    print("#" * 70)
-    print("#  FluxEM vs Classical Word Embeddings Comparison")
-    print("#" * 70)
-
-    # Check if torch is available
-    if TORCH_AVAILABLE:
-        print(f"\nPyTorch available: Using PyTorch for learned embeddings")
-    else:
-        print(f"\nPyTorch not available: Using NumPy fallback")
+    print("table=run_context")
+    print("field\tvalue")
+    print(f"backend\t{'torch' if TORCH_AVAILABLE else 'numpy'}")
 
     # Run demonstrations
     test_word_analogy_simulation()
     test_learned_vs_fluxem(use_torch=TORCH_AVAILABLE)
     test_homomorphism_property()
     print_comparison_table()
-
-    print("\n" + "=" * 70)
-    print("CONCLUSION")
-    print("=" * 70)
-    print("""
-Word embeddings (Word2Vec, GloVe, etc.) are powerful tools for capturing
-semantic relationships between words. The famous "King - Man + Woman = Queen"
-analogy works because gender is a consistent dimension in the embedding space,
-learned from co-occurrence patterns in text.
-
-However, when applied to numbers:
-- Numbers are just arbitrary tokens (like any other word)
-- There's no algebraic structure in the embedding space
-- "5 - 3 + 2 = ?" has no meaningful answer in word embedding space
-- OOD numbers (not in vocabulary) have no representation at all
-
-FluxEM takes a fundamentally different approach:
-- Embeddings are CONSTRUCTED to satisfy algebraic properties
-- The homomorphism embed(a + b) = embed(a) + embed(b) is EXACT
-- No training is required - the structure is built-in
-- Works for ANY number, including those never seen before
-
-This demonstrates a key principle: some properties cannot be learned from
-distributional statistics alone. When you need algebraic guarantees, you
-must build them into the representation itself.
-""")
 
 
 if __name__ == "__main__":

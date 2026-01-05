@@ -1,7 +1,7 @@
 """
 Integer numbers and encoder for FluxEM-Domains.
 
-Provides exact integer arithmetic with embeddings that preserve all properties.
+Provides integer arithmetic with embeddings that preserve core properties.
 """
 
 from dataclasses import dataclass
@@ -21,9 +21,9 @@ from ...core.base import (
 @dataclass(frozen=True)
 class Integer:
     """
-    Immutable integer with exact arithmetic.
+    Immutable integer with arbitrary-precision arithmetic.
 
-    Uses Python's arbitrary precision for exact computation.
+    Uses Python's arbitrary precision for computation.
     All operations return new Integer instances.
     """
 
@@ -35,35 +35,35 @@ class Integer:
             raise ValueError(f"Integer.value must be int, got {type(self.value)}")
 
     def __add__(self, other: "Integer") -> "Integer":
-        """Addition. EXACT: Python integer arithmetic."""
+        """Addition. Python integer arithmetic."""
         return Integer(self.value + other.value)
 
     def __sub__(self, other: "Integer") -> "Integer":
-        """Subtraction. EXACT: Python integer arithmetic."""
+        """Subtraction. Python integer arithmetic."""
         return Integer(self.value - other.value)
 
     def __mul__(self, other: "Integer") -> "Integer":
-        """Multiplication. EXACT: Python integer arithmetic."""
+        """Multiplication. Python integer arithmetic."""
         return Integer(self.value * other.value)
 
     def __floordiv__(self, other: "Integer") -> "Integer":
-        """Floor division. EXACT: Python integer arithmetic."""
+        """Floor division. Python integer arithmetic."""
         if other.value == 0:
             raise ZeroDivisionError("division by zero")
         return Integer(self.value // other.value)
 
     def __mod__(self, other: "Integer") -> "Integer":
-        """Modulo. EXACT: Python integer arithmetic."""
+        """Modulo. Python integer arithmetic."""
         if other.value == 0:
             raise ZeroDivisionError("modulo by zero")
         return Integer(self.value % other.value)
 
     def __neg__(self) -> "Integer":
-        """Negation. EXACT: Python integer arithmetic."""
+        """Negation. Python integer arithmetic."""
         return Integer(-self.value)
 
     def __abs__(self) -> "Integer":
-        """Absolute value. EXACT: Python integer arithmetic."""
+        """Absolute value. Python integer arithmetic."""
         return Integer(abs(self.value))
 
     def __eq__(self, other: object) -> bool:
@@ -73,19 +73,19 @@ class Integer:
         return self.value == other.value
 
     def __lt__(self, other: "Integer") -> bool:
-        """Less than. EXACT: Python integer comparison."""
+        """Less than. Python integer comparison."""
         return self.value < other.value
 
     def __le__(self, other: "Integer") -> bool:
-        """Less than or equal. EXACT: Python integer comparison."""
+        """Less than or equal. Python integer comparison."""
         return self.value <= other.value
 
     def __gt__(self, other: "Integer") -> bool:
-        """Greater than. EXACT: Python integer comparison."""
+        """Greater than. Python integer comparison."""
         return self.value > other.value
 
     def __ge__(self, other: "Integer") -> bool:
-        """Greater than or equal. EXACT: Python integer comparison."""
+        """Greater than or equal. Python integer comparison."""
         return self.value >= other.value
 
     def __hash__(self) -> int:
@@ -94,7 +94,7 @@ class Integer:
 
     @property
     def sign(self) -> int:
-        """Get sign: -1, 0, or 1. EXACT."""
+        """Get sign: -1, 0, or 1."""
         if self.value > 0:
             return 1
         elif self.value < 0:
@@ -103,39 +103,39 @@ class Integer:
 
     @property
     def is_positive(self) -> bool:
-        """Check if positive. EXACT."""
+        """Check if positive."""
         return self.value > 0
 
     @property
     def is_negative(self) -> bool:
-        """Check if negative. EXACT."""
+        """Check if negative."""
         return self.value < 0
 
     @property
     def is_zero(self) -> bool:
-        """Check if zero. EXACT."""
+        """Check if zero."""
         return self.value == 0
 
     @property
     def is_even(self) -> bool:
-        """Check if even. EXACT: value % 2 == 0."""
+        """Check if even. value % 2 == 0."""
         return self.value % 2 == 0
 
     @property
     def is_odd(self) -> bool:
-        """Check if odd. EXACT: value % 2 == 1."""
+        """Check if odd. value % 2 == 1."""
         return self.value % 2 != 0
 
     @property
     def is_power_of_2(self) -> bool:
-        """Check if power of 2. EXACT: bit count == 1 for positive."""
+        """Check if power of 2. bit count == 1 for positive."""
         if self.value <= 0:
             return False
         return (self.value & (self.value - 1)) == 0
 
     @property
     def bit_length(self) -> int:
-        """Number of bits needed to represent. EXACT."""
+        """Number of bits needed to represent."""
         return self.value.bit_length()
 
     def __repr__(self) -> str:
@@ -152,7 +152,7 @@ class IntegerEncoder:
     Embedding layout (domain-specific dims 8-71):
     - dim 8:  sign (-1, 0, or 1)
     - dim 9:  log10(|value|) for magnitude
-    - dims 10-17: low bits of value for small integers (exact recovery)
+    - dims 10-17: low bits of value for small integers (direct recovery)
     - dims 72-79: properties (is_positive, is_even, is_prime, is_power_of_2, etc.)
     """
 
@@ -179,7 +179,7 @@ class IntegerEncoder:
         Encode an Integer to a 128-dim embedding.
 
         Uses log-magnitude representation for large numbers,
-        stores low bits for exact recovery of small integers.
+        stores low bits for direct recovery of small integers.
         """
         backend = get_backend()
         from .primes import is_prime
@@ -199,7 +199,7 @@ class IntegerEncoder:
             sign, log_mag = log_encode_value(float(integer.value))
             embedding = backend.at_add(embedding, self.LOG_MAG_POS, log_mag)
 
-        # Low bits for exact recovery of small integers
+        # Low bits for direct recovery of small integers
         for i in range(self.LOW_BITS_COUNT):
             if (integer.value >> i) & 1:
                 embedding = backend.at_add(embedding, self.LOW_BITS_START + i, 1.0)
@@ -223,7 +223,7 @@ class IntegerEncoder:
         """
         Decode an embedding back to an Integer.
 
-        Uses log magnitude for exact recovery.
+        Uses log magnitude for recovery.
         Low bits are only used for very small positive integers.
         """
         sign = float(embedding[self.SIGN_POS])
@@ -241,13 +241,13 @@ class IntegerEncoder:
         tag = emb[0:8]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
-    # === EXACT INTEGER OPERATIONS ON EMBEDDINGS ===
+    # Integer operations on embeddings
 
     def add(self, emb1: Any, emb2: Any) -> Any:
         """
         Add two integers.
 
-        EXACT: Decode, add, re-encode.
+        Decode, add, re-encode.
         """
         n1 = self.decode(emb1)
         n2 = self.decode(emb2)
@@ -257,7 +257,7 @@ class IntegerEncoder:
         """
         Subtract two integers.
 
-        EXACT: Decode, subtract, re-encode.
+        Decode, subtract, re-encode.
         """
         n1 = self.decode(emb1)
         n2 = self.decode(emb2)
@@ -267,7 +267,7 @@ class IntegerEncoder:
         """
         Multiply two integers.
 
-        EXACT: Decode, multiply, re-encode.
+        Decode, multiply, re-encode.
         """
         n1 = self.decode(emb1)
         n2 = self.decode(emb2)
@@ -277,7 +277,7 @@ class IntegerEncoder:
         """
         Floor divide two integers.
 
-        EXACT: Decode, divide, re-encode.
+        Decode, divide, re-encode.
         """
         n1 = self.decode(emb1)
         n2 = self.decode(emb2)
@@ -287,7 +287,7 @@ class IntegerEncoder:
         """
         Compute modulo of two integers.
 
-        EXACT: Decode, mod, re-encode.
+        Decode, mod, re-encode.
         """
         n1 = self.decode(emb1)
         n2 = self.decode(emb2)
@@ -297,7 +297,7 @@ class IntegerEncoder:
         """
         Negate an integer.
 
-        EXACT: Decode, negate, re-encode.
+        Decode, negate, re-encode.
         """
         n = self.decode(embedding)
         return self.encode(-n)
@@ -306,7 +306,7 @@ class IntegerEncoder:
         """
         Absolute value of integer.
 
-        EXACT: Decode, abs, re-encode.
+        Decode, abs, re-encode.
         """
         n = self.decode(embedding)
         return self.encode(abs(n))
@@ -334,7 +334,7 @@ class IntegerEncoder:
         Compare two integers.
 
         Returns: -1 if n1 < n2, 0 if equal, 1 if n1 > n2.
-        EXACT: Decode and compare.
+        Decode and compare.
         """
         n1 = self.decode(emb1)
         n2 = self.decode(emb2)

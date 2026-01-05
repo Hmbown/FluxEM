@@ -1,8 +1,7 @@
 """
 Graph Property Detection for FluxEM-Domains
 
-Provides exact property detection for graphs.
-All operations are mathematically guaranteed correct.
+Provides graph property detection using standard algorithms.
 """
 
 from typing import Set, List, Tuple, Optional
@@ -16,7 +15,7 @@ def is_connected(graph: Graph) -> bool:
     For directed graphs, checks weak connectivity (ignoring edge direction).
     For undirected graphs, checks standard connectivity.
 
-    EXACT: BFS reachability from any node.
+    BFS reachability from any node.
     """
     if graph.num_nodes == 0:
         return True
@@ -43,7 +42,7 @@ def is_strongly_connected(graph: Graph) -> bool:
 
     Every node is reachable from every other node following edge directions.
 
-    EXACT: BFS from each node.
+    BFS from each node.
     """
     if not graph.directed:
         return is_connected(graph)
@@ -86,7 +85,7 @@ def connected_components(graph: Graph) -> List[Set[int]]:
 
     For directed graphs, finds weakly connected components.
 
-    EXACT: BFS from each unvisited node.
+    BFS from each unvisited node.
     """
     visited = set()
     components = []
@@ -118,7 +117,7 @@ def strongly_connected_components(graph: Graph) -> List[Set[int]]:
 
     Uses Kosaraju's algorithm.
 
-    EXACT: Two-pass DFS algorithm.
+    Two-pass DFS algorithm.
     """
     if not graph.directed:
         return connected_components(graph)
@@ -162,7 +161,7 @@ def is_acyclic(graph: Graph) -> bool:
     """
     Check if the graph is acyclic.
 
-    EXACT: Topological sort for directed, edge count for undirected.
+    Topological sort for directed, edge count for undirected.
     """
     if graph.directed:
         # Kahn's algorithm for cycle detection
@@ -191,7 +190,7 @@ def has_cycle(graph: Graph) -> bool:
     """
     Check if the graph contains a cycle.
 
-    EXACT: Negation of is_acyclic.
+    Negation of is_acyclic.
     """
     return not is_acyclic(graph)
 
@@ -200,7 +199,7 @@ def is_dag(graph: Graph) -> bool:
     """
     Check if the graph is a Directed Acyclic Graph.
 
-    EXACT: Directed and acyclic.
+    Directed and acyclic.
     """
     return graph.directed and is_acyclic(graph)
 
@@ -211,7 +210,7 @@ def is_tree(graph: Graph) -> bool:
 
     A tree is connected, acyclic, and undirected with |E| = |V| - 1.
 
-    EXACT: Structural verification.
+    Structural verification.
     """
     if graph.directed:
         return False
@@ -229,7 +228,7 @@ def is_forest(graph: Graph) -> bool:
     """
     Check if the graph is a forest (collection of trees).
 
-    EXACT: Undirected and acyclic.
+    Undirected and acyclic.
     """
     if graph.directed:
         return False
@@ -243,7 +242,7 @@ def is_bipartite(graph: Graph) -> Tuple[bool, Optional[Tuple[Set[int], Set[int]]
 
     Returns (is_bipartite, (set1, set2)) or (False, None).
 
-    EXACT: 2-coloring algorithm.
+    2-coloring algorithm.
     """
     if graph.num_nodes == 0:
         return True, (set(), set())
@@ -284,7 +283,7 @@ def is_complete(graph: Graph) -> bool:
     """
     Check if the graph is complete (all pairs connected).
 
-    EXACT: Edge count verification.
+    Edge count verification.
     """
     n = graph.num_nodes
     if n <= 1:
@@ -303,7 +302,7 @@ def is_regular(graph: Graph, k: Optional[int] = None) -> Tuple[bool, Optional[in
 
     Returns (is_regular, degree) or (False, None).
 
-    EXACT: Degree sequence verification.
+    Degree sequence verification.
     """
     if graph.num_nodes == 0:
         return True, None
@@ -325,7 +324,7 @@ def is_planar(graph: Graph) -> bool:
     For small graphs (≤ 8 nodes), uses edge count heuristic.
     Euler's formula: |E| <= 3|V| - 6 for planar graphs with |V| >= 3.
 
-    EXACT for rejection: If |E| > 3|V| - 6, definitely not planar.
+    Rejection check: If |E| > 3|V| - 6, definitely not planar.
     Approximate for acceptance: May give false positives.
     """
     n = graph.num_nodes
@@ -346,7 +345,7 @@ def is_eulerian(graph: Graph) -> bool:
     """
     Check if the graph has an Eulerian circuit.
 
-    EXACT: Degree parity verification.
+    Degree parity verification.
     """
     if not is_connected(graph):
         return False
@@ -367,7 +366,7 @@ def is_semi_eulerian(graph: Graph) -> bool:
     """
     Check if the graph has an Eulerian path (but not circuit).
 
-    EXACT: Exactly 2 odd-degree vertices (undirected) or
+    Exactly 2 odd-degree vertices (undirected) or
            exactly one source and one sink differ by 1 (directed).
     """
     if not is_connected(graph):
@@ -396,7 +395,7 @@ def degree_sequence(graph: Graph) -> List[int]:
     """
     Get the degree sequence of the graph (sorted descending).
 
-    EXACT: List of all degrees.
+    List of all degrees.
     """
     degrees = [graph.degree(n) for n in graph.nodes]
     return sorted(degrees, reverse=True)
@@ -409,7 +408,7 @@ def density(graph: Graph) -> float:
     Density = |E| / (|V| * (|V| - 1)) for directed
     Density = 2|E| / (|V| * (|V| - 1)) for undirected
 
-    EXACT: Ratio calculation.
+    Ratio calculation.
     """
     n = graph.num_nodes
     if n <= 1:
@@ -428,7 +427,7 @@ def topological_sort(graph: Graph) -> Optional[List[int]]:
 
     Returns None if the graph has a cycle.
 
-    EXACT: Kahn's algorithm.
+    Kahn's algorithm.
     """
     if not graph.directed:
         return None
@@ -458,7 +457,7 @@ def chromatic_number_upper_bound(graph: Graph) -> int:
     """
     Get an upper bound on the chromatic number using greedy coloring.
 
-    EXACT: Provides valid coloring (upper bound is tight for many graphs).
+    Provides valid coloring (upper bound is tight for many graphs).
     """
     if graph.num_nodes == 0:
         return 0
@@ -491,7 +490,7 @@ def clique_number_lower_bound(graph: Graph) -> int:
     """
     Get a lower bound on the clique number using greedy approach.
 
-    EXACT: Finds a valid clique.
+    Finds a valid clique.
     """
     if graph.num_nodes == 0:
         return 0
@@ -519,7 +518,7 @@ def is_subgraph(sub: Graph, main: Graph) -> bool:
     """
     Check if sub is a subgraph of main.
 
-    EXACT: All nodes and edges of sub exist in main.
+    All nodes and edges of sub exist in main.
     """
     if not sub.nodes.issubset(main.nodes):
         return False
@@ -537,8 +536,8 @@ def is_isomorphic(g1: Graph, g2: Graph) -> bool:
 
     Uses degree sequence as quick filter, then brute-force for small graphs.
 
-    EXACT for rejection: Different invariants means not isomorphic.
-    EXACT for small graphs: Complete enumeration.
+    Rejection check: Different invariants means not isomorphic.
+    Small-graph check: Complete enumeration.
     """
     if g1.num_nodes != g2.num_nodes:
         return False

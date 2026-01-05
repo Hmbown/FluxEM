@@ -131,7 +131,7 @@ class DNAEncoder:
     - Thermodynamic properties
     - Potential coding features
 
-    This enables exact operations on genetic information.
+    This enables operations on genetic information.
     """
 
     domain_tag = DOMAIN_TAGS["bio_dna"]
@@ -201,7 +201,7 @@ class DNAEncoder:
         """
         Decode embedding back to DNA sequence (reconstruction).
 
-        For sequences up to 32 bases, exact reconstruction is possible.
+        For sequences up to 32 bases, reconstruction uses stored base values.
         For longer sequences, only the first 32 bases are stored.
         """
         backend = get_backend()
@@ -234,8 +234,6 @@ class DNAEncoder:
     def reverse_complement_embed(self, emb: Any) -> Any:
         """
         Compute embedding of reverse complement.
-
-        EXACT: Swaps A<->T, G<->C in composition.
         """
         backend = get_backend()
         result = emb
@@ -258,7 +256,7 @@ class DNAEncoder:
         """
         Compute similarity between two DNA sequences.
 
-        Based on composition and GC content (exact properties).
+        Based on composition and GC content.
         """
         backend = get_backend()
         # Compare composition
@@ -308,7 +306,7 @@ class DNAEncoder:
 
     def _sequence_hash(self, sequence: str) -> List[float]:
         """
-        Encode the sequence as a list of base values for exact reconstruction.
+        Encode the sequence as a list of base values for reconstruction.
 
         Each base is encoded as a distinct value:
         - A = 0.25
@@ -317,7 +315,7 @@ class DNAEncoder:
         - C = 1.00
         - Empty/padding = 0.0
 
-        We have 32 dimensions, so sequences up to 32 bases can be exactly stored.
+        We have 32 dimensions, so sequences up to 32 bases can be stored directly.
         For longer sequences, we store the first 32 bases (truncated).
         """
         BASE_VALUES = {"A": 0.25, "T": 0.50, "G": 0.75, "C": 1.00}

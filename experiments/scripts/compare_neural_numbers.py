@@ -1,19 +1,8 @@
 #!/usr/bin/env python3
-"""
-Compare neural number embedding approaches with FluxEM algebraic embeddings.
+"""Compare neural and algebraic number embeddings.
 
-This script demonstrates the fundamental difference between:
-1. FluxEM: Exact arithmetic via algebraic structure (NO TRAINING)
-2. Neural approaches: Learned arithmetic that fails OOD
-
-Approaches compared:
-- FluxEM: Algebraic embeddings with exact arithmetic by construction
-- NALU-style: Neural Arithmetic Logic Units (learned gates for arithmetic)
-- xVal: Explicit value tokens (number -> scalar in embedding)
-- Numeral decomposition: Multi-scale positional (ones, tens, hundreds)
-
-Key insight: FluxEM requires ZERO training for exact arithmetic.
-Neural approaches require training and fail on OOD generalization.
+Evaluates several approaches on in-distribution and out-of-distribution
+arithmetic samples.
 """
 
 from __future__ import annotations
@@ -21,7 +10,7 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Optional, Callable, Any
+from typing import List, Tuple, Dict, Optional, Callable, Any, Set
 
 import numpy as np
 
@@ -41,6 +30,19 @@ except ImportError:
     torch = None
     nn = None
     F = None
+
+
+EMITTED_TABLES: Set[str] = set()
+
+
+def emit_table(name: str, columns: List[str], row: List[Any]) -> None:
+    """Emit a TSV table with a one-time header."""
+    if name not in EMITTED_TABLES:
+        print(f"table={name}")
+        print("\t".join(columns))
+        EMITTED_TABLES.add(name)
+    values = ["" if v is None else str(v) for v in row]
+    print("\t".join(values))
 
 
 # =============================================================================
@@ -183,18 +185,16 @@ def generate_ood_chain_samples(
 
 
 # =============================================================================
-# Approach 1: FluxEM Algebraic Embeddings (EXACT, NO TRAINING)
+# Approach 1: FluxEM algebraic embeddings
 # =============================================================================
 
 class FluxEMApproach:
-    """
-    FluxEM: Exact arithmetic via algebraic structure.
+    """FluxEM arithmetic via encoder/operator definitions.
 
-    Key properties:
-    - Addition: embed(a) + embed(b) = embed(a + b)  [linear encoder]
-    - Multiplication: log_mag(a) + log_mag(b) = log_mag(a * b)  [log encoder]
-
-    NO TRAINING REQUIRED. Exact by construction.
+    Notes
+    -----
+    Addition/subtraction operate on the linear encoder. Multiplication/division
+    operate on the log encoder and are subject to floating-point error.
     """
 
     def __init__(self, dim: int = 256):
@@ -289,7 +289,7 @@ FluxEM Representation:
     Property: log_mag(a) + log_mag(b) = log_mag(a * b)
 
   - Dimension: {dim}
-  - Training: NONE (exact by construction)
+  - Training: none
         """.format(dim=self.dim)
 
 
@@ -305,10 +305,9 @@ class NALUApproach:
 
     Key idea: Learn gates that select between addition and multiplication.
 
-    Problems:
+    Notes:
     - Requires training on number ranges
-    - Fails OOD (large numbers, decimals)
-    - Gate learning is unstable
+    - OOD behavior depends on training coverage and stability
     """
 
     def __init__(self, hidden_dim: int = 64):
@@ -386,9 +385,19 @@ class NALUApproach:
     def train(self, samples: List[ArithmeticSample], epochs: int = 100, lr: float = 0.01):
         """Train on arithmetic samples."""
         if not TORCH_AVAILABLE or self.model is None:
-            print("  [NALU] PyTorch not available, skipping training")
+            emit_table(
+                "training_status",
+                ["approach", "status", "reason"],
+                [self.name, "skipped", "pytorch_not_available"],
+            )
             self.trained = False
             return
+
+        emit_table(
+            "training_status",
+            ["approach", "status", "samples", "epochs"],
+            [self.name, "started", len(samples), epochs],
+        )
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         op_map = {'+': 0, '-': 1, '*': 2, '/': 3}
@@ -417,9 +426,18 @@ class NALUApproach:
             optimizer.step()
 
             if (epoch + 1) % 100 == 0:
-                print(f"  [NALU] Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
+                emit_table(
+                    "training_progress",
+                    ["approach", "epoch", "loss"],
+                    [self.name, epoch + 1, f"{loss.item():.6f}"],
+                )
 
         self.trained = True
+        emit_table(
+            "training_status",
+            ["approach", "status"],
+            [self.name, "complete"],
+        )
 
     def compute(self, a: float, op: str, b: float) -> float:
         """Compute a op b."""
@@ -448,8 +466,8 @@ NALU Representation:
   - Architecture: Linear -> NALU -> NALU -> Linear
   - NALU uses learned gates to select add vs multiply
   - Hidden dim: {hidden_dim}
-  - Training: REQUIRED (100+ epochs typical)
-  - OOD behavior: FAILS (gates don't generalize)
+  - Training: required
+  - OOD behavior: depends on learned gates
         """.format(hidden_dim=self.hidden_dim)
 
 
@@ -466,10 +484,10 @@ class XValApproach:
     Key idea: Represent number as scalar multiplied by learned embedding.
     embed(n) = n * learned_unit_vector
 
-    Problems:
+    Notes:
     - The unit vector is learned (not algebraic)
     - Requires learning arithmetic operations
-    - Fails OOD without proper scaling
+    - OOD behavior depends on scaling and training coverage
     """
 
     def __init__(self, dim: int = 64):
@@ -525,9 +543,19 @@ class XValApproach:
     def train(self, samples: List[ArithmeticSample], epochs: int = 100, lr: float = 0.001):
         """Train on arithmetic samples."""
         if not TORCH_AVAILABLE or self.model is None:
-            print("  [xVal] PyTorch not available, skipping training")
+            emit_table(
+                "training_status",
+                ["approach", "status", "reason"],
+                [self.name, "skipped", "pytorch_not_available"],
+            )
             self.trained = False
             return
+
+        emit_table(
+            "training_status",
+            ["approach", "status", "samples", "epochs"],
+            [self.name, "started", len(samples), epochs],
+        )
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         op_map = {'+': 0, '-': 1, '*': 2, '/': 3}
@@ -549,9 +577,18 @@ class XValApproach:
             optimizer.step()
 
             if (epoch + 1) % 100 == 0:
-                print(f"  [xVal] Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}")
+                emit_table(
+                    "training_progress",
+                    ["approach", "epoch", "loss"],
+                    [self.name, epoch + 1, f"{loss.item():.6f}"],
+                )
 
         self.trained = True
+        emit_table(
+            "training_status",
+            ["approach", "status"],
+            [self.name, "complete"],
+        )
 
     def compute(self, a: float, op: str, b: float) -> float:
         """Compute a op b."""
@@ -575,8 +612,8 @@ xVal Representation:
   - Operator: learned embedding
   - Combined via MLP: [emb_a, emb_b, emb_op] -> result
   - Dimension: {dim}
-  - Training: REQUIRED
-  - OOD behavior: FAILS (MLP doesn't generalize arithmetic)
+  - Training: required
+  - OOD behavior: depends on MLP generalization
         """.format(dim=self.dim)
 
 
@@ -591,7 +628,7 @@ class NumeralDecompositionApproach:
     Key idea: Decompose number into digit positions.
     1234 -> [1, 2, 3, 4] with positional encoding for ones, tens, hundreds, etc.
 
-    Problems:
+    Notes:
     - Fixed number of positions limits range
     - Decimals require additional handling
     - Arithmetic operations must be learned per-position
@@ -696,20 +733,34 @@ class NumeralDecompositionApproach:
     def train(self, samples: List[ArithmeticSample], epochs: int = 100, lr: float = 0.001):
         """Train on arithmetic samples."""
         if not TORCH_AVAILABLE or self.model is None:
-            print("  [Numeral] PyTorch not available, skipping training")
+            emit_table(
+                "training_status",
+                ["approach", "status", "reason"],
+                [self.name, "skipped", "pytorch_not_available"],
+            )
             self.trained = False
             return
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         op_map = {'+': 0, '-': 1, '*': 2, '/': 3}
 
-        # Filter to integers only (decomposition works best with integers)
+        # Filter to integers only (decomposition assumes integer inputs)
         int_samples = [s for s in samples if s.a == int(s.a) and s.b == int(s.b)]
 
         if len(int_samples) < 10:
-            print("  [Numeral] Not enough integer samples, skipping")
+            emit_table(
+                "training_status",
+                ["approach", "status", "reason"],
+                [self.name, "skipped", "insufficient_integer_samples"],
+            )
             self.trained = False
             return
+
+        emit_table(
+            "training_status",
+            ["approach", "status", "samples", "epochs"],
+            [self.name, "started", len(int_samples), epochs],
+        )
 
         a_vals = torch.tensor([s.a for s in int_samples], dtype=torch.float32)
         b_vals = torch.tensor([s.b for s in int_samples], dtype=torch.float32)
@@ -727,9 +778,18 @@ class NumeralDecompositionApproach:
             optimizer.step()
 
             if (epoch + 1) % 100 == 0:
-                print(f"  [Numeral] Epoch {epoch+1}/{epochs}, Loss: {loss.item():.6f}")
+                emit_table(
+                    "training_progress",
+                    ["approach", "epoch", "loss"],
+                    [self.name, epoch + 1, f"{loss.item():.6f}"],
+                )
 
         self.trained = True
+        emit_table(
+            "training_status",
+            ["approach", "status"],
+            [self.name, "complete"],
+        )
 
     def compute(self, a: float, op: str, b: float) -> float:
         """Compute a op b."""
@@ -754,8 +814,8 @@ Numeral Decomposition Representation:
   - Sign: separate embedding
   - Combined via MLP
   - Max digits: {max_digits} (limits range to 10^{max_digits})
-  - Training: REQUIRED
-  - OOD behavior: FAILS (fixed digit range, learned MLP)
+  - Training: required
+  - OOD behavior: limited by digit range and learned MLP
         """.format(max_digits=self.max_digits)
 
 
@@ -857,75 +917,55 @@ def evaluate_chain(
 # Main comparison
 # =============================================================================
 
-def print_separator(char: str = "=", length: int = 70):
-    print(char * length)
-
-
-def print_header(text: str):
-    print_separator()
-    print(f"  {text}")
-    print_separator()
-
-
-def print_subheader(text: str):
-    print_separator("-", 50)
-    print(f"  {text}")
-    print_separator("-", 50)
-
-
-def print_results_table(results: Dict[str, EvaluationResult], title: str):
-    """Print results as formatted table."""
-    print(f"\n{title}")
-    print("-" * 60)
-    print(f"{'Approach':<25} {'Accuracy':>10} {'Mean Err':>12} {'Training':>10}")
-    print("-" * 60)
-
-    for name, res in results.items():
-        training = "Yes" if res.requires_training else "NO"
-        err_str = f"{res.mean_relative_error:.2e}" if res.mean_relative_error < 100 else ">100"
-        print(f"{res.name:<25} {res.accuracy:>9.1%} {err_str:>12} {training:>10}")
-
-    print("-" * 60)
+def emit_results_table(results: Dict[str, EvaluationResult], dataset: str) -> None:
+    """Emit evaluation results as a TSV table."""
+    for res in results.values():
+        emit_table(
+            "evaluation_results",
+            [
+                "dataset",
+                "approach",
+                "accuracy",
+                "mean_relative_error",
+                "median_relative_error",
+                "max_relative_error",
+                "num_samples",
+                "num_correct",
+                "requires_training",
+            ],
+            [
+                dataset,
+                res.name,
+                f"{res.accuracy:.6f}",
+                f"{res.mean_relative_error:.6e}",
+                f"{res.median_relative_error:.6e}",
+                f"{res.max_relative_error:.6e}",
+                res.num_samples,
+                res.num_correct,
+                "1" if res.requires_training else "0",
+            ],
+        )
 
 
 def main():
-    print_header("Neural Number Embedding Comparison")
-    print("""
-This script compares different approaches to number representation:
+    seed = 42
+    id_count = 100
+    ood_count = 100
+    chain_count = 50
+    chain_length = 5
 
-1. FluxEM: Algebraic embeddings (EXACT, NO TRAINING)
-   - Addition: embed(a) + embed(b) = embed(a + b)
-   - Multiplication: log(a) + log(b) = log(a * b)
-
-2. NALU: Neural Arithmetic Logic Units (learned)
-   - Uses gates to select add vs multiply
-   - Requires training, fails OOD
-
-3. xVal: Explicit value tokens (learned)
-   - Number as scalar times learned vector
-   - Requires training, fails OOD
-
-4. Numeral Decomposition: Positional digit encoding (learned)
-   - Decompose into ones, tens, hundreds, etc.
-   - Requires training, fixed range
-""")
+    emit_table("run_context", ["field", "value"], ["torch_available", "1" if TORCH_AVAILABLE else "0"])
+    emit_table("run_context", ["field", "value"], ["seed", seed])
+    emit_table("run_context", ["field", "value"], ["id_samples", id_count])
+    emit_table("run_context", ["field", "value"], ["ood_samples", ood_count])
+    emit_table("run_context", ["field", "value"], ["chain_samples", chain_count])
+    emit_table("run_context", ["field", "value"], ["chain_length", chain_length])
 
     # Initialize approaches
-    print_subheader("Initializing Approaches")
-
     fluxem = FluxEMApproach(dim=256)
-    print(f"[OK] FluxEM initialized (no training needed)")
-
     nalu = NALUApproach(hidden_dim=64)
     xval = XValApproach(dim=64)
     numeral = NumeralDecompositionApproach(max_digits=6)
-
-    if TORCH_AVAILABLE:
-        print(f"[OK] NALU initialized (requires training)")
-        print(f"[OK] xVal initialized (requires training)")
-        print(f"[OK] Numeral Decomposition initialized (requires training)")
-    else:
-        print("[WARN] PyTorch not available - neural approaches will return NaN")
 
     approaches = {
         "fluxem": fluxem,
@@ -934,111 +974,94 @@ This script compares different approaches to number representation:
         "numeral": numeral,
     }
 
+    for approach in approaches.values():
+        emit_table(
+            "approach_status",
+            ["approach", "requires_training", "torch_available"],
+            [
+                approach.name,
+                "1" if getattr(approach, "requires_training", False) else "0",
+                "1" if TORCH_AVAILABLE else "0",
+            ],
+        )
+
     # Generate test data
-    print_subheader("Generating Test Data")
+    id_samples = generate_id_samples(n=id_count, seed=seed)
+    ood_magnitude = generate_ood_magnitude_samples(n=ood_count, seed=seed)
+    ood_precision = generate_ood_precision_samples(n=ood_count, seed=seed)
+    ood_chains = generate_ood_chain_samples(chain_length=chain_length, n=chain_count, seed=seed)
 
-    id_samples = generate_id_samples(n=100, seed=42)
-    ood_magnitude = generate_ood_magnitude_samples(n=100, seed=42)
-    ood_precision = generate_ood_precision_samples(n=100, seed=42)
-    ood_chains = generate_ood_chain_samples(chain_length=5, n=50, seed=42)
-
-    print(f"ID samples (0-999): {len(id_samples)}")
-    print(f"OOD magnitude (1M+): {len(ood_magnitude)}")
-    print(f"OOD precision (decimals): {len(ood_precision)}")
-    print(f"OOD chains (length 5): {len(ood_chains)}")
+    emit_table("dataset_counts", ["split", "count"], ["id", len(id_samples)])
+    emit_table("dataset_counts", ["split", "count"], ["ood_magnitude", len(ood_magnitude)])
+    emit_table("dataset_counts", ["split", "count"], ["ood_precision", len(ood_precision)])
+    emit_table("dataset_counts", ["split", "count"], ["ood_chains", len(ood_chains)])
 
     # Train neural approaches on ID data
-    print_subheader("Training Neural Approaches (on ID data only)")
-    print("\nNote: Neural approaches are trained on ID samples (0-999) only.")
-    print("This simulates the real-world scenario where training data has limited range.\n")
-
-    if TORCH_AVAILABLE:
-        print("Training NALU...")
-        nalu.train(id_samples, epochs=200, lr=0.01)
-
-        print("\nTraining xVal...")
-        xval.train(id_samples, epochs=200, lr=0.001)
-
-        print("\nTraining Numeral Decomposition...")
-        numeral.train(id_samples, epochs=200, lr=0.001)
-    else:
-        print("Skipping training (PyTorch not available)")
+    nalu.train(id_samples, epochs=200, lr=0.01)
+    xval.train(id_samples, epochs=200, lr=0.001)
+    numeral.train(id_samples, epochs=200, lr=0.001)
 
     # Evaluate on all test sets
-    print_header("Evaluation Results")
+    id_results = {name: evaluate_approach(approach, id_samples) for name, approach in approaches.items()}
+    emit_results_table(id_results, "id")
 
-    # ID evaluation
-    print_subheader("In-Distribution (0-999)")
-    id_results = {}
-    for name, approach in approaches.items():
-        id_results[name] = evaluate_approach(approach, id_samples)
-    print_results_table(id_results, "ID Performance (trained on this range)")
+    ood_mag_results = {
+        name: evaluate_approach(approach, ood_magnitude) for name, approach in approaches.items()
+    }
+    emit_results_table(ood_mag_results, "ood_magnitude")
 
-    # OOD magnitude
-    print_subheader("OOD: Large Numbers (1M+)")
-    ood_mag_results = {}
-    for name, approach in approaches.items():
-        ood_mag_results[name] = evaluate_approach(approach, ood_magnitude)
-    print_results_table(ood_mag_results, "OOD Magnitude Performance (never seen in training)")
+    ood_prec_results = {
+        name: evaluate_approach(approach, ood_precision) for name, approach in approaches.items()
+    }
+    emit_results_table(ood_prec_results, "ood_precision")
 
-    # OOD precision
-    print_subheader("OOD: Decimal Precision")
-    ood_prec_results = {}
-    for name, approach in approaches.items():
-        ood_prec_results[name] = evaluate_approach(approach, ood_precision)
-    print_results_table(ood_prec_results, "OOD Precision Performance (decimals, never seen in training)")
-
-    # OOD chains
-    print_subheader("OOD: Long Expression Chains (5 operations)")
-    ood_chain_results = {}
-    for name, approach in approaches.items():
-        ood_chain_results[name] = evaluate_chain(approach, ood_chains)
-    print_results_table(ood_chain_results, "OOD Chain Performance (5-element chains)")
+    ood_chain_results = {
+        name: evaluate_chain(approach, ood_chains) for name, approach in approaches.items()
+    }
+    emit_results_table(ood_chain_results, "ood_chains")
 
     # Specific examples
-    print_header("Specific Examples")
-
     examples = [
-        # ID
-        (42, '+', 58, "ID: Simple addition"),
-        (6, '*', 7, "ID: Simple multiplication"),
-        # OOD magnitude
-        (1_234_567, '+', 7_654_321, "OOD: Large addition"),
-        (12345, '*', 6789, "OOD: Large multiplication"),
-        # OOD precision
-        (3.14159, '+', 2.71828, "OOD: Pi + e"),
-        (1.41421, '*', 1.73205, "OOD: sqrt(2) * sqrt(3)"),
+        (42, "+", 58, "id_addition"),
+        (6, "*", 7, "id_multiplication"),
+        (1_234_567, "+", 7_654_321, "ood_large_addition"),
+        (12345, "*", 6789, "ood_large_multiplication"),
+        (3.14159, "+", 2.71828, "ood_decimal_addition"),
+        (1.41421, "*", 1.73205, "ood_decimal_multiplication"),
     ]
 
-    for a, op, b, description in examples:
+    for a, op, b, case in examples:
         expected = eval(f"{a}{op}{b}")
-        print(f"\n{description}: {a} {op} {b} = {expected}")
-        print("-" * 50)
-
-        for name, approach in approaches.items():
+        for approach in approaches.values():
             try:
                 pred = approach.compute(a, op, b)
                 if math.isnan(pred):
-                    status = "NaN (not trained)"
-                elif abs(expected) > 1e-10:
-                    rel_err = abs(pred - expected) / abs(expected)
-                    status = f"{pred:.6g} (err: {rel_err:.2e})"
+                    emit_table(
+                        "example_predictions",
+                        ["case", "a", "op", "b", "expected", "approach", "prediction", "relative_error", "status"],
+                        [case, a, op, b, expected, approach.name, None, None, "nan"],
+                    )
                 else:
-                    status = f"{pred:.6g}"
-            except Exception as e:
-                status = f"Error: {e}"
-
-            print(f"  {approach.name:<25}: {status}")
+                    rel_err = abs(pred - expected) / abs(expected) if expected != 0 else abs(pred - expected)
+                    emit_table(
+                        "example_predictions",
+                        ["case", "a", "op", "b", "expected", "approach", "prediction", "relative_error", "status"],
+                        [case, a, op, b, expected, approach.name, f"{pred:.6g}", f"{rel_err:.6e}", "ok"],
+                    )
+            except Exception:
+                emit_table(
+                    "example_predictions",
+                    ["case", "a", "op", "b", "expected", "approach", "prediction", "relative_error", "status"],
+                    [case, a, op, b, expected, approach.name, None, None, "error"],
+                )
 
     # Chain example
-    print_subheader("Chain Example: 10 + 20 + 30 + 40 + 50")
     numbers = [10.0, 20.0, 30.0, 40.0, 50.0]
-    operators = ['+', '+', '+', '+']
+    operators = ["+", "+", "+", "+"]
     expected = sum(numbers)
 
-    print(f"Expected: {expected}")
-    for name, approach in approaches.items():
-        if hasattr(approach, 'compute_chain'):
+    for approach in approaches.values():
+        if hasattr(approach, "compute_chain"):
             pred = approach.compute_chain(numbers, operators)
         else:
             result = numbers[0]
@@ -1047,37 +1070,21 @@ This script compares different approaches to number representation:
             pred = result
 
         if math.isnan(pred):
-            status = "NaN"
+            emit_table(
+                "chain_example",
+                ["approach", "expected", "prediction", "relative_error", "status"],
+                [approach.name, expected, None, None, "nan"],
+            )
         else:
-            err = abs(pred - expected) / expected if expected != 0 else abs(pred)
-            status = f"{pred:.6g} (err: {err:.2e})"
+            err = abs(pred - expected) / expected if expected != 0 else abs(pred - expected)
+            emit_table(
+                "chain_example",
+                ["approach", "expected", "prediction", "relative_error", "status"],
+                [approach.name, expected, f"{pred:.6g}", f"{err:.6e}", "ok"],
+            )
 
-        print(f"  {approach.name:<25}: {status}")
-
-    # Summary
-    print_header("Summary: Key Findings")
-    print("""
-FLUXEM (Algebraic Embeddings):
-  - Requires NO training
-  - Exact arithmetic by construction
-  - Perfect OOD generalization (any magnitude, precision, chain length)
-  - Algebraic identities hold exactly (within floating point precision)
-
-NEURAL APPROACHES (NALU, xVal, Numeral Decomposition):
-  - Require training on specific number ranges
-  - Good ID performance when trained adequately
-  - FAIL on OOD magnitude (large numbers never seen in training)
-  - FAIL on OOD precision (decimals if only trained on integers)
-  - FAIL on OOD chains (errors compound over sequential operations)
-
-KEY INSIGHT:
-  FluxEM achieves exact arithmetic through algebraic structure, not learning.
-  Neural approaches try to learn arithmetic as a function approximation,
-  which fundamentally cannot generalize beyond the training distribution.
-
-  embed(a) + embed(b) = embed(a + b)  is ALWAYS true for FluxEM
-  f_neural([a, b]) ≈ a + b           only for trained (a, b) pairs
-""")
+    emit_table("identities", ["identity", "formula"], ["linear_addition", "embed(a) + embed(b) = embed(a + b)"])
+    emit_table("identities", ["identity", "formula"], ["log_multiplication", "log_embed(a) + log_embed(b) = log_embed(a * b)"])
 
 
 if __name__ == "__main__":

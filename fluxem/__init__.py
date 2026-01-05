@@ -1,33 +1,30 @@
 """
-FluxEM: Algebraic embeddings for exact neural computation.
+FluxEM.
 
-Structured embeddings where algebraic operations become geometric transformations:
-- Addition becomes vector addition
-- Multiplication becomes addition in log-space
-- Systematic generalization via algebraic structure (parameter-free)
+Deterministic encoders that map structured domain objects to fixed-dimensional
+embeddings with closed-form operations. The package provides arithmetic
+encoders (linear/logarithmic) and domain-specific encoders.
 
-Supports 11 scientific domains:
-- Physics: quantities, constants, units
-- Chemistry: elements, molecules, reactions, bonds
-- Biology: DNA, RNA, proteins, genes, pathways, taxonomy
-- Math: reals, complex, rationals, polynomials, vectors, matrices
-- Logic: propositional, predicate, type theory
-- Music: pitch, chords, scales, rhythm
-- Geometry: points, vectors, transforms, shapes
-- Graphs: directed, undirected, weighted, trees, DAGs
-- Sets: finite sets, relations, functions
-- Number Theory: integers, primes, modular arithmetic
+Notes
+-----
+Backends:
 
-Example Usage
--------------
+- NumPy
+- JAX
+- MLX
+
+For the mathematical specification and precision notes, see:
+
+- ``docs/FORMAL_DEFINITION.md``
+- ``docs/ERROR_MODEL.md``
+
+Examples
+--------
 >>> from fluxem import create_unified_model
 >>> model = create_unified_model()
 >>> model.compute("1847*392")
 724024.0
->>> model.compute("123456+789")
-124245.0
 
-Extended operations:
 >>> from fluxem import create_extended_ops
 >>> ops = create_extended_ops()
 >>> ops.sqrt(16)
@@ -35,21 +32,8 @@ Extended operations:
 >>> ops.power(2, 16)
 65536.0
 
-Backend selection:
 >>> from fluxem.backend import set_backend, BackendType
 >>> set_backend(BackendType.JAX)  # or MLX, NUMPY
-
-How It Works
-------------
-Linear embeddings (addition/subtraction):
-    embed(a) + embed(b) = embed(a + b)
-
-Log embeddings (multiplication/division):
-    log_embed(a) + log_embed(b) = log_embed(a * b)
-
-Arithmetic operations map to geometric operations in embedding space.
-See docs/FORMAL_DEFINITION.md for mathematical specification.
-See docs/ERROR_MODEL.md for precision notes.
 """
 
 # Backend abstraction layer

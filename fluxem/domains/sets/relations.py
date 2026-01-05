@@ -4,7 +4,7 @@ Binary Relation Encoder.
 A binary relation R on a set A is a subset of A × A.
 Relations can be represented as adjacency matrices (for small sets).
 
-Properties that can be checked EXACTLY:
+Properties that can be checked deterministically:
 - Reflexive: ∀x: (x,x) ∈ R
 - Symmetric: ∀x,y: (x,y) ∈ R → (y,x) ∈ R
 - Antisymmetric: ∀x,y: (x,y) ∈ R ∧ (y,x) ∈ R → x = y
@@ -151,7 +151,6 @@ class Relation:
         """
         Inverse relation: R⁻¹ = {(b,a) : (a,b) ∈ R}
 
-        EXACT operation.
         """
         return Relation(frozenset((b, a) for a, b in self.pairs))
 
@@ -161,7 +160,6 @@ class Relation:
 
         Note: Composition order follows function notation (self after other).
 
-        EXACT operation.
         """
         result = set()
         for a, b1 in other.pairs:
@@ -183,14 +181,13 @@ class Relation:
         return Relation(self.pairs - other.pairs)
 
     # =========================================================================
-    # Properties (all EXACT)
+    # Properties
     # =========================================================================
 
     def is_reflexive(self, universe: Optional[Set[Any]] = None) -> bool:
         """
         Check reflexivity: ∀x ∈ U: (x,x) ∈ R
 
-        EXACT check.
         """
         if universe is None:
             universe = self.field()
@@ -200,7 +197,6 @@ class Relation:
         """
         Check irreflexivity: ∀x: (x,x) ∉ R
 
-        EXACT check.
         """
         return all(a != b for a, b in self.pairs)
 
@@ -208,7 +204,6 @@ class Relation:
         """
         Check symmetry: ∀x,y: (x,y) ∈ R → (y,x) ∈ R
 
-        EXACT check.
         """
         return all((b, a) in self.pairs for a, b in self.pairs)
 
@@ -216,7 +211,6 @@ class Relation:
         """
         Check antisymmetry: ∀x,y: (x,y) ∈ R ∧ (y,x) ∈ R → x = y
 
-        EXACT check.
         """
         for a, b in self.pairs:
             if a != b and (b, a) in self.pairs:
@@ -227,7 +221,6 @@ class Relation:
         """
         Check asymmetry: ∀x,y: (x,y) ∈ R → (y,x) ∉ R
 
-        EXACT check.
         """
         return all((b, a) not in self.pairs for a, b in self.pairs)
 
@@ -235,7 +228,6 @@ class Relation:
         """
         Check transitivity: ∀x,y,z: (x,y) ∈ R ∧ (y,z) ∈ R → (x,z) ∈ R
 
-        EXACT check.
         """
         for a, b in self.pairs:
             for c, d in self.pairs:
@@ -247,7 +239,6 @@ class Relation:
         """
         Check totality: ∀x,y ∈ U: (x,y) ∈ R ∨ (y,x) ∈ R
 
-        EXACT check.
         """
         if universe is None:
             universe = self.field()
@@ -299,7 +290,7 @@ class Relation:
         """
         Reflexive closure: smallest reflexive relation containing R.
 
-        EXACT: R ∪ {(x,x) : x ∈ U}
+        R ∪ {(x,x) : x ∈ U}
         """
         if universe is None:
             universe = self.field()
@@ -310,7 +301,7 @@ class Relation:
         """
         Symmetric closure: smallest symmetric relation containing R.
 
-        EXACT: R ∪ R⁻¹
+        R ∪ R⁻¹
         """
         inverse_pairs = frozenset((b, a) for a, b in self.pairs)
         return Relation(self.pairs | inverse_pairs)
@@ -319,7 +310,7 @@ class Relation:
         """
         Transitive closure: smallest transitive relation containing R.
 
-        Uses Warshall's algorithm. EXACT for finite relations.
+        Uses Warshall's algorithm for finite relations.
         """
         # Convert to adjacency matrix approach
         elements = sorted(self.field())
@@ -409,7 +400,7 @@ class RelationEncoder:
     Encoder for binary relations.
 
     Represents relations as adjacency matrices for sets of up to 8 elements.
-    All operations are EXACT.
+    All operations are deterministic.
     """
 
     domain_tag = SET_RELATION_TAG
@@ -538,14 +529,14 @@ class RelationEncoder:
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
-    # EXACT Operations
+    # Operations
     # =========================================================================
 
     def compose(self, emb1: Any, emb2: Any) -> Any:
         """
         Relation composition: R₁ ∘ R₂
 
-        EXACT: Matrix multiplication (over Boolean semiring)
+        Matrix multiplication (over Boolean semiring)
         """
         backend = get_backend()
         result = create_embedding()
@@ -568,7 +559,7 @@ class RelationEncoder:
         """
         Inverse relation: R⁻¹
 
-        EXACT: Transpose adjacency matrix
+        Transpose adjacency matrix
         """
         backend = get_backend()
         result = create_embedding()
@@ -608,7 +599,7 @@ class RelationEncoder:
         return result
 
     # =========================================================================
-    # Property Checks (EXACT)
+    # Property checks
     # =========================================================================
 
     def is_reflexive(self, emb: Any, n: int = 8) -> bool:

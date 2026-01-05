@@ -1,36 +1,7 @@
 #!/usr/bin/env python3
-"""
-Compare FluxEM vs Positional Encoding Approaches for Numbers
+"""Compare positional encodings and algebraic embeddings for numbers.
 
-This script demonstrates the fundamental limitations of positional encoding
-for representing numbers, and why FluxEM's algebraic structure is superior.
-
-Positional Encoding Approaches Compared:
-1. Standard sin/cos positional encoding (Transformer-style)
-2. Digit positional encoding (ones, tens, hundreds place)
-3. Multi-scale positional encoding (log-scale positions)
-4. FluxEM algebraic embeddings (no positions needed)
-
-Key Insight:
------------
-Positional encodings tell the model WHERE a digit is, not WHAT it means.
-The model still must learn:
-- That position 0 = ones, position 1 = tens, etc.
-- Carry propagation rules
-- All arithmetic from data
-
-FluxEM encodes VALUE directly into the embedding structure.
-Arithmetic operations become geometric operations.
-
-Test Cases:
------------
-- ID: 2-3 digit numbers (positions 0-2)
-- OOD: 6+ digit numbers (positions 3-5 never seen in training)
-- Show FluxEM handles ANY size numbers
-
-Usage:
-    python experiments/scripts/compare_positional.py
-    python experiments/scripts/compare_positional.py --verbose
+Runs a benchmark across several positional encoding baselines and FluxEM.
 """
 
 from __future__ import annotations
@@ -317,21 +288,10 @@ class MultiscalePositionalEncoding(PositionalEncoder):
 
 
 class FluxEMEncoder(PositionalEncoder):
-    """
-    FluxEM algebraic embeddings: No positions needed.
+    """FluxEM algebraic embeddings.
 
-    The embedding directly encodes the VALUE of the number.
-    Algebraic property:
-        embed(a) + embed(b) = embed(a + b)
-
-    This is NOT learned - it's a mathematical identity built into
-    the embedding construction.
-
-    Why it works for OOD:
-    - No positions to learn
-    - No carry rules to learn
-    - Just linear algebra on embeddings
-    - Works for ANY number in the scale range
+    Encodes a scalar value directly and uses embedding-space addition/subtraction
+    for arithmetic.
     """
 
     def __init__(self, dim: int = 256, scale: float = 1e15):
@@ -346,10 +306,9 @@ class FluxEMEncoder(PositionalEncoder):
     @property
     def limitations(self) -> str:
         return (
-            "No positions - encodes VALUE directly.\n"
+            "Encodes value directly.\n"
             "embed(a) + embed(b) = embed(a + b) by construction.\n"
-            "Works for any number up to scale limit.\n"
-            "No learning required for arithmetic operations."
+            "Range limited by the chosen scale and floating-point precision."
         )
 
     def encode_number(self, n: int) -> np.ndarray:
@@ -385,16 +344,7 @@ def simulate_positional_model_accuracy(
     op: str,
     max_trained_position: int = 3,
 ) -> Tuple[Optional[float], bool]:
-    """
-    Simulate how a model using positional encoding would perform.
-
-    The key insight: positional encoding models fail on OOD because
-    they haven't learned the position -> place value mapping for
-    positions beyond training.
-
-    Returns:
-        (predicted_result, is_correct)
-    """
+    """Simulate performance for a positional encoding baseline."""
     # Get the actual expected result
     if op == "+":
         expected = a + b
@@ -408,7 +358,7 @@ def simulate_positional_model_accuracy(
     max_digits_result = len(str(abs(expected)))
     max_position = max(max_digits_operand, max_digits_result)
 
-    # If FluxEM, use exact computation
+    # If FluxEM, compute directly
     if encoder.can_compute():
         result = encoder.compute(a, b, op)
         if result is not None:
@@ -571,23 +521,14 @@ def evaluate_encoder(
 
 def run_benchmark(config: PositionalBenchmarkConfig) -> Dict[str, Dict[str, EncoderResult]]:
     """Run the full positional encoding comparison benchmark."""
-    print("=" * 70)
-    print("  POSITIONAL ENCODING vs FLUXEM COMPARISON")
-    print("  Why position info doesn't encode VALUE")
-    print("=" * 70)
-
     # Set random seed
     np.random.seed(config.seed)
     random.seed(config.seed)
 
     # Generate test data
-    print("\n[1] Generating test data...")
     datasets = generate_test_cases(config)
-    for name, cases in datasets.items():
-        print(f"    {name}: {len(cases)} cases")
 
     # Initialize encoders
-    print("\n[2] Initializing encoders...")
     encoders = [
         StandardPositionalEncoding(dim=config.embed_dim),
         DigitPositionalEncoding(dim=config.embed_dim, trained_positions=config.max_position_trained),
@@ -595,11 +536,7 @@ def run_benchmark(config: PositionalBenchmarkConfig) -> Dict[str, Dict[str, Enco
         FluxEMEncoder(dim=256, scale=1e15),  # Large scale for 10+ digit numbers
     ]
 
-    for enc in encoders:
-        print(f"    - {enc.name}")
-
     # Evaluate
-    print("\n[3] Evaluating encoders...")
     results: Dict[str, Dict[str, EncoderResult]] = {}
 
     for encoder in encoders:
@@ -618,171 +555,48 @@ def run_benchmark(config: PositionalBenchmarkConfig) -> Dict[str, Dict[str, Enco
 
 def print_results_table(results: Dict[str, Dict[str, EncoderResult]]) -> None:
     """Print formatted results table."""
-    print("\n" + "=" * 70)
-    print("  RESULTS: ACCURACY BY ENCODER AND DISTRIBUTION")
-    print("=" * 70)
+    print("table=accuracy_by_encoder")
+    print("encoder\tdataset\taccuracy\tmean_error\tn_samples")
+    for encoder, datasets in results.items():
+        for ds_name, result in datasets.items():
+            print(f"{encoder}\t{ds_name}\t{result.accuracy:.6f}\t{result.mean_error:.6e}\t{result.n_samples}")
 
-    encoders = list(results.keys())
-    datasets = list(list(results.values())[0].keys())
-
-    # Header
-    print("\n" + "-" * 80)
-    print(f"{'Encoder':<25}", end="")
-    for ds in datasets:
-        ds_short = ds.replace("_", " ").replace("ood ", "OOD ").upper()[:12]
-        print(f"{ds_short:>14}", end="")
-    print()
-    print("-" * 80)
-
-    # Results
-    for encoder in encoders:
-        print(f"{encoder:<25}", end="")
-        for ds in datasets:
-            acc = results[encoder][ds].accuracy
-            print(f"{acc:>13.1%}", end="")
-        print()
-
-    print("-" * 80)
-
-    # OOD Generalization Gap
-    print("\n" + "-" * 80)
-    print("OOD GENERALIZATION GAP (ID accuracy - OOD accuracy)")
-    print("-" * 80)
-
-    for encoder in encoders:
-        id_acc = results[encoder]["id"].accuracy
-        ood_6_acc = results[encoder]["ood_6digit"].accuracy
-        ood_10_acc = results[encoder]["ood_10digit"].accuracy
-        adv_acc = results[encoder]["adversarial"].accuracy
-
-        gap_6 = id_acc - ood_6_acc
-        gap_10 = id_acc - ood_10_acc
-        gap_adv = id_acc - adv_acc
-
-        print(f"{encoder:<20} 6-digit: {gap_6:>+6.1%}   "
-              f"10-digit: {gap_10:>+6.1%}   "
-              f"Adversarial: {gap_adv:>+6.1%}")
-
-    print("-" * 80)
+    print("table=ood_gap")
+    print("encoder\tgap_6digit\tgap_10digit\tgap_adversarial")
+    for encoder, datasets in results.items():
+        id_acc = datasets["id"].accuracy
+        gap_6 = id_acc - datasets["ood_6digit"].accuracy
+        gap_10 = id_acc - datasets["ood_10digit"].accuracy
+        gap_adv = id_acc - datasets["adversarial"].accuracy
+        print(f"{encoder}\t{gap_6:.6f}\t{gap_10:.6f}\t{gap_adv:.6f}")
 
 
 def print_why_positional_fails() -> None:
-    """Print explanation of why positional encoding fails for numbers."""
-    print("\n" + "=" * 70)
-    print("  WHY POSITIONAL ENCODING FAILS FOR NUMBERS")
-    print("=" * 70)
-    print("""
-The Fundamental Problem:
-------------------------
-Positional encoding tells the model WHERE a digit is, not WHAT it means.
-
-Example: The number "123456"
-  - Standard PE: [sin(0), cos(0)], [sin(1), cos(1)], ... for positions
-  - Digit PE: [ones_emb], [tens_emb], [hundreds_emb], ...
-  - Multi-scale: [sin(pos/1), sin(pos/10), sin(pos/100), ...]
-
-In ALL cases, the model must LEARN:
-  1. Position 0 -> multiply digit by 10^0 = 1
-  2. Position 1 -> multiply digit by 10^1 = 10
-  3. Position 2 -> multiply digit by 10^2 = 100
-  ...and so on.
-
-Out-of-Distribution Failure:
-----------------------------
-If trained on 2-3 digit numbers (positions 0, 1, 2):
-  - The model learns: pos0 -> *1, pos1 -> *10, pos2 -> *100
-  - For 6-digit numbers, positions 3, 4, 5 are OOD
-  - The model has NEVER seen position 5 associated with *100000
-  - Therefore, it cannot correctly interpret the digit at that position
-
-Even Multi-scale Positional Encoding Fails:
--------------------------------------------
-Multi-scale uses different frequencies: sin(pos/1), sin(pos/10), etc.
-This captures different "scales" of position information.
-BUT: The model still must learn what these patterns MEAN in terms of
-place value. For OOD positions, these frequency combinations are novel.
-
-Why FluxEM Works:
------------------
-FluxEM doesn't use positions at all. It encodes the VALUE directly:
-
-    embed(123456) = basis_vector * (123456 / scale)
-
-Arithmetic is a property of the embedding:
-
-    embed(100000) + embed(23456) = embed(123456)
-
-This is NOT learned - it's constructed by design.
-Therefore, it works for ANY number in the scale range,
-regardless of whether that number appeared in training.
-""")
+    """Print a short note about positional encodings."""
+    print("table=notes")
+    print("note\tvalue")
+    print("positional_encoding\tencodes digit position; arithmetic requires learned place-value and carry behavior")
 
 
 def print_example_failures(results: Dict[str, Dict[str, EncoderResult]]) -> None:
     """Print example predictions showing failures."""
-    print("\n" + "=" * 70)
-    print("  EXAMPLE PREDICTIONS")
-    print("=" * 70)
+    print("table=example_predictions")
+    print("dataset\tencoder\texpression\tpredicted\texpected\tcorrect")
 
-    encoders = list(results.keys())
-
-    # Show examples from OOD 6-digit
-    print("\nOOD 6-digit examples:")
-    print("-" * 70)
-
-    for encoder in encoders:
-        examples = results[encoder]["ood_6digit"].example_predictions
-        print(f"\n{encoder}:")
-        for expr, pred, expected, correct in examples[:3]:
-            status = "CORRECT" if correct else "WRONG"
-            if pred is not None:
-                print(f"  {expr} = {pred:.0f} (expected: {expected}) [{status}]")
-            else:
-                print(f"  {expr} = N/A (expected: {expected}) [{status}]")
-
-    # Show adversarial examples
-    print("\n\nAdversarial examples (maximum carry chains):")
-    print("-" * 70)
-
-    for encoder in encoders:
-        examples = results[encoder]["adversarial"].example_predictions
-        print(f"\n{encoder}:")
-        for expr, pred, expected, correct in examples[:3]:
-            status = "CORRECT" if correct else "WRONG"
-            if pred is not None:
-                print(f"  {expr} = {pred:.0f} (expected: {expected}) [{status}]")
-            else:
-                print(f"  {expr} = N/A (expected: {expected}) [{status}]")
+    for encoder, datasets in results.items():
+        for dataset in ["ood_6digit", "adversarial"]:
+            examples = datasets[dataset].example_predictions
+            for expr, pred, expected, correct in examples[:3]:
+                pred_str = "" if pred is None else f"{pred:.0f}"
+                print(f"{dataset}\t{encoder}\t{expr}\t{pred_str}\t{expected}\t{'1' if correct else '0'}")
 
 
 def print_summary() -> None:
     """Print key takeaways."""
-    print("\n" + "=" * 70)
-    print("  KEY TAKEAWAY")
-    print("=" * 70)
-    print("""
-Positional encoding is the WRONG abstraction for numbers.
-
-Positional Encoding:
-  - Encodes WHERE (position)
-  - Model must learn position -> place value mapping
-  - OOD positions have no learned meaning
-  - Accuracy degrades with distance from training distribution
-
-FluxEM Algebraic Encoding:
-  - Encodes WHAT (value)
-  - Arithmetic is built into the representation
-  - No positions to learn
-  - Works for any number in scale range
-
-The core insight:
------------------
-"Position tells you where. Algebra tells you what."
-
-For structured domains like numbers, the structure should be
-EMBEDDED, not learned. This is the FluxEM thesis.
-""")
-    print("=" * 70)
+    print("table=summary")
+    print("note\tvalue")
+    print("positional_encoding\tencodes position; arithmetic requires learned place-value and carry behavior")
+    print("fluxem\tencodes value directly and uses embedding-space operations for arithmetic")
 
 
 def save_results(results: Dict[str, Dict[str, EncoderResult]], path: str) -> None:
@@ -800,7 +614,7 @@ def save_results(results: Dict[str, Dict[str, EncoderResult]], path: str) -> Non
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         json.dump(output, f, indent=2)
-    print(f"\nResults saved to {path}")
+    print(f"results_path\t{path}")
 
 
 def main():
@@ -828,6 +642,15 @@ def main():
         n_samples_ood=args.n_samples,
         verbose=args.verbose,
     )
+
+    print("table=run_context")
+    print("field\tvalue")
+    print(f"seed\t{config.seed}")
+    print(f"n_samples_id\t{config.n_samples_id}")
+    print(f"n_samples_ood\t{config.n_samples_ood}")
+    print(f"embed_dim\t{config.embed_dim}")
+    print(f"max_position_trained\t{config.max_position_trained}")
+    print(f"verbose\t{'1' if config.verbose else '0'}")
 
     # Run benchmark
     results = run_benchmark(config)

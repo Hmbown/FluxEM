@@ -1,8 +1,8 @@
 """
 Core Graph Structures and Encoder for FluxEM-Domains
 
-Provides Graph data structure and GraphEncoder for exact graph embeddings.
-Operations on embeddings are mathematically exact by construction.
+Provides Graph data structure and GraphEncoder for graph embeddings.
+Operations on embeddings follow adjacency-matrix definitions.
 
 Embedding Layout (128 dimensions):
   - dims 0-7:   Domain tag (graph_directed or graph_undirected)
@@ -182,7 +182,7 @@ class GraphEncoder:
 
     Encodes graphs as 128-dimensional embeddings where:
     - Adjacency matrix is stored as a 64-bit bitmap (8x8 matrix)
-    - Graph operations become exact bitwise operations
+    - Graph operations map to bitwise operations on the adjacency matrix
     """
 
     # Embedding layout - absolute positions
@@ -433,13 +433,11 @@ class GraphEncoder:
                     return False
             return True
 
-    # === EXACT GRAPH OPERATIONS ===
+    # Graph operations
 
     def union(self, emb1: Any, emb2: Any) -> Any:
         """
         Graph union: combine edges from both graphs.
-
-        EXACT: Bitwise OR on adjacency matrices.
         """
         backend = get_backend()
         result = mx.zeros_like(emb1)
@@ -465,8 +463,6 @@ class GraphEncoder:
     def intersection(self, emb1: Any, emb2: Any) -> Any:
         """
         Graph intersection: edges present in both graphs.
-
-        EXACT: Bitwise AND on adjacency matrices.
         """
         backend = get_backend()
         result = mx.zeros_like(emb1)
@@ -492,8 +488,6 @@ class GraphEncoder:
     def complement(self, embedding: Any) -> Any:
         """
         Graph complement: invert all edges.
-
-        EXACT: Bitwise NOT on adjacency matrix (within node set).
         """
         backend = get_backend()
         result = mx.zeros_like(embedding)
@@ -524,8 +518,6 @@ class GraphEncoder:
     def subgraph(self, embedding: Any, nodes: Set[int]) -> Any:
         """
         Extract induced subgraph on given nodes.
-
-        EXACT: Mask adjacency matrix to only include specified nodes.
         """
         backend = get_backend()
         result = mx.zeros_like(embedding)
@@ -552,8 +544,6 @@ class GraphEncoder:
     def transpose(self, embedding: Any) -> Any:
         """
         Transpose graph (reverse all edge directions).
-
-        EXACT: Transpose the adjacency matrix.
         """
         backend = get_backend()
         result = mx.zeros_like(embedding)
@@ -585,7 +575,7 @@ class GraphEncoder:
                     nodes.add(j)
         return len(nodes)
 
-    # === PREDICATES ===
+    # Predicates
 
     def has_edge(self, embedding: Any, src: int, tgt: int) -> bool:
         """Check if edge exists in the embedded graph."""
@@ -629,8 +619,6 @@ class GraphEncoder:
     def equals(self, emb1: Any, emb2: Any) -> bool:
         """
         Check if two graph embeddings represent the same graph.
-
-        EXACT: Compare adjacency matrices bit by bit and node counts.
         """
         backend = get_backend()
         # Check node and edge counts first

@@ -45,12 +45,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# JAX backend (recommended for Linux/Cloud)
+# JAX backend (Linux/Cloud)
 jax = [
     "jax>=0.4.20",
     "jaxlib>=0.4.20",
 ]
-# MLX backend (recommended for Apple Silicon)
+# MLX backend (Apple Silicon)
 mlx = [
     "mlx>=0.4.0",
 ]

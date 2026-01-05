@@ -1,15 +1,9 @@
 """
-Atonal Theory Encoder for 12-Tone Music.
+Atonal theory encoder.
 
-This is LITERALLY matrix/vector operations! 🎵🧮
-
-- Pitch class sets = 12-dimensional binary vectors
-- Prime form = normalized matrix operations
-- Interval class vectors = exact dot products
-- Fortean number = decimal encoding
-- Tn/I operations = matrix transposition + inversion
-
-All operations are EXACT matrix math - perfect for FluxEM!
+Implements common set-theoretic operations for pitch-class sets (mod 12) and
+encodes derived descriptors (e.g., normal form, prime form, interval-class
+vector).
 """
 
 from typing import Any, List, Tuple
@@ -46,16 +40,7 @@ FORTEAN_MATRIX_OFFSET = 39
 
 
 def pitch_class_set_to_vector(pcs: List[int]) -> Any:
-    """
-    Convert pitch class set to 12-dimensional binary vector.
-
-    This is the CORE of atonal theory - EXACT matrix representation!
-
-    Example: {0, 3, 7, 11} (C, D#, G, B)
-    → [1,0,0,1,0,0,0,1,0,0,0,1]
-
-    EXACT: Binary encoding of pitch classes!
-    """
+    """Convert a pitch-class set to a 12-dimensional indicator vector."""
     backend = get_backend()
     vec = backend.zeros(12)
     pcs_set = set(pc % 12 for pc in pcs)
@@ -72,7 +57,7 @@ def normal_form(pcs: List[int]) -> List[int]:
 
     Normal form = most compact left-packed rotation.
 
-    EXACT algorithm from Forte (1973).
+    Reference implementation of a common normal-form heuristic.
     """
     if not pcs:
         return []
@@ -104,7 +89,7 @@ def prime_form(pcs: List[int]) -> List[int]:
 
     Prime form = normal form or its inverse, whichever is most compact.
 
-    EXACT matrix operation!
+    Uses normal form and inversion to select a canonical representative.
     """
     nf = normal_form(pcs)
 
@@ -131,9 +116,9 @@ def interval_class_vector(pcs: List[int]) -> Any:
     ICV = counts of interval classes 1-6.
 
     Example: {0, 4, 7} (C, E, G - major triad)
-    → ICV = [0, 0, 1, 0, 1, 1] (major 3rd, perfect 5th, minor 6th)
+    → ICV = [0, 0, 1, 0, 1, 1] (major 3rd, P5, minor 6th)
 
-    EXACT: This is a dot product of set with its transposition!
+    Counts unordered pitch-class intervals modulo inversion.
     """
     backend = get_backend()
     icv = backend.zeros(6)
@@ -160,7 +145,7 @@ def forte_number(pcs: List[int]) -> int:
 
     Example: {0, 3, 7, 11} = 100100010001₂ = 2337
 
-    EXACT: Binary-to-decimal conversion.
+    Interprets the pitch-class indicator vector as a bitmask.
     """
     vec = pitch_class_set_to_vector(pcs)
     forte = 0
@@ -176,9 +161,7 @@ def transposition(pcs: List[int], n: int) -> List[int]:
     """
     Transpose pitch class set by n semitones (Tn operation).
 
-    EXACT: (pc + n) mod 12 for each element.
-
-    This is a MATRIX ROTATION!
+    Applies ``(pc + n) mod 12`` to each element.
     """
     return [(pc + n) % 12 for pc in pcs]
 
@@ -187,9 +170,7 @@ def inversion(pcs: List[int]) -> List[int]:
     """
     Invert pitch class set (I operation).
 
-    EXACT: (11 - pc) mod 12 for each element.
-
-    This is MATRIX COMPLEMENT!
+    Applies ``(11 - pc) mod 12`` to each element.
     """
     return [((11 - pc) % 12) for pc in pcs]
 
@@ -198,7 +179,7 @@ def tin_operation(pcs: List[int], n: int) -> List[int]:
     """
     TnI operation (invert then transpose by n).
 
-    EXACT: Matrix complement + rotation.
+    Applies inversion followed by transposition.
     """
     inv = inversion(pcs)
     return transposition(inv, n)
@@ -210,7 +191,7 @@ def multiplication(pcs: List[int], n: int) -> List[int]:
 
     Used for serial music (12-tone rows).
 
-    EXACT: (pc * n) mod 12 for each element.
+    Applies ``(pc * n) mod 12`` to each element.
     """
     return [((pc * n) % 12) for pc in pcs]
 
@@ -221,7 +202,7 @@ def interval_class_similarity(icv1: Any, icv2: Any) -> float:
 
     ISIM = dot product of IC vectors, normalized.
 
-    EXACT: This is a cosine similarity!
+    Computes cosine similarity between interval-class vectors.
     """
     backend = get_backend()
     dot = backend.sum(icv1 * icv2).item()
@@ -238,7 +219,7 @@ def invariant_under_Tn(pcs: List[int]) -> List[int]:
     """
     Find all transposition invariants (Tn where Tn(S) = S).
 
-    EXACT: Matrix equality check for all rotations.
+    Tests invariance under transposition.
     """
     invariants = []
 
@@ -258,7 +239,7 @@ def z_related(pcs1: List[int], pcs2: List[int]) -> bool:
 
     Z-relation = same interval class content, but different notes.
 
-    EXACT: ICV equality + set inequality.
+    Checks equality of interval-class vectors with non-equal sets.
     """
     backend = get_backend()
     icv1 = interval_class_vector(pcs1)
@@ -278,7 +259,7 @@ def subset_of(pcs1: List[int], pcs2: List[int]) -> bool:
     """
     Check if pcs1 is a subset of pcs2.
 
-    EXACT: Set inclusion check.
+    Set inclusion check.
     """
     set1 = set(pc % 12 for pc in pcs1)
     set2 = set(pc % 12 for pc in pcs2)
@@ -291,7 +272,7 @@ def row_matrix(row: List[int]) -> Any:
 
     Each row is Tn(I(row)) operation.
 
-    EXACT: Matrix generation via TnI operations.
+    Constructs the standard 12x12 row matrix via TnI operations.
     """
     backend = get_backend()
     matrix = backend.zeros((12, 12))
@@ -313,16 +294,12 @@ class AtonalSetEncoder:
     """
     Encoder for atonal pitch class sets.
 
-    This is LITERALLY matrix/vector operations!
-
     Embeds:
     - Pitch class set (12-dim binary vector)
     - Interval class vector (6-dim counts)
     - Prime form (normalized representation)
     - Fortean number (decimal encoding)
     - Invariance properties
-
-    All operations are EXACT matrix operations!
     """
 
     domain_tag = DOMAIN_TAGS["music_atonal"]
@@ -395,14 +372,14 @@ class AtonalSetEncoder:
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
-    # Atonal Operations (ALL EXACT MATRIX OPS!)
+    # Atonal operations
     # ========================================================================
 
     def Tn(self, emb: Any, n: int) -> Any:
         """
         Transpose by n semitones.
 
-        EXACT: Matrix rotation.
+        Transpose pitch classes by ``n`` semitones (mod 12).
         """
         pcs = self.decode(emb)
         transposed = transposition(pcs, n)
@@ -412,7 +389,7 @@ class AtonalSetEncoder:
         """
         Invert (I operation).
 
-        EXACT: Matrix complement.
+        Invert pitch classes (mod 12).
         """
         pcs = self.decode(emb)
         inverted = inversion(pcs)
@@ -422,7 +399,7 @@ class AtonalSetEncoder:
         """
         Invert then transpose by n (TnI operation).
 
-        EXACT: Matrix complement + rotation.
+        Invert then transpose by ``n`` semitones (mod 12).
         """
         pcs = self.decode(emb)
         transformed = tin_operation(pcs, n)
@@ -432,7 +409,7 @@ class AtonalSetEncoder:
         """
         Multiply by n (M-n operation).
 
-        EXACT: Element-wise multiplication mod 12.
+        Multiply pitch classes by ``n`` (mod 12).
         """
         pcs = self.decode(emb)
         multiplied = multiplication(pcs, n)
@@ -442,7 +419,7 @@ class AtonalSetEncoder:
         """
         Compute ISIM (interval class similarity).
 
-        EXACT: Cosine similarity of IC vectors!
+        Cosine similarity of interval-class vectors.
         """
         pcs1 = self.decode(emb1)
         pcs2 = self.decode(emb2)
@@ -456,7 +433,7 @@ class AtonalSetEncoder:
         """
         Check if two sets are Z-related.
 
-        EXACT: ICV equality + set inequality.
+        Interval-class-vector equality with non-equal sets.
         """
         pcs1 = self.decode(emb1)
         pcs2 = self.decode(emb2)
@@ -466,7 +443,7 @@ class AtonalSetEncoder:
         """
         Check if emb1 is subset of emb2.
 
-        EXACT: Set inclusion.
+        Set inclusion check.
         """
         pcs1 = self.decode(emb1)
         pcs2 = self.decode(emb2)
@@ -476,7 +453,7 @@ class AtonalSetEncoder:
         """
         Get prime form embedding.
 
-        EXACT: Normalized representation.
+        Returns an embedding with the prime-form fields set.
         """
         backend = get_backend()
         pcs = self.decode(emb)
@@ -496,7 +473,7 @@ class AtonalSetEncoder:
         """
         Check if set is invariant under Tn.
 
-        EXACT: Matrix equality after rotation.
+        Tests invariance of the decoded set under transposition.
         """
         pcs = self.decode(emb)
         invariants = invariant_under_Tn(pcs)
@@ -506,7 +483,7 @@ class AtonalSetEncoder:
         """
         Extract interval class vector.
 
-        EXACT: 6-dimensional vector.
+        Interval-class vector.
         """
         pcs = self.decode(emb)
         return interval_class_vector(pcs)
@@ -515,7 +492,7 @@ class AtonalSetEncoder:
         """
         Create 12x12 row matrix for serial composition.
 
-        EXACT: Matrix of all TnI operations.
+        Constructs the 12x12 row matrix via TnI operations.
         """
         pcs = self.decode(emb)
         return row_matrix(pcs)
@@ -524,7 +501,7 @@ class AtonalSetEncoder:
         """
         Get Fortean number.
 
-        EXACT: Decimal encoding.
+        Returns the Forte number computed from the decoded set.
         """
         pcs = self.decode(emb)
         return forte_number(pcs)

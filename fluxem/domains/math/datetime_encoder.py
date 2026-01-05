@@ -1,8 +1,8 @@
 """
-DateTime Encoder for dates, times, and durations.
+DateTime encoder for dates, times, and durations.
 
-LLMs are notoriously bad at date arithmetic. This encoder provides:
-- EXACT date arithmetic (date + duration = date)
+This encoder provides:
+- Date arithmetic (date + duration = date)
 - Day-of-week calculations
 - Leap year handling
 - Time zone aware operations
@@ -105,8 +105,8 @@ def _day_of_year(year: int, month: int, day: int) -> int:
 class DateTimeEncoder:
     """
     Encoder for dates and times.
-    
-    Provides EXACT date arithmetic with proper calendar handling.
+
+    Provides date arithmetic with calendar handling.
     """
     
     domain_tag = DATETIME_TAG

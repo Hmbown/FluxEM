@@ -152,7 +152,7 @@ def generate_units_sample(
         from_unit, to_unit = random.sample(unit_list, 2)
         value = random.uniform(magnitude_range[0], magnitude_range[1])
         
-        # Simplified conversion (not physically accurate, but demonstrates structure)
+        # Simplified conversion (not physically accurate, but preserves structure)
         # In real use, would have proper conversion factors
         converted = value  # Placeholder
         

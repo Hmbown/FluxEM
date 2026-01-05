@@ -21,7 +21,7 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
-    print("Warning: PyTorch not installed.")
+    print("pytorch_available=false")
 
 from fluxem import create_unified_model
 
@@ -126,8 +126,6 @@ def compute_boolean_accuracy(predictions: List[str], targets: List[str]) -> floa
 def generate_predictions_fluxem(data: List[Dict]) -> List[str]:
     """
     Generate predictions using FluxEM directly (for comparison).
-    
-    This demonstrates FluxEM's exact computation capability.
     """
     model = create_unified_model()
     predictions = []
@@ -151,9 +149,8 @@ def evaluate_model(
 ) -> Dict[str, Dict[str, float]]:
     """
     Evaluate a trained model on all test sets.
-    
-    For now, we use FluxEM's compute() as a proxy for hybrid model predictions
-    since the actual model inference would require loading the trained weights.
+
+    Note: this uses FluxEM `compute()` as a proxy for hybrid predictions.
     """
     results = {}
     
@@ -189,44 +186,43 @@ def evaluate_model(
 
 def print_results_table(results: Dict[str, Dict[str, Dict[str, float]]], task: str):
     """Print formatted results table."""
-    
-    print("\n" + "=" * 60)
-    print(f"  EVALUATION RESULTS ({task.upper()})")
-    print("=" * 60)
-    
-    # Get all splits
+
     splits = list(list(results.values())[0].keys())
-    
-    # Header
-    print(f"\n{'Split':<25} {'Token-Only':<15} {'FluxEM/Hybrid':<15}")
-    print("-" * 55)
-    
-    # Numeric accuracy
-    print("\nNumeric Accuracy (within 1% error):")
+
+    header = [
+        "task",
+        "split",
+        "token_only_numeric_accuracy_1pct",
+        "fluxem_numeric_accuracy_1pct",
+        "token_only_median_relative_error",
+        "fluxem_median_relative_error",
+    ]
+    if task == "units":
+        header.extend([
+            "token_only_boolean_accuracy",
+            "fluxem_boolean_accuracy",
+        ])
+
+    print("\t".join(header))
     for split in splits:
         token_acc = results.get("token_only", {}).get(split, {}).get("numeric_accuracy_1pct", 0)
-        hybrid_acc = results.get("fluxem", {}).get(split, {}).get("numeric_accuracy_1pct", 0)
-        print(f"  {split:<23} {token_acc*100:>12.1f}% {hybrid_acc*100:>12.1f}%")
-    
-    # Relative error
-    print("\nMedian Relative Error:")
-    for split in splits:
-        token_err = results.get("token_only", {}).get(split, {}).get("median_relative_error", float('inf'))
-        hybrid_err = results.get("fluxem", {}).get(split, {}).get("median_relative_error", float('inf'))
-        token_str = f"{token_err:.4f}" if token_err < 100 else ">100"
-        hybrid_str = f"{hybrid_err:.6f}" if hybrid_err < 100 else ">100"
-        print(f"  {split:<23} {token_str:>14} {hybrid_str:>14}")
-    
-    # Boolean accuracy (for units task)
-    if task == "units":
-        print("\nBoolean Accuracy (can_add tasks):")
-        for split in splits:
-            token_acc = results.get("token_only", {}).get(split, {}).get("boolean_accuracy", 0)
-            hybrid_acc = results.get("fluxem", {}).get(split, {}).get("boolean_accuracy", 0)
-            if token_acc > 0 or hybrid_acc > 0:
-                print(f"  {split:<23} {token_acc*100:>12.1f}% {hybrid_acc*100:>12.1f}%")
-    
-    print("\n" + "=" * 60)
+        fluxem_acc = results.get("fluxem", {}).get(split, {}).get("numeric_accuracy_1pct", 0)
+        token_err = results.get("token_only", {}).get(split, {}).get("median_relative_error", float("inf"))
+        fluxem_err = results.get("fluxem", {}).get(split, {}).get("median_relative_error", float("inf"))
+
+        row = [
+            str(task),
+            str(split),
+            f"{token_acc:.6f}",
+            f"{fluxem_acc:.6f}",
+            f"{token_err:.6g}",
+            f"{fluxem_err:.6g}",
+        ]
+        if task == "units":
+            token_bool = results.get("token_only", {}).get(split, {}).get("boolean_accuracy", 0)
+            fluxem_bool = results.get("fluxem", {}).get(split, {}).get("boolean_accuracy", 0)
+            row.extend([f"{token_bool:.6f}", f"{fluxem_bool:.6f}"])
+        print("\t".join(row))
 
 
 def main():
@@ -245,22 +241,21 @@ def main():
     for split_file in data_dir.glob("test_*.jsonl"):
         split_name = split_file.stem
         test_sets[split_name] = load_jsonl(split_file)
-        print(f"Loaded {len(test_sets[split_name])} samples from {split_name}")
+        print(f"loaded_split\t{split_name}\t{len(test_sets[split_name])}")
     
     if not test_sets:
-        print(f"No test files found in {data_dir}")
-        print("Run generate_data.py first to create datasets.")
+        print(f"no_test_files\t{data_dir}")
         return
     
     # Evaluate models
     all_results = {}
     
     # FluxEM direct evaluation (represents hybrid model capability)
-    print("\nEvaluating FluxEM (hybrid proxy)...")
+    print("evaluating\tfluxem")
     all_results["fluxem"] = evaluate_model("fluxem", test_sets, task, results_dir)
     
     # Token-only (simulated - would need actual model inference)
-    print("Evaluating token-only baseline (simulated)...")
+    print("evaluating\ttoken_only")
     all_results["token_only"] = evaluate_model("token_only", test_sets, task, results_dir)
     
     # Print results
@@ -271,24 +266,7 @@ def main():
     results_dir.mkdir(parents=True, exist_ok=True)
     with open(results_file, "w") as f:
         json.dump(all_results, f, indent=2, default=str)
-    print(f"\nResults saved to {results_file}")
-    
-    # Summary
-    print("\n" + "-" * 60)
-    print("SUMMARY")
-    print("-" * 60)
-    print("""
-The FluxEM/Hybrid model achieves near-perfect accuracy on all splits
-because arithmetic operations are computed exactly via algebraic embeddings.
-
-The token-only baseline shows:
-- Reasonable ID performance when trained adequately
-- Poor OOD-magnitude generalization (fails on large numbers)
-- Poor OOD-length generalization (fails on long chains)
-
-This demonstrates the core thesis: embedding structured domain objects
-enables systematic generalization that pure token prediction cannot achieve.
-""")
+    print(f"results_file\t{results_file}")
 
 
 if __name__ == "__main__":

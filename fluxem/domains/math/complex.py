@@ -4,7 +4,7 @@ Complex Number Encoder.
 Embeds complex numbers with log-magnitude and phase representation.
 Multiplication becomes: add log-magnitudes, add phases (rotation).
 
-This provides EXACT multiplication in embedding space.
+Multiplication is implemented in embedding space.
 Addition requires decode-operate-encode (not a group homomorphism in log-polar).
 """
 
@@ -49,7 +49,7 @@ class ComplexEncoder:
     - Multiplication: z1 * z2 = r1*r2 * e^(i(θ1+θ2))
         -> Add log-magnitudes, add phases
 
-    Multiplication is EXACT in embedding space.
+    Multiplication is implemented in embedding space.
     """
 
     domain_tag = DOMAIN_TAGS["math_complex"]
@@ -91,7 +91,7 @@ class ComplexEncoder:
             emb = backend.at_add(emb, 8 + LOG_MAG_OFFSET, 1.0)  # Magnitude is positive
             emb = backend.at_add(emb, 8 + LOG_MAG_OFFSET + 1, math.log(r))
 
-            # Phase on unit circle (EXACT representation)
+            # Phase on unit circle representation
             emb = backend.at_add(emb, 8 + PHASE_OFFSET, math.cos(theta))
             emb = backend.at_add(emb, 8 + PHASE_OFFSET + 1, math.sin(theta))
 
@@ -171,7 +171,6 @@ class ComplexEncoder:
         Multiply two complex numbers.
 
         z1 * z2: magnitudes multiply (logs add), phases add.
-        This is EXACT in embedding space.
         """
         backend = get_backend()
         result = create_embedding()

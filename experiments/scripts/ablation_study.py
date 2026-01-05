@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
-"""
-Ablation Study: Comparing FluxEM embedding strategies.
+"""Ablation study comparing FluxEM embedding strategies.
 
 Variants:
-1. frozen_fluxem: FluxEM embeddings frozen, only projection layer learns
-2. learned_only: No FluxEM, purely learned embeddings for numbers
-3. hybrid: FluxEM embeddings + learned projection (both can update)
+1. frozen_fluxem: FluxEM embeddings frozen; projection layer learns
+2. learned_only: learned embeddings only
+3. hybrid: FluxEM embeddings with a learned projection
 
 Metrics:
-- Training convergence speed
+- Convergence behavior
 - ID accuracy
-- OOD generalization (magnitude and length)
-- Parameter efficiency
-
-Key hypothesis: Frozen FluxEM encoders should give immediate OOD
-generalization (no training needed for core arithmetic), while
-learned-only requires more data and fails on OOD.
+- OOD accuracy (magnitude and length)
+- Parameter count
 """
 
 from __future__ import annotations
@@ -29,7 +24,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple, Callable
+from typing import Dict, List, Any, Optional, Tuple, Callable, Set
 
 import numpy as np
 
@@ -58,6 +53,18 @@ from fluxem.arithmetic.linear_encoder import NumberEncoder
 # =============================================================================
 # Configuration
 # =============================================================================
+
+EMITTED_TABLES: Set[str] = set()
+
+
+def emit_table(name: str, columns: List[str], row: List[Any]) -> None:
+    """Emit a TSV table with a one-time header."""
+    if name not in EMITTED_TABLES:
+        print(f"table={name}")
+        print("\t".join(columns))
+        EMITTED_TABLES.add(name)
+    values = ["" if v is None else str(v) for v in row]
+    print("\t".join(values))
 
 @dataclass
 class AblationConfig:
@@ -102,7 +109,7 @@ class AblationConfig:
 def load_config(config_path: str) -> AblationConfig:
     """Load configuration from YAML file."""
     if not YAML_AVAILABLE:
-        print("Warning: PyYAML not installed, using default config")
+        emit_table("warning", ["type", "detail"], ["pyyaml_not_installed", "using_default_config"])
         return AblationConfig()
 
     with open(config_path) as f:
@@ -329,16 +336,10 @@ class NumpyNumberEmbedding:
 
 def run_numpy_ablation(cfg: AblationConfig, datasets: Dict[str, List[Dict]]) -> Dict[str, Dict]:
     """Run ablation study using NumPy-only implementation."""
-    print("\n" + "=" * 60)
-    print("Running NumPy-only ablation (torch not available)")
-    print("=" * 60)
-
     results = {}
     fluxem_model = create_unified_model(dim=cfg.fluxem_dim)
 
     for variant in cfg.variants:
-        print(f"\n--- Variant: {variant} ---")
-
         # Initialize models based on variant
         if variant == "learned_only":
             num_embed = NumpyNumberEmbedding(cfg.max_number_value, cfg.learned_number_dim, cfg.seed)
@@ -355,6 +356,11 @@ def run_numpy_ablation(cfg: AblationConfig, datasets: Dict[str, List[Dict]]) -> 
             else:
                 proj = None
             num_embed = None
+        emit_table(
+            "variant_config",
+            ["backend", "variant", "parameter_count", "projection"],
+            ["numpy", variant, param_count, "1" if proj is not None else "0"],
+        )
 
         # Training loop
         train_losses = []
@@ -396,7 +402,11 @@ def run_numpy_ablation(cfg: AblationConfig, datasets: Dict[str, List[Dict]]) -> 
                 convergence_epoch = epoch + 1
 
             if (epoch + 1) % cfg.log_every == 0:
-                print(f"  Epoch {epoch+1}: loss={avg_loss:.4f}")
+                emit_table(
+                    "training_epoch",
+                    ["backend", "variant", "epoch", "avg_loss"],
+                    ["numpy", variant, epoch + 1, f"{avg_loss:.6f}"],
+                )
 
         # Evaluate on test sets
         def evaluate_set(data: List[Dict]) -> float:
@@ -484,7 +494,7 @@ def run_numpy_ablation(cfg: AblationConfig, datasets: Dict[str, List[Dict]]) -> 
 
         # Compute accuracies
         if variant == "frozen_fluxem":
-            # For frozen FluxEM, OOD accuracy should be near-perfect via direct compute
+            # For frozen FluxEM, use direct compute for OOD accuracy.
             id_acc = evaluate_fluxem_direct(datasets["test_id"])
             ood_mag_acc = evaluate_fluxem_direct(datasets["test_ood_magnitude"])
             ood_len_acc = evaluate_fluxem_direct(datasets["test_ood_length"])
@@ -501,9 +511,27 @@ def run_numpy_ablation(cfg: AblationConfig, datasets: Dict[str, List[Dict]]) -> 
             "ood_magnitude_accuracy": ood_mag_acc,
             "ood_length_accuracy": ood_len_acc,
         }
-
-        print(f"  Final: ID={id_acc:.1%}, OOD-mag={ood_mag_acc:.1%}, OOD-len={ood_len_acc:.1%}")
-        print(f"  Parameters: {param_count:,}, Convergence: epoch {convergence_epoch}")
+        emit_table(
+            "variant_summary",
+            [
+                "backend",
+                "variant",
+                "id_accuracy",
+                "ood_magnitude_accuracy",
+                "ood_length_accuracy",
+                "parameter_count",
+                "convergence_epoch",
+            ],
+            [
+                "numpy",
+                variant,
+                f"{id_acc:.6f}",
+                f"{ood_mag_acc:.6f}",
+                f"{ood_len_acc:.6f}",
+                param_count,
+                convergence_epoch,
+            ],
+        )
 
     return results
 
@@ -859,18 +887,12 @@ if TORCH_AVAILABLE:
 
     def run_torch_ablation(cfg: AblationConfig, datasets: Dict[str, List[Dict]]) -> Dict[str, Dict]:
         """Run ablation study using PyTorch."""
-        print("\n" + "=" * 60)
-        print("Running PyTorch ablation study")
-        print("=" * 60)
-
         device = torch.device(cfg.device)
         results = {}
         fluxem_model = create_unified_model(dim=cfg.fluxem_dim)
         tokenizer = CharTokenizer()
 
         for variant in cfg.variants:
-            print(f"\n--- Variant: {variant} ---")
-
             # Set seed for reproducibility
             random.seed(cfg.seed)
             torch.manual_seed(cfg.seed)
@@ -892,6 +914,11 @@ if TORCH_AVAILABLE:
 
             # Count parameters
             param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            emit_table(
+                "variant_config",
+                ["backend", "variant", "parameter_count"],
+                ["torch", variant, param_count],
+            )
 
             # Optimizer
             optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
@@ -920,10 +947,18 @@ if TORCH_AVAILABLE:
                     convergence_epoch = epoch + 1
 
                 if (epoch + 1) % cfg.log_every == 0:
-                    print(f"  Epoch {epoch+1}: train={train_loss:.4f}, test={test_loss:.4f}")
+                    emit_table(
+                        "training_epoch",
+                        ["backend", "variant", "epoch", "train_loss", "test_loss"],
+                        ["torch", variant, epoch + 1, f"{train_loss:.6f}", f"{test_loss:.6f}"],
+                    )
 
                 if patience_counter >= cfg.early_stop_patience:
-                    print(f"  Early stopping at epoch {epoch+1}")
+                    emit_table(
+                        "training_event",
+                        ["backend", "variant", "event", "epoch"],
+                        ["torch", variant, "early_stop", epoch + 1],
+                    )
                     break
 
             # Evaluate accuracies
@@ -948,9 +983,27 @@ if TORCH_AVAILABLE:
                 "ood_magnitude_accuracy": ood_mag_acc,
                 "ood_length_accuracy": ood_len_acc,
             }
-
-            print(f"  Final: ID={id_acc:.1%}, OOD-mag={ood_mag_acc:.1%}, OOD-len={ood_len_acc:.1%}")
-            print(f"  Parameters: {param_count:,}, Convergence: epoch {convergence_epoch}")
+            emit_table(
+                "variant_summary",
+                [
+                    "backend",
+                    "variant",
+                    "id_accuracy",
+                    "ood_magnitude_accuracy",
+                    "ood_length_accuracy",
+                    "parameter_count",
+                    "convergence_epoch",
+                ],
+                [
+                    "torch",
+                    variant,
+                    f"{id_acc:.6f}",
+                    f"{ood_mag_acc:.6f}",
+                    f"{ood_len_acc:.6f}",
+                    param_count,
+                    convergence_epoch,
+                ],
+            )
 
         return results
 
@@ -959,29 +1012,28 @@ if TORCH_AVAILABLE:
 # Main Ablation Runner
 # =============================================================================
 
-def print_results_table(results: Dict[str, Dict]):
-    """Print formatted results table."""
-    print("\n" + "=" * 80)
-    print("ABLATION STUDY RESULTS")
-    print("=" * 80)
-
-    # Header
-    print(f"\n{'Variant':<20} {'ID Acc':>10} {'OOD-Mag':>10} {'OOD-Len':>10} {'Conv.Ep':>10} {'Params':>12}")
-    print("-" * 80)
-
+def emit_results_table(results: Dict[str, Dict]) -> None:
+    """Emit results as TSV tables."""
     for variant, metrics in results.items():
-        print(f"{variant:<20} "
-              f"{metrics['id_accuracy']*100:>9.1f}% "
-              f"{metrics['ood_magnitude_accuracy']*100:>9.1f}% "
-              f"{metrics['ood_length_accuracy']*100:>9.1f}% "
-              f"{metrics['convergence_epoch']:>10} "
-              f"{metrics['parameter_count']:>12,}")
-
-    print("-" * 80)
-
-    # Analysis
-    print("\nANALYSIS:")
-    print("-" * 40)
+        emit_table(
+            "ablation_results",
+            [
+                "variant",
+                "id_accuracy",
+                "ood_magnitude_accuracy",
+                "ood_length_accuracy",
+                "convergence_epoch",
+                "parameter_count",
+            ],
+            [
+                variant,
+                f"{metrics['id_accuracy']:.6f}",
+                f"{metrics['ood_magnitude_accuracy']:.6f}",
+                f"{metrics['ood_length_accuracy']:.6f}",
+                metrics["convergence_epoch"],
+                metrics["parameter_count"],
+            ],
+        )
 
     frozen = results.get("frozen_fluxem", {})
     learned = results.get("learned_only", {})
@@ -989,35 +1041,19 @@ def print_results_table(results: Dict[str, Dict]):
 
     if frozen and learned:
         ood_gap = frozen.get("ood_magnitude_accuracy", 0) - learned.get("ood_magnitude_accuracy", 0)
-        print(f"OOD-magnitude gap (frozen vs learned): {ood_gap*100:+.1f}%")
+        emit_table(
+            "ablation_gaps",
+            ["metric", "value"],
+            ["ood_magnitude_gap_frozen_vs_learned", f"{ood_gap:.6f}"],
+        )
 
-        if ood_gap > 0.5:
-            print("  -> CONFIRMED: FluxEM provides strong OOD generalization")
-        else:
-            print("  -> INCONCLUSIVE: Gap smaller than expected")
-
-    if frozen:
-        conv = frozen.get("convergence_epoch", 999)
-        if conv <= 5:
-            print(f"Frozen FluxEM converged in {conv} epochs (fast, as expected)")
-        else:
-            print(f"Frozen FluxEM converged in {conv} epochs")
-
-    print("\nHYPOTHESIS VALIDATION:")
-    print("-" * 40)
-
-    # Check hypothesis
-    if frozen.get("ood_magnitude_accuracy", 0) > 0.9:
-        print("[PASS] Frozen FluxEM has >90% OOD-magnitude accuracy")
-    else:
-        print("[FAIL] Frozen FluxEM OOD-magnitude accuracy below 90%")
-
-    if learned.get("ood_magnitude_accuracy", 0) < 0.4:
-        print("[PASS] Learned-only has poor OOD-magnitude accuracy (<40%)")
-    else:
-        print("[FAIL] Learned-only has unexpectedly good OOD accuracy")
-
-    print("=" * 80)
+    if hybrid and learned:
+        ood_gap = hybrid.get("ood_magnitude_accuracy", 0) - learned.get("ood_magnitude_accuracy", 0)
+        emit_table(
+            "ablation_gaps",
+            ["metric", "value"],
+            ["ood_magnitude_gap_hybrid_vs_learned", f"{ood_gap:.6f}"],
+        )
 
 
 def save_results(results: Dict[str, Dict], path: Path):
@@ -1039,7 +1075,7 @@ def save_results(results: Dict[str, Dict], path: Path):
     with open(path, "w") as f:
         json.dump(serializable, f, indent=2)
 
-    print(f"\nResults saved to {path}")
+    emit_table("results_path", ["path"], [str(path)])
 
 
 def main():
@@ -1070,30 +1106,37 @@ def main():
     random.seed(cfg.seed)
     np.random.seed(cfg.seed)
 
-    print("FluxEM Ablation Study")
-    print("=" * 60)
-    print(f"Variants: {cfg.variants}")
-    print(f"Train size: {cfg.train_size}, Test size: {cfg.test_size}")
-    print(f"Epochs: {cfg.epochs}, Batch size: {cfg.batch_size}")
-    print(f"PyTorch available: {TORCH_AVAILABLE}")
+    emit_table("run_context", ["field", "value"], ["variants", ",".join(cfg.variants)])
+    emit_table("run_context", ["field", "value"], ["train_size", cfg.train_size])
+    emit_table("run_context", ["field", "value"], ["test_size", cfg.test_size])
+    emit_table("run_context", ["field", "value"], ["epochs", cfg.epochs])
+    emit_table("run_context", ["field", "value"], ["batch_size", cfg.batch_size])
+    emit_table("run_context", ["field", "value"], ["torch_available", "1" if TORCH_AVAILABLE else "0"])
 
     # Generate or load data
     data_dir = Path(cfg.data_dir)
 
     if args.generate_data or not (data_dir / "train.jsonl").exists():
-        print("\nGenerating datasets...")
         datasets = generate_datasets(cfg)
 
         for name, data in datasets.items():
-            save_jsonl(data, data_dir / f"{name}.jsonl")
-            print(f"  Saved {len(data)} samples to {name}.jsonl")
+            path = data_dir / f"{name}.jsonl"
+            save_jsonl(data, path)
+            emit_table(
+                "dataset_files",
+                ["split", "count", "path", "status"],
+                [name, len(data), str(path), "saved"],
+            )
     else:
-        print("\nLoading existing datasets...")
         datasets = {}
         for split_file in data_dir.glob("*.jsonl"):
             split_name = split_file.stem
             datasets[split_name] = load_jsonl(split_file)
-            print(f"  Loaded {len(datasets[split_name])} samples from {split_name}")
+            emit_table(
+                "dataset_files",
+                ["split", "count", "path", "status"],
+                [split_name, len(datasets[split_name]), str(split_file), "loaded"],
+            )
 
     # Run ablation
     if TORCH_AVAILABLE:
@@ -1102,12 +1145,11 @@ def main():
         results = run_numpy_ablation(cfg, datasets)
 
     # Print and save results
-    print_results_table(results)
+    emit_results_table(results)
 
     results_path = Path(cfg.results_dir) / "ablation_results.json"
     save_results(results, results_path)
-
-    print("\nDone!")
+    emit_table("run_status", ["status"], ["complete"])
 
 
 if __name__ == "__main__":

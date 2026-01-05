@@ -1,7 +1,7 @@
 """
-FluxEM Basic Usage Example
+FluxEM basic usage example.
 
-Demonstrates algebraic embeddings for arithmetic with float precision.
+Example algebraic embeddings for arithmetic with float precision.
 """
 
 from fluxem import create_unified_model, create_extended_ops
@@ -11,7 +11,7 @@ def main():
     # Create the unified arithmetic model
     model = create_unified_model()
 
-    print("=== FluxEM: Algebraic Embeddings for Arithmetic ===\n")
+    print("FluxEM algebraic embeddings (basic usage)\n")
 
     # Basic operations (no spaces in expressions)
     print("Basic Operations:")
@@ -29,13 +29,13 @@ def main():
     print(f"  exp(1) = {ops.exp(1.0):.6f}")
     print(f"  ln(e)  = {ops.ln(2.718281828):.6f}")
 
-    # Demonstrate the mapping from arithmetic to geometry in embedding space
-    print("\n=== The Key Insight ===")
-    print("These results are within floating-point tolerance because arithmetic operations become")
+    # Map arithmetic to geometry in embedding space
+    print("\nNotes")
+    print("Results follow floating-point tolerance because arithmetic operations map to")
     print("geometric operations in embedding space:")
     print("  - Addition: vector addition")
     print("  - Multiplication: addition in log-space")
-    print("\nNo gradient-based training. Parameter-free arithmetic.")
+    print("\nNo gradient-based training; arithmetic is encoded in the operator.")
 
 
 if __name__ == "__main__":

@@ -149,7 +149,7 @@ class NumPyBackend:
     def transpose(self, x: Any, axes: Optional[Tuple[int, ...]] = None) -> np.ndarray:
         return np.transpose(x, axes=axes)
 
-    # Immutable update (key feature!)
+    # Immutable update (functional style)
     def at_set(self, arr: Any, idx: Any, value: Any) -> np.ndarray:
         """NumPy: copy and modify for immutable semantics."""
         result = arr.copy()

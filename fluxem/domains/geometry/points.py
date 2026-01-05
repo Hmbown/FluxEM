@@ -1,7 +1,7 @@
 """
 Point Classes and Encoder for FluxEM-Domains
 
-Provides Point2D and Point3D with exact coordinate representation.
+Provides Point2D and Point3D with coordinate representation.
 Points are immutable and support standard geometric operations.
 
 Embedding Layout (128 dimensions):
@@ -27,7 +27,7 @@ from ...core.base import DOMAIN_TAGS, EMBEDDING_DIM, log_encode_value, log_decod
 @dataclass(frozen=True)
 class Point2D:
     """
-    Immutable 2D point with exact coordinates.
+    Immutable 2D point with coordinates.
 
     Supports standard geometric operations like distance, midpoint, etc.
     """
@@ -124,7 +124,7 @@ class Point2D:
 @dataclass(frozen=True)
 class Point3D:
     """
-    Immutable 3D point with exact coordinates.
+    Immutable 3D point with coordinates.
 
     Supports standard geometric operations in 3D space.
     """
@@ -323,13 +323,13 @@ class PointEncoder:
         else:
             return Point2D(x, y)
 
-    # === EXACT POINT OPERATIONS ===
+    # Point operations
 
     def add(self, emb1: Any, emb2: Any) -> Any:
         """
         Add two points (vector addition).
 
-        Decodes, adds, and re-encodes for exactness.
+        Decodes, adds, and re-encodes.
         """
         p1 = self.decode(emb1)
         p2 = self.decode(emb2)
@@ -340,7 +340,7 @@ class PointEncoder:
         """
         Subtract two points (vector subtraction).
 
-        Decodes, subtracts, and re-encodes for exactness.
+        Decodes, subtracts, and re-encodes.
         """
         p1 = self.decode(emb1)
         p2 = self.decode(emb2)
@@ -364,7 +364,7 @@ class PointEncoder:
         """
         Compute Euclidean distance between two points.
 
-        EXACT: Decodes and computes exact distance.
+        Decodes and computes distance.
         """
         p1 = self.decode(emb1)
         p2 = self.decode(emb2)
@@ -374,7 +374,7 @@ class PointEncoder:
         """
         Compute midpoint between two points.
 
-        EXACT: Arithmetic midpoint.
+        Arithmetic midpoint.
         """
         p1 = self.decode(emb1)
         p2 = self.decode(emb2)
@@ -384,7 +384,7 @@ class PointEncoder:
         """
         Compute dot product of two points (as vectors).
 
-        EXACT: Algebraic dot product.
+        Algebraic dot product.
         """
         p1 = self.decode(emb1)
         p2 = self.decode(emb2)
@@ -408,7 +408,7 @@ class PointEncoder:
         """
         Compute angle between two vectors (radians).
 
-        EXACT: Derived from dot product.
+        Derived from dot product.
         """
         p1 = self.decode(emb1)
         p2 = self.decode(emb2)
@@ -447,7 +447,7 @@ def collinear(p1: Point2D, p2: Point2D, p3: Point2D, tolerance: float = 1e-9) ->
     """
     Check if three 2D points are collinear.
 
-    EXACT: Uses cross product (area of triangle = 0).
+    Uses cross product (area of triangle = 0).
     """
     # Vector from p1 to p2
     v1 = p2 - p1
@@ -462,7 +462,7 @@ def coplanar(p1: Point3D, p2: Point3D, p3: Point3D, p4: Point3D, tolerance: floa
     """
     Check if four 3D points are coplanar.
 
-    EXACT: Uses scalar triple product (volume of tetrahedron = 0).
+    Uses scalar triple product (volume of tetrahedron = 0).
     """
     v1 = p2 - p1
     v2 = p3 - p1

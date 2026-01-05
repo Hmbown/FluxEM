@@ -2,12 +2,12 @@
 Molecule Encoder for Chemistry.
 
 Embeds molecular formulas as composition multisets (element counts).
-This enables exact stoichiometric operations:
+This enables stoichiometric operations:
 - Combining molecules: vector addition of element counts
 - Scalar multiplication: n copies of a molecule
 - Mass calculation: linear combination of atomic masses
 
-All stoichiometric operations are EXACT - no learning, no approximation.
+All stoichiometric operations are deterministic given integer counts.
 """
 
 from dataclasses import dataclass, field
@@ -172,11 +172,11 @@ class MoleculeEncoder:
     Encoder for molecular formulas.
 
     Embeds molecules as composition vectors where:
-    - Element counts are stored directly (for exact arithmetic)
+    - Element counts are stored directly (for stoichiometric arithmetic)
     - Molecular weight is derived from composition
     - Combining molecules = adding embedding vectors
 
-    All stoichiometric operations are EXACT.
+    All stoichiometric operations are deterministic given integer counts.
     """
 
     domain_tag = DOMAIN_TAGS["chem_molecule"]
@@ -212,7 +212,7 @@ class MoleculeEncoder:
         emb = backend.at_add(emb, 8 + SUMMARY_OFFSET + 1, float(elem_count))
         emb = backend.at_add(emb, 8 + SUMMARY_OFFSET + 2, backend.log(backend.array(mw + 1)))
 
-        # Element counts (critical for exact stoichiometry)
+        # Element counts (critical for stoichiometry)
         for i, symbol in enumerate(COMMON_ELEMENTS):
             count = formula.composition.get(symbol, 0)
             offset = ELEMENT_COUNTS_OFFSET + i * 2
@@ -267,14 +267,12 @@ class MoleculeEncoder:
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
-    # Stoichiometric Operations - EXACT
+    # Stoichiometric operations
     # =========================================================================
 
     def combine(self, emb1: Any, emb2: Any) -> Any:
         """
         Combine two molecules (add compositions).
-
-        This is EXACT - element counts add precisely.
         """
         backend = get_backend()
         result = create_embedding()
@@ -310,8 +308,6 @@ class MoleculeEncoder:
     def scale(self, emb: Any, n: int) -> Any:
         """
         Multiply molecule by scalar (n copies).
-
-        This is EXACT.
         """
         backend = get_backend()
         result = create_embedding()
@@ -378,8 +374,6 @@ class MoleculeEncoder:
     def compositions_equal(self, emb1: Any, emb2: Any) -> bool:
         """
         Check if two molecules have the same composition.
-
-        This is EXACT comparison.
         """
         backend = get_backend()
         for i in range(len(COMMON_ELEMENTS)):

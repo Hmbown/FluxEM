@@ -155,7 +155,7 @@ class JAXBackend:
     def transpose(self, x: Any, axes: Optional[Tuple[int, ...]] = None) -> jax.Array:
         return jnp.transpose(x, axes=axes)
 
-    # Immutable update (key feature!)
+    # Immutable update (functional style)
     def at_set(self, arr: Any, idx: Any, value: Any) -> jax.Array:
         """JAX uses .at[idx].set(value)"""
         return arr.at[idx].set(value)

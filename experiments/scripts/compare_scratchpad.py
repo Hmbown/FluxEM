@@ -1,33 +1,10 @@
 #!/usr/bin/env python3
-"""
-Compare FluxEM vs Scratchpad/Chain-of-Thought Approaches for Arithmetic.
+"""Compare arithmetic computation approaches.
 
-This script demonstrates the fundamental differences between:
-1. Scratchpad: Model writes intermediate steps ("123 + 456, step 1: 3+6=9...")
-2. Chain-of-thought: Prompting for step-by-step reasoning
-3. FluxEM: Direct computation via algebraic embeddings, no steps needed
-
-Key Insight:
-------------
-Scratchpad/CoT approaches improve arithmetic accuracy but still require:
-- Learning to generate correct intermediate steps
-- More tokens = more compute (O(n) for n-digit numbers)
-- Error propagation: one wrong step corrupts the answer
-
-FluxEM advantage:
-- Single embedding operation = exact answer
-- O(1) instead of O(n) steps
-- No training needed for arithmetic operations
-- Zero error propagation (no intermediate steps)
-
-Note on precision:
-- FluxEM uses floating-point arithmetic internally
-- For very large numbers (10+ digits), precision limits apply
-- This is a hardware limitation, not an algorithmic one
-- Still O(1) and still no error propagation from intermediate steps
-
-Usage:
-    python experiments/scripts/compare_scratchpad.py
+Runs a small benchmark comparing:
+- Scratchpad (explicit intermediate steps)
+- Chain-of-thought (decomposition into partial sums)
+- FluxEM (embedding-level computation)
 """
 
 from __future__ import annotations
@@ -347,71 +324,30 @@ class FluxEMApproach(ArithmeticApproach):
 
 def print_header():
     """Print the benchmark header."""
-    print("=" * 80)
-    print("FLUXEM vs SCRATCHPAD / CHAIN-OF-THOUGHT COMPARISON")
-    print("=" * 80)
-    print("""
-Key Insight:
-  Scratchpad/CoT help but still require learning correct step generation.
-  FluxEM computes exact answers via algebraic structure - no steps needed.
-
-What Scratchpad/CoT must learn:
-  - Digit-by-digit addition rules
-  - Carry propagation logic
-  - Position/place value semantics
-  - How to format intermediate steps
-
-What FluxEM computes:
-  - embed(a) + embed(b) = embed(a+b)  <- algebraic identity, not learned
-""")
+    print("case\tapproach\texpression\texpected\tresult\tcorrect\tsteps\tcomplexity\terror_risk")
 
 
 def print_case_comparison(case: Dict[str, Any], results: Dict[str, ComputationResult]):
     """Print comparison for a single test case."""
-    print("-" * 80)
-    print(f"TEST: {case['name'].upper()} - {case['description']}")
-    print(f"Expression: {case['expr']} = {case['expected']}")
-    print("-" * 80)
-
     for approach_name, result in results.items():
-        status = "CORRECT" if result.correct else "WRONG"
-        print(f"\n  [{approach_name}] Result: {result.result} [{status}]")
-        print(f"  Complexity: {result.complexity}")
-        print(f"  Steps required: {result.n_steps}")
-
-        # Show steps for non-FluxEM approaches (abbreviated for long ones)
-        if approach_name != "FluxEM" and result.steps:
-            if len(result.steps) <= 5:
-                print("  Computation:")
-                for step in result.steps:
-                    print(f"    {step}")
-            else:
-                print("  Computation (abbreviated):")
-                for step in result.steps[:2]:
-                    print(f"    {step}")
-                print(f"    ... ({len(result.steps) - 4} more steps) ...")
-                for step in result.steps[-2:]:
-                    print(f"    {step}")
-        elif approach_name == "FluxEM":
-            print("  Computation:")
-            for step in result.steps:
-                print(f"    {step}")
-
-        print(f"  Error Risk: {result.error_risk}")
+        steps = "|".join(result.steps) if result.steps else ""
+        row = [
+            case["name"],
+            approach_name,
+            case["expr"],
+            str(case["expected"]),
+            str(result.result),
+            "1" if result.correct else "0",
+            str(result.n_steps),
+            result.complexity,
+            result.error_risk,
+        ]
+        print("\t".join(row))
 
 
 def print_summary_table(all_results: List[Tuple[Dict, Dict[str, ComputationResult]]]):
     """Print a summary comparison table."""
-    print("\n" + "=" * 80)
-    print("SUMMARY TABLE")
-    print("=" * 80)
-
-    # Header
-    print(f"\n{'Test Case':<15} {'Digits':<8} ", end="")
-    print(f"{'Scratchpad':<14} {'CoT':<14} {'FluxEM':<14}")
-    print(f"{'':<15} {'':<8} ", end="")
-    print(f"{'Steps  Acc':<14} {'Steps  Acc':<14} {'Steps  Acc':<14}")
-    print("-" * 80)
+    print("summary_case\tdigits\tscratchpad_steps\tscratchpad_correct\tcot_steps\tcot_correct\tfluxem_steps\tfluxem_correct")
 
     for case, results in all_results:
         n_digits = len(str(max(case["a"], case["b"])))
@@ -420,162 +356,27 @@ def print_summary_table(all_results: List[Tuple[Dict, Dict[str, ComputationResul
         cot = results["Chain-of-Thought"]
         flux = results["FluxEM"]
 
-        sp_acc = "OK" if sp.correct else "FAIL"
-        cot_acc = "OK" if cot.correct else "FAIL"
-        flux_acc = "OK" if flux.correct else "FAIL"
-
-        print(f"{case['name']:<15} {n_digits:<8} ", end="")
-        print(f"{sp.n_steps:>3}    {sp_acc:<6}   ", end="")
-        print(f"{cot.n_steps:>3}    {cot_acc:<6}   ", end="")
-        print(f"{flux.n_steps:>3}    {flux_acc:<6}")
-
-    print("-" * 80)
+        row = [
+            case["name"],
+            str(n_digits),
+            str(sp.n_steps),
+            "1" if sp.correct else "0",
+            str(cot.n_steps),
+            "1" if cot.correct else "0",
+            str(flux.n_steps),
+            "1" if flux.correct else "0",
+        ]
+        print("\t".join(row))
 
 
 def print_complexity_analysis():
     """Print complexity analysis."""
-    print("\n" + "=" * 80)
-    print("COMPLEXITY ANALYSIS")
-    print("=" * 80)
-    print("""
-                    Scratchpad          Chain-of-Thought        FluxEM
-                    ----------          ----------------        ------
-Steps               O(n)                O(n)                    O(1)
-Tokens generated    O(n)                O(n^2)                  O(1)
-Error propagation   Yes (carry chain)   Yes (partial sums)      No
-Training needed     Yes (step format)   Yes (reasoning)         No (algebraic)
-OOD generalization  Poor (length)       Poor (length)           Good*
-
-Where n = number of digits
-* FluxEM limited by floating-point precision for very large numbers (>10 digits)
-
-Key Observations:
------------------
-1. STEP COUNT SCALING
-   - Scratchpad: One step per digit (3+6=9, 2+5=7, ...)
-   - CoT: One decomposition per digit, plus aggregation
-   - FluxEM: Always ONE operation (embed + decode)
-
-2. ERROR ACCUMULATION
-   - Scratchpad: Error at step k corrupts all subsequent steps
-   - CoT: Error in any partial sum corrupts final result
-   - FluxEM: No intermediate steps = no error accumulation
-
-3. TRAINING REQUIREMENTS
-   - Scratchpad: Model must learn digit arithmetic + step formatting
-   - CoT: Model must learn arithmetic + reasoning patterns
-   - FluxEM: Zero training - algebra is built into embedding
-
-4. TOKEN EFFICIENCY
-   - For 10-digit addition:
-     * Scratchpad: ~50-100 tokens
-     * CoT: ~100-200 tokens
-     * FluxEM: 0 intermediate tokens (embedding-level computation)
-""")
-
-
-def print_why_scratchpad_helps_but_not_enough():
-    """Explain why scratchpad helps but doesn't fully solve the problem."""
-    print("\n" + "=" * 80)
-    print("WHY SCRATCHPAD HELPS (BUT ISN'T ENOUGH)")
-    print("=" * 80)
-    print("""
-Scratchpad improves accuracy because:
--------------------------------------
-1. EXPLICIT STATE: Carries are written down, not held in "memory"
-2. DECOMPOSITION: Hard problem broken into easy digit additions
-3. VERIFICATION: Each step can be checked independently
-
-But scratchpad still requires:
-------------------------------
-1. LEARNING CORRECT STEPS
-   The model must learn to generate:
-   - Correct digit-by-digit format
-   - Correct carry tracking syntax
-   - Correct aggregation of partial results
-
-   This is STILL learning arithmetic from data, just with more structure.
-
-2. MORE TOKENS = MORE COMPUTE
-   For a 10-digit number:
-   - 10 scratchpad steps
-   - Each step is multiple tokens
-   - Total: O(100) tokens just for one addition
-
-3. ERROR PROPAGATION
-   If the model writes: "Step 3: 4 + 5 + 1 = 9, carry 0"
-   But the correct carry was 1, ALL subsequent steps are wrong.
-   The model can generate plausible-looking but incorrect scratchpad.
-
-4. LENGTH GENERALIZATION
-   Scratchpad trained on 3-digit additions may still fail on 10-digit
-   because the model hasn't learned the pattern for longer chains.
-
-FluxEM's Solution:
-------------------
-FluxEM sidesteps ALL of these issues:
-
-1. NO STEPS TO LEARN
-   embed(a) + embed(b) = embed(a+b) is a mathematical identity,
-   not a learned pattern.
-
-2. CONSTANT COMPUTE
-   One vector addition, regardless of number size.
-   No tokens for intermediate reasoning.
-
-3. NO ERROR PROPAGATION
-   No intermediate steps means nothing to corrupt.
-   The answer is algebraically exact.
-
-4. PERFECT LENGTH GENERALIZATION
-   The same embedding works for 1-digit and 100-digit numbers
-   (within floating point precision limits).
-""")
-
-
-def print_conclusion():
-    """Print the final conclusion."""
-    print("\n" + "=" * 80)
-    print("CONCLUSION")
-    print("=" * 80)
-    print("""
-The comparison demonstrates a fundamental architectural difference:
-
-SCRATCHPAD/CHAIN-OF-THOUGHT:
-  - Help by making reasoning explicit
-  - Still require LEARNING arithmetic from examples
-  - Scale linearly with problem size
-  - Vulnerable to error propagation
-
-FLUXEM ALGEBRAIC EMBEDDINGS:
-  - Arithmetic is a PROPERTY of the representation
-  - No learning required for basic operations
-  - Constant time regardless of number size
-  - No intermediate steps = no error propagation
-
-Practical Limitations:
-----------------------
-FluxEM uses floating-point arithmetic, so precision limits apply:
-  - 64-bit floats: ~15-16 significant decimal digits
-  - For numbers >10 digits, some precision loss may occur
-  - This is a hardware constraint, not an algorithmic one
-  - The paradigm advantage (O(1), no learning) still holds
-
-The Paradigm Shift:
--------------------
-Traditional: Teach the model to simulate arithmetic step-by-step
-FluxEM: Encode arithmetic INTO the embedding space
-
-This is the difference between:
-  "Learn to count on your fingers" (scratchpad)
-  "Use a calculator" (FluxEM)
-
-The calculator doesn't need to learn arithmetic - it's built in.
-FluxEM embeddings are the "calculator" for neural networks.
-
-For arithmetic and other algebraically structured domains,
-encoding structure beats learning structure.
-""")
+    print("complexity_metric\tscratchpad\tchain_of_thought\tfluxem")
+    print("steps\tO(n)\tO(n)\tO(1)")
+    print("tokens_generated\tO(n)\tO(n^2)\tO(1)")
+    print("error_propagation\tyes (carry chain)\tyes (partial sums)\tno")
+    print("training_needed\tyes (step format)\tyes (reasoning)\tno (algebraic)")
+    print("ood_generalization\tdistribution-dependent\tdistribution-dependent\tlimited by float precision")
 
 
 def run_comparison():
@@ -602,8 +403,6 @@ def run_comparison():
     # Print summary
     print_summary_table(all_results)
     print_complexity_analysis()
-    print_why_scratchpad_helps_but_not_enough()
-    print_conclusion()
 
 
 def main():

@@ -9,7 +9,7 @@ Supports:
 - Unit parsing (e.g., "m/s", "kg*m/s^2", "kN")
 - Conversion between compatible units
 
-All conversions are EXACT - no learning, no approximation.
+Conversions are deterministic given the encoded fields.
 """
 
 from dataclasses import dataclass
@@ -443,7 +443,7 @@ class UnitEncoder:
         dims 12-19: Unit identifier hash
         dims 20-27: Prefix encoding
 
-    All conversions are EXACT (no learning, no approximation).
+    All conversions are deterministic given the encoded fields.
     """
 
     domain_tag = DOMAIN_TAGS["phys_unit"]
@@ -606,7 +606,6 @@ class UnitEncoder:
         Dimensions: Add exponents
         Conversion factor: Multiply
 
-        EXACT: No approximation.
         """
         backend = get_backend()
         result = create_embedding()
@@ -641,7 +640,6 @@ class UnitEncoder:
         Dimensions: Subtract exponents
         Conversion factor: Divide
 
-        EXACT: No approximation.
         """
         backend = get_backend()
         result = create_embedding()
@@ -676,7 +674,6 @@ class UnitEncoder:
         Dimensions: Multiply exponents by n
         Conversion factor: Raise to power
 
-        EXACT: No approximation.
         """
         backend = get_backend()
         result = create_embedding()

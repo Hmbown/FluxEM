@@ -71,20 +71,19 @@ paths:
   data_dir: experiments/data/ablation
   results_dir: experiments/results/ablation
 
-# Hypothesis testing
+# Evaluation targets
 hypothesis:
   description: >
-    Frozen FluxEM encoders should give immediate OOD generalization
-    (no training needed for core arithmetic), while learned-only
-    requires more data and fails on OOD.
+    Compare frozen FluxEM encoders and learned-only baselines for OOD
+    generalization and convergence behavior across the same datasets.
 
   expected_results:
     frozen_fluxem:
-      ood_magnitude: ">0.95"  # Near-perfect OOD
-      convergence: "fast"      # Few epochs needed
+      ood_magnitude: ">0.95"  # High OOD target
+      convergence: "fast"      # Fewer epochs needed
     learned_only:
-      ood_magnitude: "<0.3"   # Poor OOD
-      convergence: "slow"      # Many epochs needed
+      ood_magnitude: "<0.3"   # Low OOD target
+      convergence: "slow"      # More epochs needed
     hybrid:
-      ood_magnitude: ">0.90"  # Good OOD from FluxEM
-      convergence: "medium"    # Some learning needed
+      ood_magnitude: ">0.90"  # High OOD target
+      convergence: "medium"    # Moderate epochs needed

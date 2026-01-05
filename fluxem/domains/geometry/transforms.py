@@ -2,7 +2,7 @@
 Geometric Transformations for FluxEM-Domains
 
 Provides 2D and 3D transformations using matrix representation.
-All transformations are exact and composable.
+All transformations are composable.
 
 Transformations supported:
 - Translation
@@ -129,7 +129,7 @@ class Transform2D:
         return cls(1.0, shx, shy, 1.0, 0.0, 0.0)
 
     def apply(self, point: Point2D) -> Point2D:
-        """Apply transform to a point. EXACT matrix multiplication."""
+        """Apply transform to a point via matrix multiplication."""
         new_x = self.a * point.x + self.b * point.y + self.tx
         new_y = self.c * point.x + self.d * point.y + self.ty
         return Point2D(new_x, new_y)
@@ -145,7 +145,7 @@ class Transform2D:
         Compose with another transform.
 
         Returns self * other (apply other first, then self).
-        EXACT: Matrix multiplication.
+        Matrix multiplication.
         """
         return Transform2D(
             a=self.a * other.a + self.b * other.c,
@@ -160,7 +160,7 @@ class Transform2D:
         """
         Compute inverse transform.
 
-        EXACT: Matrix inversion for affine transforms.
+        Matrix inversion for affine transforms.
         """
         det = self.a * self.d - self.b * self.c
         if abs(det) < 1e-10:
@@ -259,7 +259,7 @@ class Transform3D:
         """
         Create rotation around arbitrary axis (Rodrigues' formula).
 
-        EXACT for the given angle.
+        Uses Rodrigues' formula for the given angle.
         """
         k = axis.normalized()
         c = math.cos(angle)
@@ -304,7 +304,7 @@ class Transform3D:
         return cls(-1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
     def apply(self, point: Point3D) -> Point3D:
-        """Apply transform to a point. EXACT."""
+        """Apply transform to a point."""
         new_x = self.m00 * point.x + self.m01 * point.y + self.m02 * point.z + self.tx
         new_y = self.m10 * point.x + self.m11 * point.y + self.m12 * point.z + self.ty
         new_z = self.m20 * point.x + self.m21 * point.y + self.m22 * point.z + self.tz
@@ -322,7 +322,7 @@ class Transform3D:
         Compose with another transform.
 
         Returns self * other (apply other first, then self).
-        EXACT: Matrix multiplication.
+        Matrix multiplication.
         """
         return Transform3D(
             m00=self.m00 * other.m00 + self.m01 * other.m10 + self.m02 * other.m20,
@@ -348,7 +348,7 @@ class Transform3D:
         )
 
     def inverse(self) -> "Transform3D":
-        """Compute inverse transform. EXACT."""
+        """Compute inverse transform."""
         det = self.determinant()
         if abs(det) < 1e-10:
             raise ValueError("Transform is not invertible")
@@ -479,13 +479,13 @@ class TransformEncoder:
             )
 
     def compose(self, emb1: Any, emb2: Any) -> Any:
-        """Compose two transforms. EXACT matrix multiplication."""
+        """Compose two transforms via matrix multiplication."""
         t1 = self.decode(emb1)
         t2 = self.decode(emb2)
         return self.encode(t1.compose(t2))
 
     def inverse(self, embedding: Any) -> Any:
-        """Compute inverse transform. EXACT."""
+        """Compute inverse transform."""
         t = self.decode(embedding)
         return self.encode(t.inverse())
 

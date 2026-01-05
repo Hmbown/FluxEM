@@ -1,7 +1,7 @@
 """
 Vector Classes and Encoder for FluxEM-Domains
 
-Provides Vector2D and Vector3D with exact operations.
+Provides Vector2D and Vector3D with vector operations.
 Vectors represent directions and magnitudes in geometric space.
 
 Semantically distinct from Points: Vectors are displacement/direction,
@@ -32,7 +32,7 @@ from ...core.base import DOMAIN_TAGS, EMBEDDING_DIM, log_encode_value, log_decod
 @dataclass(frozen=True)
 class Vector2D:
     """
-    Immutable 2D vector with exact components.
+    Immutable 2D vector with components.
 
     Represents a direction and magnitude in 2D space.
     """
@@ -64,14 +64,14 @@ class Vector2D:
         return Vector2D(-self.x, -self.y)
 
     def dot(self, other: "Vector2D") -> float:
-        """Dot product. EXACT: a·b = ax*bx + ay*by"""
+        """Dot product. a·b = ax*bx + ay*by"""
         return self.x * other.x + self.y * other.y
 
     def cross(self, other: "Vector2D") -> float:
         """
         Cross product (z-component of 3D cross product).
 
-        EXACT: Returns the signed area of the parallelogram.
+        Returns the signed area of the parallelogram.
         """
         return self.x * other.y - self.y * other.x
 
@@ -80,7 +80,7 @@ class Vector2D:
         return math.sqrt(self.x * self.x + self.y * self.y)
 
     def magnitude_squared(self) -> float:
-        """Squared magnitude (avoids sqrt). EXACT."""
+        """Squared magnitude (avoids sqrt)."""
         return self.x * self.x + self.y * self.y
 
     def normalized(self) -> "Vector2D":
@@ -121,7 +121,7 @@ class Vector2D:
         return math.atan2(self.cross(other), self.dot(other))
 
     def project_onto(self, other: "Vector2D") -> "Vector2D":
-        """Project this vector onto another. EXACT projection formula."""
+        """Project this vector onto another."""
         dot_product = self.dot(other)
         other_mag_sq = other.magnitude_squared()
         if other_mag_sq < 1e-20:
@@ -134,7 +134,7 @@ class Vector2D:
         return self - self.project_onto(other)
 
     def reflect(self, normal: "Vector2D") -> "Vector2D":
-        """Reflect this vector about a normal. EXACT reflection formula."""
+        """Reflect this vector about a normal."""
         n = normal.normalized()
         return self - 2 * self.dot(n) * n
 
@@ -157,7 +157,7 @@ class Vector2D:
 @dataclass(frozen=True)
 class Vector3D:
     """
-    Immutable 3D vector with exact components.
+    Immutable 3D vector with components.
 
     Represents a direction and magnitude in 3D space.
     """
@@ -190,14 +190,14 @@ class Vector3D:
         return Vector3D(-self.x, -self.y, -self.z)
 
     def dot(self, other: "Vector3D") -> float:
-        """Dot product. EXACT: a·b = ax*bx + ay*by + az*bz"""
+        """Dot product. a·b = ax*bx + ay*by + az*bz"""
         return self.x * other.x + self.y * other.y + self.z * other.z
 
     def cross(self, other: "Vector3D") -> "Vector3D":
         """
         Cross product.
 
-        EXACT: Returns vector perpendicular to both inputs.
+        Returns vector perpendicular to both inputs.
         |a × b| = |a||b|sin(θ)
         """
         return Vector3D(
@@ -210,7 +210,7 @@ class Vector3D:
         """
         Scalar triple product: self · (b × c).
 
-        EXACT: Returns signed volume of parallelepiped.
+        Returns signed volume of parallelepiped.
         """
         return self.dot(b.cross(c))
 
@@ -219,7 +219,7 @@ class Vector3D:
         return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
 
     def magnitude_squared(self) -> float:
-        """Squared magnitude (avoids sqrt). EXACT."""
+        """Squared magnitude (avoids sqrt)."""
         return self.x * self.x + self.y * self.y + self.z * self.z
 
     def normalized(self) -> "Vector3D":
@@ -239,7 +239,7 @@ class Vector3D:
         return math.acos(cos_angle)
 
     def project_onto(self, other: "Vector3D") -> "Vector3D":
-        """Project this vector onto another. EXACT."""
+        """Project this vector onto another."""
         dot_product = self.dot(other)
         other_mag_sq = other.magnitude_squared()
         if other_mag_sq < 1e-20:
@@ -252,7 +252,7 @@ class Vector3D:
         return self - self.project_onto(other)
 
     def reflect(self, normal: "Vector3D") -> "Vector3D":
-        """Reflect this vector about a normal. EXACT."""
+        """Reflect this vector about a normal."""
         n = normal.normalized()
         return self - 2 * self.dot(n) * n
 
@@ -269,7 +269,7 @@ class Vector3D:
         """
         Rotate this vector around an axis by angle (radians).
 
-        Uses Rodrigues' rotation formula. EXACT for given angle.
+        Uses Rodrigues' rotation formula for the given angle.
         """
         k = axis.normalized()
         cos_a = math.cos(angle)
@@ -399,32 +399,32 @@ class VectorEncoder:
         else:
             return Vector2D(x, y)
 
-    # === EXACT VECTOR OPERATIONS ===
+    # Vector operations
 
     def add(self, emb1: Any, emb2: Any) -> Any:
-        """Add two vectors. EXACT."""
+        """Add two vectors."""
         v1 = self.decode(emb1)
         v2 = self.decode(emb2)
         return self.encode(v1 + v2)
 
     def subtract(self, emb1: Any, emb2: Any) -> Any:
-        """Subtract two vectors. EXACT."""
+        """Subtract two vectors."""
         v1 = self.decode(emb1)
         v2 = self.decode(emb2)
         return self.encode(v1 - v2)
 
     def scale(self, embedding: Any, scalar: float) -> Any:
-        """Scale a vector by a scalar. EXACT."""
+        """Scale a vector by a scalar."""
         v = self.decode(embedding)
         return self.encode(v * scalar)
 
     def negate(self, embedding: Any) -> Any:
-        """Negate a vector. EXACT."""
+        """Negate a vector."""
         v = self.decode(embedding)
         return self.encode(-v)
 
     def dot_product(self, emb1: Any, emb2: Any) -> float:
-        """Compute dot product. EXACT."""
+        """Compute dot product."""
         v1 = self.decode(emb1)
         v2 = self.decode(emb2)
         return v1.dot(v2)
@@ -455,24 +455,24 @@ class VectorEncoder:
         return v.magnitude()
 
     def normalize(self, embedding: Any) -> Any:
-        """Normalize to unit vector. EXACT direction preservation."""
+        """Normalize to unit vector (preserves direction)."""
         v = self.decode(embedding)
         return self.encode(v.normalized())
 
     def angle_between(self, emb1: Any, emb2: Any) -> float:
-        """Angle between two vectors (radians). EXACT from dot product."""
+        """Angle between two vectors (radians) from dot product."""
         v1 = self.decode(emb1)
         v2 = self.decode(emb2)
         return v1.angle_to(v2)
 
     def project(self, emb1: Any, emb2: Any) -> Any:
-        """Project first vector onto second. EXACT projection formula."""
+        """Project first vector onto second."""
         v1 = self.decode(emb1)
         v2 = self.decode(emb2)
         return self.encode(v1.project_onto(v2))
 
     def reflect(self, embedding: Any, normal: Any) -> Any:
-        """Reflect vector about normal. EXACT reflection formula."""
+        """Reflect vector about normal."""
         v = self.decode(embedding)
         n = self.decode(normal)
 

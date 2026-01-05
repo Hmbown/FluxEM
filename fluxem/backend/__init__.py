@@ -7,7 +7,7 @@ Auto-selects based on availability and platform.
 Usage:
     from fluxem.backend import get_backend, set_backend, BackendType
 
-    # Auto-select best available backend
+    # Auto-select an available backend
     backend = get_backend()
 
     # Or explicitly set
@@ -88,7 +88,7 @@ class Backend(Protocol):
     def expand_dims(self, x: Any, axis: int) -> Any: ...
     def transpose(self, x: Any, axes: Optional[Tuple[int, ...]] = None) -> Any: ...
 
-    # Immutable update (key feature!)
+    # Immutable update (functional style)
     def at_set(self, arr: Any, idx: Any, value: Any) -> Any: ...
     def at_add(self, arr: Any, idx: Any, value: Any) -> Any: ...
 

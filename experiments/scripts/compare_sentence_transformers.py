@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
-"""
-Compare FluxEM algebraic embeddings vs sentence-transformer embeddings.
+"""Compare algebraic and learned embeddings on arithmetic examples.
 
-Core thesis: FluxEM's algebraic embeddings preserve exact arithmetic properties,
-unlike learned embeddings which capture semantic similarity but NOT arithmetic.
-
-This script demonstrates:
-1. FluxEM: Exact computation via algebraic structure (encode, add, decode)
-2. Sentence-transformers: Semantic similarity (captures meaning, not arithmetic)
-3. Character-level baseline: Simple tokenization (no arithmetic understanding)
-
-Test cases:
-- Simple arithmetic: "2 + 2" should equal "4"
-- OOD generalization: "1000000 + 1" (exact for FluxEM, fails for learned)
-- Commutativity: "3 + 5" should equal "5 + 3"
+Runs small tests using:
+- FluxEM arithmetic embeddings
+- Sentence-transformers (optional)
+- A character-level baseline
 """
 
 from __future__ import annotations
@@ -99,12 +90,7 @@ class FluxEMResult:
 
 
 def fluxem_compute_addition(a: float, b: float) -> FluxEMResult:
-    """
-    Compute a + b using FluxEM's algebraic embeddings.
-
-    Key property: encode(a) + encode(b) = encode(a + b)
-    This is exact (up to floating point) because it's algebraic, not learned.
-    """
+    """Compute `a + b` using FluxEM embeddings."""
     model = create_unified_model(dim=256, linear_scale=1e12)
 
     # Encode both numbers
@@ -134,11 +120,7 @@ def fluxem_compute_addition(a: float, b: float) -> FluxEMResult:
 
 
 def fluxem_verify_commutativity(a: float, b: float) -> Tuple[bool, float]:
-    """
-    Verify that a + b == b + a in embedding space.
-
-    FluxEM guarantees this because addition is algebraic.
-    """
+    """Verify `a + b == b + a` via embedding-space computation."""
     model = create_unified_model(dim=256, linear_scale=1e12)
 
     emb_a = model.linear_encoder.encode_number(a)
@@ -362,9 +344,7 @@ def run_char_level_tests(test_cases: List[TestCase]) -> Dict[str, Dict[str, Any]
 
 def print_header(title: str):
     """Print a section header."""
-    print("\n" + "=" * 70)
-    print(f"  {title}")
-    print("=" * 70)
+    print(f"table={title}")
 
 
 def print_comparison_table(
@@ -375,29 +355,35 @@ def print_comparison_table(
 ):
     """Print formatted comparison table."""
 
-    print_header("COMPARISON: FluxEM vs Sentence-Transformers vs Character-Level")
-
-    # Table header
-    print(f"\n{'Test Case':<20} {'Expression':<20} {'Expected':<12} {'FluxEM':<12} {'ST Pred':<12} {'Char Sim':<10}")
-    print("-" * 86)
+    print_header("comparison")
+    print("test_case\texpression\texpected\tfluxem_result\tfluxem_exact\tst_pred\tst_correct\tchar_similarity")
 
     for tc in test_cases:
         fluxem = fluxem_results[tc.name]
         char = char_results[tc.name]
 
-        fluxem_str = f"{fluxem.computed_result:.0f}" if fluxem.is_exact else f"{fluxem.computed_result:.2f}*"
-        char_str = f"{char['expr_result_similarity']:.3f}"
+        fluxem_str = f"{fluxem.computed_result:.6f}"
+        char_str = f"{char['expr_result_similarity']:.6f}"
 
         if st_results:
             st = st_results[tc.name]
-            st_str = st['predicted'] + (" OK" if st['correct'] else " X")
+            st_pred = st['predicted']
+            st_correct = "1" if st['correct'] else "0"
         else:
-            st_str = "N/A"
+            st_pred = ""
+            st_correct = ""
 
-        print(f"{tc.name:<20} {tc.expression:<20} {tc.expected:<12.0f} {fluxem_str:<12} {st_str:<12} {char_str:<10}")
-
-    print("-" * 86)
-    print("* = not exact (error > 1e-6)")
+        row = [
+            tc.name,
+            tc.expression,
+            f"{tc.expected:.0f}",
+            fluxem_str,
+            "1" if fluxem.is_exact else "0",
+            st_pred,
+            st_correct,
+            char_str,
+        ]
+        print("\t".join(row))
 
 
 def print_detailed_analysis(
@@ -407,82 +393,48 @@ def print_detailed_analysis(
 ):
     """Print detailed analysis of results."""
 
-    print_header("DETAILED ANALYSIS")
-
-    # FluxEM Analysis
-    print("\n[FluxEM - Algebraic Embeddings]")
-    print("-" * 50)
-
-    exact_count = sum(1 for r in fluxem_results.values() if r.is_exact)
-    print(f"  Exact results: {exact_count}/{len(fluxem_results)}")
+    print_header("fluxem_details")
+    print("test_case\texpression\tcomputed_result\trelative_error\tis_exact")
 
     for tc in test_cases:
         result = fluxem_results[tc.name]
-        status = "EXACT" if result.is_exact else "APPROX"
-        print(f"  {tc.name}: {result.operand1} + {result.operand2} = {result.computed_result:.6f} [{status}]")
-        print(f"    Relative error: {result.relative_error:.2e}")
+        row = [
+            tc.name,
+            tc.expression,
+            f"{result.computed_result:.6f}",
+            f"{result.relative_error:.6e}",
+            "1" if result.is_exact else "0",
+        ]
+        print("\t".join(row))
 
-    # Commutativity check
-    print("\n  Commutativity verification:")
+    print_header("commutativity_check")
+    print("operand1\toperand2\tis_commutative\tdiff")
     for tc in test_cases:
         if tc.name.startswith("commutative"):
             is_comm, diff = fluxem_verify_commutativity(tc.operand1, tc.operand2)
-            status = "PASS" if is_comm else "FAIL"
-            print(f"    {tc.operand1} + {tc.operand2} vs {tc.operand2} + {tc.operand1}: {status} (diff: {diff:.2e})")
+            print(f"{tc.operand1}\t{tc.operand2}\t{'1' if is_comm else '0'}\t{diff:.6e}")
 
     # Sentence-Transformer Analysis
     if st_results:
-        print("\n[Sentence-Transformers - Semantic Embeddings]")
-        print("-" * 50)
-
-        correct_count = sum(1 for r in st_results.values() if r['correct'])
-        print(f"  Correct predictions: {correct_count}/{len(st_results)}")
-        print("  (Prediction via nearest neighbor in embedding space)")
-
+        print_header("sentence_transformer_details")
+        print("test_case\texpression\tpredicted\tcorrect\tsimilarity\tcommutative_similarity")
         for tc in test_cases:
             result = st_results[tc.name]
-            status = "OK" if result['correct'] else "WRONG"
-            print(f"  {tc.name}: '{tc.expression}' -> predicted '{result['predicted']}' [{status}]")
-            print(f"    Similarity to correct: {result['similarity']:.4f}")
-
-        print("\n  Commutativity in embedding space:")
-        for tc in test_cases:
-            result = st_results[tc.name]
-            if result['commutative_similarity'] is not None:
-                sim = result['commutative_similarity']
-                status = "HIGH" if sim > 0.9 else ("MEDIUM" if sim > 0.7 else "LOW")
-                print(f"    '{tc.expression}' vs reversed: similarity = {sim:.4f} [{status}]")
+            comm_sim = result['commutative_similarity']
+            comm_sim_str = f"{comm_sim:.6f}" if comm_sim is not None else ""
+            row = [
+                tc.name,
+                tc.expression,
+                result['predicted'],
+                "1" if result['correct'] else "0",
+                f"{result['similarity']:.6f}",
+                comm_sim_str,
+            ]
+            print("\t".join(row))
     else:
-        print("\n[Sentence-Transformers - Not Available]")
-        print("-" * 50)
-        print("  Install with: pip install sentence-transformers")
-
-
-def print_conclusion():
-    """Print the conclusion and key insights."""
-
-    print_header("CONCLUSION")
-
-    print("""
-FluxEM (Algebraic Embeddings):
-  - EXACT arithmetic: encode(a) + encode(b) = encode(a + b)
-  - Perfect OOD generalization: Works on ANY numbers within float range
-  - Guaranteed commutativity: a + b = b + a by construction
-  - No training required: Properties are built into the representation
-
-Sentence-Transformers (Learned Embeddings):
-  - Semantic similarity: "2 + 2" is similar to "addition" not "4"
-  - Poor OOD generalization: Fails on numbers outside training distribution
-  - Approximate commutativity: Depends on training data
-  - Cannot reliably predict arithmetic results from similarity
-
-Key Insight:
-  Learned embeddings capture MEANING (what the expression is about)
-  Algebraic embeddings capture STRUCTURE (how to compute the result)
-
-  For arithmetic tasks, semantic similarity is the wrong metric.
-  FluxEM embeds the algebraic structure directly, enabling exact computation.
-""")
+        print_header("sentence_transformer_details")
+        print("note\tvalue")
+        print("availability\tmissing")
 
 
 # =============================================================================
@@ -492,72 +444,49 @@ Key Insight:
 def main():
     """Run the comparison experiment."""
 
-    print_header("FluxEM vs Sentence-Transformers: Arithmetic Embedding Comparison")
-
-    print("""
-This experiment compares:
-  1. FluxEM: Algebraic embeddings with exact arithmetic properties
-  2. Sentence-Transformers: Learned embeddings capturing semantic similarity
-  3. Character-level baseline: Simple bag-of-characters encoding
-
-The goal is to demonstrate that FluxEM's algebraic structure enables exact
-arithmetic, while learned embeddings capture meaning but NOT computation.
-""")
-
-    # Load sentence-transformer if available
+    print_header("run_context")
+    print("field\tvalue")
     st_model = None
     if SENTENCE_TRANSFORMERS_AVAILABLE:
-        print("Loading sentence-transformer model (all-MiniLM-L6-v2)...")
+        print("sentence_transformers_available\t1")
         st_model = load_sentence_transformer()
-        if st_model:
-            print("  Model loaded successfully.")
-        else:
-            print("  Failed to load model.")
+        print(f"sentence_transformers_loaded\t{'1' if st_model else '0'}")
     else:
-        print("\nNote: sentence-transformers not installed.")
-        print("  Install with: pip install sentence-transformers")
-        print("  Skipping sentence-transformer comparison.\n")
+        print("sentence_transformers_available\t0")
+        print("sentence_transformers_loaded\t0")
 
     # Run tests
-    print("\nRunning FluxEM tests...")
     fluxem_results = run_fluxem_tests(TEST_CASES)
 
     st_results = None
     if st_model:
-        print("Running sentence-transformer tests...")
         st_results = run_sentence_transformer_tests(st_model, TEST_CASES)
 
-    print("Running character-level baseline tests...")
     char_results = run_char_level_tests(TEST_CASES)
 
     # Output results
     print_comparison_table(fluxem_results, st_results, char_results, TEST_CASES)
     print_detailed_analysis(fluxem_results, st_results, TEST_CASES)
-    print_conclusion()
 
     # Summary statistics
-    print_header("SUMMARY STATISTICS")
-
+    print_header("summary")
+    print("metric\tvalue")
     fluxem_exact = sum(1 for r in fluxem_results.values() if r.is_exact)
-    print(f"  FluxEM exact results:       {fluxem_exact}/{len(TEST_CASES)} ({100*fluxem_exact/len(TEST_CASES):.0f}%)")
+    print(f"fluxem_exact_results\t{fluxem_exact}/{len(TEST_CASES)}")
 
     if st_results:
         st_correct = sum(1 for r in st_results.values() if r['correct'])
-        print(f"  ST correct predictions:     {st_correct}/{len(TEST_CASES)} ({100*st_correct/len(TEST_CASES):.0f}%)")
+        print(f"st_correct_predictions\t{st_correct}/{len(TEST_CASES)}")
 
     # OOD specific
     ood_cases = [tc for tc in TEST_CASES if tc.name.startswith("ood")]
     if ood_cases:
         ood_exact = sum(1 for tc in ood_cases if fluxem_results[tc.name].is_exact)
-        print(f"\n  OOD cases (FluxEM exact):   {ood_exact}/{len(ood_cases)}")
+        print(f"ood_fluxem_exact\t{ood_exact}/{len(ood_cases)}")
 
         if st_results:
             ood_correct = sum(1 for tc in ood_cases if st_results[tc.name]['correct'])
-            print(f"  OOD cases (ST correct):     {ood_correct}/{len(ood_cases)}")
-
-    print("\n" + "=" * 70)
-    print("  Experiment complete.")
-    print("=" * 70 + "\n")
+            print(f"ood_st_correct\t{ood_correct}/{len(ood_cases)}")
 
 
 if __name__ == "__main__":

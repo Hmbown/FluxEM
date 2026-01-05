@@ -14,7 +14,7 @@ Operations:
 - Image: f(S) = {f(x) : x ∈ S}
 - Preimage: f⁻¹(T) = {x : f(x) ∈ T}
 
-All operations are EXACT for finite functions.
+All operations are deterministic for finite functions.
 """
 
 from dataclasses import dataclass
@@ -137,14 +137,14 @@ class Function:
         return frozenset(self.mapping.items())
 
     # =========================================================================
-    # Properties (all EXACT)
+    # Properties
     # =========================================================================
 
     def is_injective(self) -> bool:
         """
         Check if function is injective (one-to-one).
 
-        EXACT: f(x) = f(y) → x = y
+        f(x) = f(y) → x = y
         """
         values = list(self.mapping.values())
         return len(values) == len(set(values))
@@ -153,7 +153,7 @@ class Function:
         """
         Check if function is surjective (onto).
 
-        EXACT: Every element in codomain is hit.
+        Every element in codomain is hit.
         """
         if codomain is None:
             codomain = self.codomain_set if self.codomain_set else set(self.mapping.values())
@@ -185,14 +185,13 @@ class Function:
         return True
 
     # =========================================================================
-    # Operations (all EXACT)
+    # Operations
     # =========================================================================
 
     def compose(self, other: 'Function') -> 'Function':
         """
         Composition: (self ∘ other)(x) = self(other(x))
 
-        EXACT operation.
         """
         result = {}
         for x, y in other.mapping.items():
@@ -205,7 +204,6 @@ class Function:
         Inverse function: f⁻¹
 
         Only exists for bijective functions.
-        EXACT operation.
         """
         if not self.is_injective():
             return None  # No inverse exists
@@ -215,7 +213,6 @@ class Function:
         """
         Restriction: f|_S
 
-        EXACT operation.
         """
         return Function({k: v for k, v in self.mapping.items() if k in subdomain})
 
@@ -223,7 +220,6 @@ class Function:
         """
         Image of a subset: f(S) = {f(x) : x ∈ S ∩ dom(f)}
 
-        EXACT operation.
         """
         return frozenset(self.mapping[x] for x in subset if x in self.mapping)
 
@@ -231,7 +227,6 @@ class Function:
         """
         Preimage of a subset: f⁻¹(T) = {x : f(x) ∈ T}
 
-        EXACT operation.
         """
         return frozenset(x for x, y in self.mapping.items() if y in subset)
 
@@ -239,7 +234,6 @@ class Function:
         """
         Get all fixed points: {x : f(x) = x}
 
-        EXACT operation.
         """
         return frozenset(x for x, y in self.mapping.items() if x == y)
 
@@ -338,7 +332,7 @@ class FunctionEncoder:
     Encoder for mathematical functions.
 
     Supports functions with domain and codomain of size up to 8.
-    All operations are EXACT.
+    All operations are deterministic.
     """
 
     domain_tag = SET_FUNCTION_TAG
@@ -479,14 +473,13 @@ class FunctionEncoder:
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
-    # EXACT Operations
+    # Operations
     # =========================================================================
 
     def compose(self, emb1: Any, emb2: Any) -> Any:
         """
         Function composition: f₁ ∘ f₂ (apply f₂ first, then f₁)
 
-        EXACT operation.
         """
         backend = get_backend()
         result = create_embedding()
@@ -514,7 +507,6 @@ class FunctionEncoder:
         """
         Inverse function (only for bijections).
 
-        EXACT operation.
         """
         backend = get_backend()
         # Check if injective
@@ -533,7 +525,7 @@ class FunctionEncoder:
         return result
 
     # =========================================================================
-    # Property Checks (EXACT)
+    # Property checks
     # =========================================================================
 
     def is_injective(self, emb: Any) -> bool:

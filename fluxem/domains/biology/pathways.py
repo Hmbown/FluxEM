@@ -66,7 +66,7 @@ class PathwayEncoder:
     Encoder for metabolic pathways and biochemical reactions.
 
     Embedding captures:
-    - Stoichiometry (exact)
+    - Stoichiometry (integer counts)
     - Thermodynamics
     - Enzyme specificity
     - Pathway context
@@ -206,8 +206,6 @@ class PathwayEncoder:
     def add_reactions(self, emb1: Any, emb2: Any) -> Any:
         """
         Add two reactions (combine them).
-
-        EXACT: Stoichiometry adds component-wise.
         """
         backend = get_backend()
         result = emb1 + emb2

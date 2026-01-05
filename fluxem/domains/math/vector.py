@@ -4,7 +4,7 @@ Vector Encoder.
 Embeds vectors with component-wise log-magnitude representation.
 Supports vectors up to 16 dimensions.
 
-Addition is EXACT in embedding space (when same dimensionality).
+Addition is defined in embedding space when dimensionality matches.
 Dot product requires decode-operate-encode.
 """
 
@@ -45,7 +45,7 @@ class VectorEncoder:
     Uses log-magnitude representation for each component.
     Supports vectors up to 16 dimensions.
 
-    Component-wise operations (addition, scalar multiplication) are EXACT.
+    Component-wise operations (addition, scalar multiplication) use component arithmetic.
     """
 
     domain_tag = DOMAIN_TAGS["math_vector"]
@@ -177,7 +177,7 @@ class VectorEncoder:
         """
         Multiply vector by scalar.
 
-        This is EXACT in log-space: add log(|scalar|) to each log-magnitude.
+        Computed in log-space: add log(|scalar|) to each log-magnitude.
         """
         backend = get_backend()
         if abs(scalar) < EPSILON:

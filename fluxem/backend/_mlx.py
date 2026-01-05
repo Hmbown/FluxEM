@@ -161,7 +161,7 @@ class MLXBackend:
             return mx.transpose(x)
         return mx.transpose(x, axes=axes)
 
-    # Immutable update (key feature!)
+    # Immutable update (functional style)
     def at_set(self, arr: Any, idx: Any, value: Any) -> mx.array:
         """
         MLX only has .at[].add(), so we simulate .set() via .add(value - current).

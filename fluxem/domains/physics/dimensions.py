@@ -7,7 +7,7 @@ Operations on embeddings preserve dimensional correctness:
 - Division: Subtract dimension exponents
 - Addition: Only valid when dimensions match (type-checking)
 
-This provides EXACT dimensional analysis - no learning, no approximation.
+Provides deterministic dimensional analysis without learned parameters.
 """
 
 from dataclasses import dataclass
@@ -198,7 +198,7 @@ class DimensionalQuantity:
         dim 10:    Is zero flag
         dims 11-16: Derived unit hints
 
-    All dimensional operations are EXACT (no learning, no approximation).
+    All dimensional operations are deterministic given the encoded fields.
     """
 
     domain_tag = DOMAIN_TAGS["phys_quantity"]
@@ -292,7 +292,7 @@ class DimensionalQuantity:
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
-    # Algebraic Operations - These are EXACT
+    # Algebraic operations (deterministic)
     # =========================================================================
 
     def multiply(self, emb1: Any, emb2: Any) -> Any:
@@ -302,7 +302,6 @@ class DimensionalQuantity:
         Dimensions: Add exponents
         Magnitude: Multiply (add log-magnitudes)
 
-        EXACT: No approximation.
         """
         backend = get_backend()
         result = create_embedding()
@@ -310,7 +309,7 @@ class DimensionalQuantity:
         # Domain tag
         result = backend.at_add(result, slice(0, 8), self.domain_tag)
 
-        # Add dimension exponents (EXACT)
+        # Add dimension exponents
         for i in range(7):
             result = backend.at_add(result, 8 + i, emb1[8 + i] + emb2[8 + i])
 
@@ -347,7 +346,6 @@ class DimensionalQuantity:
         Dimensions: Subtract exponents
         Magnitude: Divide (subtract log-magnitudes)
 
-        EXACT: No approximation.
         """
         backend = get_backend()
         result = create_embedding()
@@ -355,7 +353,7 @@ class DimensionalQuantity:
         # Domain tag
         result = backend.at_add(result, slice(0, 8), self.domain_tag)
 
-        # Subtract dimension exponents (EXACT)
+        # Subtract dimension exponents
         for i in range(7):
             result = backend.at_add(result, 8 + i, emb1[8 + i] - emb2[8 + i])
 
@@ -397,7 +395,6 @@ class DimensionalQuantity:
         Dimensions: Multiply exponents by n
         Magnitude: Raise to power (multiply log by n)
 
-        EXACT: No approximation.
         """
         backend = get_backend()
         result = create_embedding()
@@ -405,7 +402,7 @@ class DimensionalQuantity:
         # Domain tag
         result = backend.at_add(result, slice(0, 8), self.domain_tag)
 
-        # Multiply dimension exponents by n (EXACT)
+        # Multiply dimension exponents by n
         for i in range(7):
             result = backend.at_add(result, 8 + i, emb[8 + i] * n)
 
@@ -492,14 +489,12 @@ class DimensionalQuantity:
         return result
 
     # =========================================================================
-    # Type Checking - This is the KEY feature
+    # Type checking
     # =========================================================================
 
     def can_add(self, emb1: Any, emb2: Any) -> bool:
         """
         Check if two quantities can be added (same dimensions).
-
-        This is EXACT dimensional type-checking.
 
         Returns:
             True if dimensions match, False otherwise

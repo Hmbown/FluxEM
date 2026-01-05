@@ -1,12 +1,12 @@
 """
 Set Theory Module for FluxEM-Domains.
 
-Provides exact algebraic embeddings for set-theoretic objects:
-- Finite sets with exact membership, subset, union, intersection operations
+Provides algebraic embeddings for set-theoretic objects:
+- Finite sets with membership, subset, union, intersection operations
 - Relations (binary relations as sets of pairs)
 - Functions (as special relations with uniqueness)
 
-All operations are EXACT by construction - no approximation.
+All operations are deterministic by construction.
 """
 
 from .sets import (

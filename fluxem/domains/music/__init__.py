@@ -465,9 +465,9 @@ class ChordEncoder:
 
         return emb
 
-    def decode(self, emb: Any) -> Tuple[int, str, int]:
+    def decode(self, emb: Any) -> Tuple[str, str, int]:
         """
-        Decode embedding to (root_midi, quality, inversion).
+        Decode embedding to (root_note, quality, inversion).
         """
         root_midi = int(round(emb[8 + CHORD_ROOT_OFFSET].item() * 127.0))
         quality_code = int(round(emb[8 + CHORD_QUALITY_OFFSET].item() * 10.0))
@@ -478,7 +478,10 @@ class ChordEncoder:
             quality_code, "major"
         )
 
-        return root_midi, quality, inversion
+        # Convert MIDI to note name
+        root_note, _ = midi_to_note_octave(root_midi)
+
+        return root_note, quality, inversion
 
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid chord."""
@@ -492,7 +495,9 @@ class ChordEncoder:
 
     def transpose(self, emb: Any, semitones: int) -> Any:
         """Transpose a chord by semitone interval."""
-        root_midi, quality, inversion = self.decode(emb)
+        # Extract MIDI directly for arithmetic
+        root_midi = int(round(emb[8 + CHORD_ROOT_OFFSET].item() * 127.0))
+        _, quality, inversion = self.decode(emb)
         new_root = root_midi + semitones
         return self.encode(new_root, quality, inversion)
 

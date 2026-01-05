@@ -199,7 +199,11 @@ class TokenOnlyDataset(Dataset):
 
 
 class HybridDataset(Dataset):
-    """Dataset for FluxEM hybrid model."""
+    """Dataset for FluxEM hybrid model.
+
+    Only encodes INPUT numbers with FluxEM, output numbers are character tokens.
+    This allows the model to learn to generate character-level output.
+    """
 
     def __init__(self, data: List[Dict], tokenizer: HybridTokenizer, fluxem_model, max_len: int = 48, max_spans: int = 8):
         self.data = data
@@ -214,10 +218,18 @@ class HybridDataset(Dataset):
 
     def __getitem__(self, idx):
         sample = self.data[idx]
-        full_text = f"{sample['text']}={sample['target_text']}"
 
-        tokens, spans = self.tokenizer.encode_with_spans(full_text)
+        # Only encode input numbers with FluxEM, keep output as characters
+        input_tokens, input_spans = self.tokenizer.encode_with_spans(sample['text'] + "=")
+
+        # Output is character-encoded (no FluxEM)
+        output_tokens = [self.tokenizer.char_to_idx.get(c, self.tokenizer.pad_idx) for c in sample['target_text']]
+
+        tokens = input_tokens + output_tokens
         tokens.append(self.tokenizer.eos_idx)
+
+        # Only use spans from the input portion
+        spans = input_spans
 
         # Get FluxEM embeddings for numeric spans
         fluxem_embeddings = []
@@ -297,12 +309,12 @@ class TokenOnlyTransformer(nn.Module):
 
 
 class FluxEMProjector(nn.Module):
-    """Project 128-d FluxEM embeddings to hidden dim."""
+    """Project FluxEM embeddings to hidden dim."""
 
-    def __init__(self, hidden_dim: int, dropout: float = 0.1):
+    def __init__(self, hidden_dim: int, fluxem_dim: int = 256, dropout: float = 0.1):
         super().__init__()
         self.projection = nn.Sequential(
-            nn.Linear(128, hidden_dim),
+            nn.Linear(fluxem_dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, hidden_dim),
@@ -317,14 +329,15 @@ class HybridTransformer(nn.Module):
     """Transformer that uses FluxEM embeddings for numbers."""
 
     def __init__(self, vocab_size: int, hidden_dim: int = 128, num_layers: int = 2,
-                 num_heads: int = 4, dropout: float = 0.1, max_len: int = 128):
+                 num_heads: int = 4, dropout: float = 0.1, max_len: int = 128,
+                 fluxem_dim: int = 256):
         super().__init__()
         self.vocab_size = vocab_size
         self.hidden_dim = hidden_dim
 
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
         self.pos_encoding = PositionalEncoding(hidden_dim, max_len)
-        self.fluxem_projector = FluxEMProjector(hidden_dim, dropout)
+        self.fluxem_projector = FluxEMProjector(hidden_dim, fluxem_dim, dropout)
         self.type_embedding = nn.Embedding(2, hidden_dim)  # 0=text, 1=number
 
         encoder_layer = nn.TransformerEncoderLayer(
@@ -393,13 +406,19 @@ def train_epoch(model, dataloader, optimizer, device, is_hybrid=False):
 
 def greedy_decode(model, tokenizer, input_text: str, device, max_gen: int = 20,
                   is_hybrid: bool = False, fluxem_model=None) -> str:
-    """Greedy decoding to generate answer."""
+    """Greedy decoding to generate answer.
+
+    For hybrid model: only input numbers get FluxEM embeddings.
+    Output tokens are regular character tokens.
+    """
     model.eval()
 
     if is_hybrid:
+        # Only encode input numbers with FluxEM
         tokens, spans = tokenizer.encode_with_spans(input_text + "=")
+        fluxem_dim = fluxem_model.linear_encoder.dim
 
-        # Prepare FluxEM embeddings
+        # Prepare FluxEM embeddings for input numbers only
         fluxem_embeddings = []
         span_positions = []
         for span in spans:
@@ -411,7 +430,7 @@ def greedy_decode(model, tokenizer, input_text: str, device, max_gen: int = 20,
 
         max_spans = 8
         while len(fluxem_embeddings) < max_spans:
-            fluxem_embeddings.append([0.0] * 128)
+            fluxem_embeddings.append([0.0] * fluxem_dim)
             span_positions.append(-1)
     else:
         tokens = tokenizer.encode(input_text + "=")
@@ -432,11 +451,8 @@ def greedy_decode(model, tokenizer, input_text: str, device, max_gen: int = 20,
             if next_token == tokenizer.eos_idx or next_token == tokenizer.pad_idx:
                 break
 
+            # Output tokens are character tokens, not NUM tokens
             tokens.append(next_token)
-
-            if is_hybrid and next_token == tokenizer.num_idx:
-                span_positions.append(len(tokens) - 1)
-                fluxem_embeddings.append([0.0] * 128)
 
     # Decode just the answer part (after =)
     decoded = tokenizer.decode(tokens)
@@ -566,10 +582,12 @@ def run_experiment(config: Dict, verbose: bool = True):
         hybrid_dataset = HybridDataset(train_data, hybrid_tokenizer, fluxem_model, max_len)
         hybrid_loader = DataLoader(hybrid_dataset, batch_size=batch_size, shuffle=True)
 
+        fluxem_dim = fluxem_model.linear_encoder.dim
         hybrid_model = HybridTransformer(
             vocab_size=hybrid_tokenizer.vocab_size,
             hidden_dim=hidden_dim, num_layers=num_layers,
-            num_heads=num_heads, dropout=dropout, max_len=max_len
+            num_heads=num_heads, dropout=dropout, max_len=max_len,
+            fluxem_dim=fluxem_dim
         ).to(device)
 
         optimizer = torch.optim.Adam(hybrid_model.parameters(), lr=lr)

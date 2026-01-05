@@ -129,11 +129,13 @@ class HybridDataset(Dataset):
         tokenizer: HybridTokenizer,
         fluxem_model,
         max_len: int = 64,
+        fluxem_dim: int = 128,
     ):
         self.data = data
         self.tokenizer = tokenizer
         self.fluxem = fluxem_model
         self.max_len = max_len
+        self.fluxem_dim = fluxem_dim
     
     def __len__(self):
         return len(self.data)
@@ -175,7 +177,7 @@ class HybridDataset(Dataset):
             span_positions = span_positions[:max_spans]
         
         while len(fluxem_embeddings) < max_spans:
-            fluxem_embeddings.append([0.0] * 128)
+            fluxem_embeddings.append([0.0] * self.fluxem_dim)
             span_positions.append(-1)  # Invalid position
         
         input_ids = torch.tensor(tokens[:-1], dtype=torch.long)
@@ -208,11 +210,11 @@ class PositionalEncoding(nn.Module):
 class FluxEMProjector(nn.Module):
     """Project FluxEM 128-d embeddings to transformer hidden dim."""
     
-    def __init__(self, hidden_dim: int, dropout: float = 0.1):
+    def __init__(self, input_dim: int, hidden_dim: int, dropout: float = 0.1):
         super().__init__()
         
         self.projection = nn.Sequential(
-            nn.Linear(128, hidden_dim),
+            nn.Linear(input_dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, hidden_dim),
@@ -234,6 +236,7 @@ class HybridTransformer(nn.Module):
         num_heads: int = 8,
         dropout: float = 0.1,
         max_len: int = 128,
+        fluxem_dim: int = 128,
     ):
         super().__init__()
         
@@ -245,7 +248,7 @@ class HybridTransformer(nn.Module):
         self.pos_encoding = PositionalEncoding(hidden_dim, max_len)
         
         # FluxEM projector
-        self.fluxem_projector = FluxEMProjector(hidden_dim, dropout)
+        self.fluxem_projector = FluxEMProjector(fluxem_dim, hidden_dim, dropout)
         
         # Type embedding (to distinguish text vs domain tokens)
         self.type_embedding = nn.Embedding(2, hidden_dim)  # 0=text, 1=domain
@@ -269,7 +272,7 @@ class HybridTransformer(nn.Module):
         
         Args:
             token_ids: (batch, seq_len) token indices
-            fluxem_emb: (batch, max_spans, 128) FluxEM embeddings
+            fluxem_emb: (batch, max_spans, fluxem_dim) FluxEM embeddings
             span_positions: (batch, max_spans) positions of spans (-1 for invalid)
         """
         batch_size, seq_len = token_ids.shape
@@ -373,7 +376,7 @@ def main():
     parser.add_argument("--config", required=True, help="Path to config YAML")
     parser.add_argument("--epochs", type=int, default=None, help="Override epochs")
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
-    parser.add_argument("--device", type=str, default=None, help="Device (cpu/cuda)")
+    parser.add_argument("--device", type=str, default=None, help="Device (cpu/cuda/mps)")
     args = parser.parse_args()
     
     config = load_config(args.config)
@@ -399,13 +402,28 @@ def main():
     
     # Create FluxEM model
     fluxem_model = create_unified_model()
+    fluxem_dim = getattr(getattr(fluxem_model, "linear_encoder", None), "dim", None)
+    if fluxem_dim is None:
+        fluxem_dim = getattr(fluxem_model, "dim", 128)
     
     # Create tokenizer and datasets
     tokenizer = HybridTokenizer()
     max_len = config.get("model", {}).get("max_seq_len", 64)
     
-    train_dataset = HybridDataset(train_data, tokenizer, fluxem_model, max_len)
-    test_dataset = HybridDataset(test_data, tokenizer, fluxem_model, max_len)
+    train_dataset = HybridDataset(
+        train_data,
+        tokenizer,
+        fluxem_model,
+        max_len,
+        fluxem_dim=fluxem_dim,
+    )
+    test_dataset = HybridDataset(
+        test_data,
+        tokenizer,
+        fluxem_model,
+        max_len,
+        fluxem_dim=fluxem_dim,
+    )
     
     batch_size = config.get("training", {}).get("batch_size", 32)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -420,6 +438,7 @@ def main():
         num_heads=model_cfg.get("num_heads", 8),
         dropout=model_cfg.get("dropout", 0.1),
         max_len=max_len,
+        fluxem_dim=fluxem_dim,
     ).to(device)
     
     emit_table(

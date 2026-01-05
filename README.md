@@ -187,10 +187,10 @@ See [ERROR_MODEL.md](docs/ERROR_MODEL.md) and [FORMAL_DEFINITION.md](docs/FORMAL
 ## Citation
 
 ```bibtex
-@software{fluxem2025,
+@software{fluxem2026,
   title={FluxEM: Algebraic Embeddings for Deterministic Neural Computation},
   author={Bown, Hunter},
-  year={2025},
+  year={2026},
   url={https://github.com/Hmbown/FluxEM}
 }
 ```

@@ -20,7 +20,7 @@ model:
   max_seq_len: 48
 
 training:
-  epochs: 30
+  epochs: 100
   batch_size: 32
   learning_rate: 0.001
   device: cpu

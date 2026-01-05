@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formal Definition — FluxEM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cream: #fdfbf7;
+            --cream-dark: #f5f2eb;
+            --charcoal: #2d2a26;
+            --charcoal-light: #4a4640;
+            --burgundy: #8b2635;
+            --gold: #c9a227;
+            --ink: #1a1816;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 18px;
+        }
+
+        body {
+            font-family: 'Crimson Pro', Georgia, serif;
+            background: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.75;
+        }
+
+        a {
+            color: var(--burgundy);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, var(--cream) 70%, transparent);
+            z-index: 100;
+        }
+
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-weight: 500;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .nav-links a {
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+            text-transform: lowercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Article */
+        article {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 9rem 2rem 5rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--cream-dark);
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+        }
+
+        .authors {
+            margin: 1rem 0;
+        }
+
+        .author {
+            font-weight: 600;
+        }
+
+        .affiliation {
+            display: block;
+            font-style: italic;
+            color: var(--charcoal-light);
+        }
+
+        .date {
+            color: var(--charcoal-light);
+            font-size: 0.9rem;
+        }
+
+        /* Sections */
+        section {
+            margin: 2.5rem 0;
+        }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p {
+            margin: 1rem 0;
+            text-align: justify;
+            hyphens: auto;
+        }
+
+        /* Abstract */
+        .abstract {
+            background: var(--cream-dark);
+            padding: 1.5rem 2rem;
+            border-left: 3px solid var(--burgundy);
+            margin: 2rem 0;
+        }
+
+        .abstract h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+        }
+
+        .abstract p {
+            text-align: left;
+        }
+
+        /* Equations */
+        .equation {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            text-align: center;
+            padding: 1.25rem 1rem;
+            margin: 1.5rem 0;
+            background: var(--cream-dark);
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--cream-dark);
+        }
+
+        th {
+            font-weight: 600;
+            background: var(--cream-dark);
+        }
+
+        /* Code */
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            background: var(--cream-dark);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre {
+            background: var(--ink);
+            color: var(--cream);
+            padding: 1.5rem;
+            overflow-x: auto;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            margin: 1.5rem 0;
+        }
+
+        /* Lists */
+        ul {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        /* Note */
+        .note {
+            font-size: 0.9rem;
+            color: var(--charcoal-light);
+            font-style: italic;
+        }
+
+        /* References */
+        .references ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .references li {
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
+            text-indent: -1.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--cream-dark);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--charcoal-light);
+        }
+
+        footer a {
+            color: var(--burgundy);
+        }
+
+        @media (max-width: 600px) {
+            html { font-size: 16px; }
+            nav { padding: 1rem 1.5rem; }
+            .nav-links { display: none; }
+            article { padding: 7rem 1.5rem 4rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="nav-logo">FluxEM</a>
+        <div class="nav-links">
+            <a href="index.html">home</a>
+            <a href="vision.html">the idea</a>
+            <a href="https://github.com/Hmbown/FluxEM">github</a>
+        </div>
+    </nav>
+
+    <article>
+        <header>
+            <h1>FluxEM: Algebraic Embeddings for Deterministic Neural Computation</h1>
+            <div class="authors">
+                <span class="author">Hunter Bown</span>
+                <span class="affiliation">Shannon Labs</span>
+            </div>
+            <div class="date">January 2025</div>
+        </header>
+
+        <section class="abstract">
+            <h2>Abstract</h2>
+            <p>
+                Neural networks often struggle with arithmetic because they treat numbers as arbitrary tokens.
+                FluxEM provides an embedding scheme where arithmetic operations map to geometric operations:
+                addition becomes vector addition, and multiplication becomes addition in log space.
+                The result is systematic generalization from algebraic structure without learned parameters,
+                with accuracy bounded by floating-point precision.
+            </p>
+        </section>
+
+        <section>
+            <h2>1. Problem</h2>
+            <p>
+                Large language models can describe calculus but still fail on arithmetic like
+                <code>1847 × 392</code>. Prior work (NALU, xVal, Abacus) focuses on training
+                models to learn arithmetic more reliably.
+            </p>
+            <p>
+                The issue is representation: when numbers are embedded as arbitrary token vectors,
+                arithmetic relationships must be inferred from data. This inference often fails to
+                generalize beyond the training distribution.
+            </p>
+        </section>
+
+        <section>
+            <h2>2. Approach</h2>
+            <p>
+                Encode numbers so arithmetic operations are geometric operations in embedding space.
+            </p>
+            <p>
+                For addition, embed numbers along a fixed direction. Vector addition in
+                embedding space equals arithmetic addition:
+            </p>
+            <div class="equation">
+                embed(a) + embed(b) = embed(a + b)
+            </div>
+            <p>
+                For multiplication, embed in log space. Addition in log space corresponds to
+                multiplication in linear space:
+            </p>
+            <div class="equation">
+                log_embed(a) + log_embed(b) = log_embed(a × b)
+            </div>
+            <p>
+                These are algebraic identities over the reals for the magnitude component; under
+                IEEE-754, they hold within floating-point precision bounds.
+            </p>
+        </section>
+
+        <section>
+            <h2>3. Formal Definition</h2>
+
+            <h3>3.1 Linear Embedding</h3>
+            <p>For addition and subtraction:</p>
+            <div class="equation">
+                e_lin(n) = (n / scale) · v
+            </div>
+            <p>
+                where v ∈ ℝ<sup>d</sup> is a fixed unit vector. The homomorphism property
+                e_lin(a) + e_lin(b) = e_lin(a + b) follows directly from linearity.
+            </p>
+
+            <h3>3.2 Logarithmic Embedding</h3>
+            <p>For multiplication and division:</p>
+            <div class="equation">
+                e_log(n) = (log|n| / scale) · v_mag + sign(n) · v_sign
+            </div>
+            <p>
+                where v_mag and v_sign are orthogonal unit vectors. Magnitude and sign are
+                tracked separately, and the sign component is recombined in the operator definition.
+            </p>
+            <p>
+                Zero is handled explicitly outside the log embedding via a masking branch.
+            </p>
+
+            <h3>3.3 Embedding Layout</h3>
+            <p>FluxEM uses a unified 128-dimensional embedding format:</p>
+            <div class="table-wrapper">
+                <table>
+                    <tr><th>Indices</th><th>Purpose</th></tr>
+                    <tr><td>[0:8]</td><td>Domain tag (identifies encoder)</td></tr>
+                    <tr><td>[8:72]</td><td>Domain-specific content (64 dims)</td></tr>
+                    <tr><td>[72:96]</td><td>Shared semantic features (24 dims)</td></tr>
+                    <tr><td>[96:128]</td><td>Cross-domain composition (32 dims)</td></tr>
+                </table>
+            </div>
+        </section>
+
+        <section>
+            <h2>4. Precision</h2>
+            <p>
+                The magnitude homomorphism is defined over the reals. Under IEEE-754 float32/float64,
+                precision is bounded by log()/exp() function rounding.
+            </p>
+            <div class="table-wrapper">
+                <table>
+                    <tr><th>Operation</th><th>Relative Error (float32)</th></tr>
+                    <tr><td>Addition / Subtraction</td><td>&lt; 1e-7</td></tr>
+                    <tr><td>Multiplication / Division</td><td>&lt; 1e-6</td></tr>
+                </table>
+            </div>
+            <p class="note">
+                "Closed under operations" means the result of any supported operation on valid
+                inputs is a valid output, not that results are mathematically exact.
+            </p>
+        </section>
+
+        <section>
+            <h2>5. Limitations</h2>
+            <div class="table-wrapper">
+                <table>
+                    <tr><th>Case</th><th>Behavior</th></tr>
+                    <tr><td>Zero</td><td>Explicit flag; log(0) masked to zero vector</td></tr>
+                    <tr><td>Sign</td><td>Tracked separately from magnitude</td></tr>
+                    <tr><td>Negative base + fractional exponent</td><td>Unsupported; returns real-valued surrogate</td></tr>
+                    <tr><td>Division by zero</td><td>Returns signed infinity</td></tr>
+                </table>
+            </div>
+        </section>
+
+        <section>
+            <h2>6. Usage</h2>
+            <pre>pip install fluxem
+
+from fluxem import create_unified_model
+
+model = create_unified_model()
+model.compute("1847 * 392")    # → 724024.0
+model.compute("123456 + 789")  # → 124245.0
+model.compute("2 ** 16")       # → 65536.0</pre>
+        </section>
+
+        <section>
+            <h2>7. Related Work</h2>
+            <div class="table-wrapper">
+                <table>
+                    <tr><th>Approach</th><th>Method</th><th>Difference</th></tr>
+                    <tr>
+                        <td>NALU (Trask 2018)</td>
+                        <td>Learned log/exp gates</td>
+                        <td>FluxEM: no learned parameters</td>
+                    </tr>
+                    <tr>
+                        <td>xVal (Golkar 2023)</td>
+                        <td>Learned scaling direction</td>
+                        <td>FluxEM: deterministic, multi-domain</td>
+                    </tr>
+                    <tr>
+                        <td>Abacus (McLeish 2024)</td>
+                        <td>Positional digit encoding</td>
+                        <td>FluxEM: algebraic structure, not positional</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <section class="references">
+            <h2>References</h2>
+            <ul>
+                <li>Euler, L. (1739). <em>Tentamen novae theoriae musicae</em>.</li>
+                <li>Lewin, D. (1987). <em>Generalized Musical Intervals and Transformations</em>. Yale University Press.</li>
+                <li>Trask, A. et al. (2018). Neural Arithmetic Logic Units. <em>NeurIPS</em>.</li>
+                <li>Golkar, S. et al. (2023). xVal: A Continuous Number Encoding. <em>arXiv</em>.</li>
+                <li>McLeish, S. et al. (2024). Transformers Can Do Arithmetic with the Right Embeddings. <em>arXiv</em>.</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>Hunter Bown · Shannon Labs · 2025</p>
+            <p>
+                <a href="https://github.com/Hmbown/FluxEM">GitHub</a> ·
+                <a href="https://pypi.org/project/fluxem/">PyPI</a>
+            </p>
+        </footer>
+    </article>
+</body>
+</html>

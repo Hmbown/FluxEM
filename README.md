@@ -5,196 +5,178 @@
 [![CI](https://github.com/Hmbown/FluxEM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hmbown/FluxEM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Deterministic encoders that map typed domain values to fixed-dimensional embeddings. Some operations are implemented directly in embedding space (e.g., arithmetic in linear/log components); other operations use decode/operate/encode. Backends: NumPy (core) with optional JAX and MLX.
-
-## Overview
-
-- Domains: Physics, chemistry, biology, mathematics, logic, music, geometry, graphs, sets, number theory, data.
-- Semantics: Operations are defined by encoder/operator implementations.
-- Embedding format: Unified layout with an 8-dim domain tag and domain-specific content.
-
-## Why embeddings for structured values?
-
-Embeddings are already the interface most ML systems use to move information into and through transformer models (token embeddings, vision patch embeddings, audio embeddings, etc.). FluxEM applies the same interface to *typed domain values* (numbers, units/dimensions, formulas, sequences, music constructs).
-
-This can be a good fit when you want to:
-
-- Represent a domain object as a single token-level vector instead of a variable-length text tokenization.
-- Reduce context length and avoid tokenization artifacts for structured values (e.g., long integers, units, formulas) by using a canonical encoding.
-- Define parts of the computation deterministically (e.g., arithmetic in linear/log components), shifting learning toward parsing/routing and away from memorizing digit-level patterns.
-- Mix multiple domains in one sequence via an explicit domain tag and consistent 128‑d layout (useful for “typed span” training setups).
-
-One motivation for this direction was noticing that multimodal models sometimes perform strongly on tasks that look “text-native” (in my own use, Qwen‑VL vs a text-only coding model), which raised the question of how much capability comes from *how information is embedded and structured* at the input interface. FluxEM explores an adjacent idea: feed certain structured values through typed embeddings rather than through raw text tokenization.
-
-This is not a general-purpose semantic embedding model; if you want similarity tuned to natural-language meaning, use learned text/vision embedding models.
-
-## Method
-
-FluxEM provides algebraic encoders where selected operations correspond to deterministic operations in embedding space.
-
-```python
-# Linear: encode(a) + encode(b) = encode(a + b)
-# Log: log_encode(a) + log_encode(b) = log_encode(a * b)
-```
-
-Results follow floating-point semantics and may be affected by encoder scale and clamping; see [docs/ERROR_MODEL.md](docs/ERROR_MODEL.md).
-
-## Implementation
-
-### Embedding layout
-
-FluxEM uses a unified 128-dimensional embedding format:
+**Deterministic embeddings where arithmetic operations become vector operations.**
 
 ```
-[0:8]     Domain tag (identifies which domain)
-[8:72]    Domain-specific content (64 dims)
-[72:96]   Shared semantic features (24 dims)
-[96:128]  Cross-domain composition (32 dims)
+encode(a) + encode(b) = encode(a + b)
 ```
 
-### Backend selection
+No training. No weights. Structure by construction.
 
-```python
-from fluxem.backend import set_backend, get_backend, BackendType
+<p align="center">
+  <img src="docs/demo.gif" alt="FluxEM demo" width="600">
+</p>
 
-# Auto-detect (JAX > MLX > NumPy; MLX is only auto-selected on Apple Silicon)
-backend = get_backend()
-print(f"Using: {backend.name}")
+→ [Project page](https://hmbown.github.io/FluxEM) · [The idea behind this](https://hmbown.github.io/FluxEM/vision.html)
 
-# Explicit selection
-set_backend(BackendType.JAX)
-set_backend(BackendType.MLX)
-set_backend(BackendType.NUMPY)
+## Quick Start
 
-# Environment override
-# export FLUXEM_BACKEND=numpy  # or jax/mlx
+```bash
+pip install fluxem
 ```
-
-### Supported domains
-
-| Domain | Key Encoders | Example Operations |
-|--------|-------------|-------------------|
-| Physics | `DimensionalQuantity`, `UnitEncoder` | Unit conversion, dimensional analysis |
-| Chemistry | `ElementEncoder`, `MoleculeEncoder`, `ReactionEncoder` | Formula parsing, balance checking |
-| Biology | `DNAEncoder`, `ProteinEncoder`, `TaxonomyEncoder` | Sequence encoding, taxonomy hierarchies |
-| Math | `ArithmeticEncoder`, `ComplexEncoder`, `MatrixEncoder`, `VectorEncoder` | Arithmetic operations, complex/matrix/vector encoding |
-| Logic | `PropositionalEncoder`, `PredicateEncoder` | Logical inference, truth evaluation |
-| Music | `PitchEncoder`, `ChordEncoder`, `AtonalSetEncoder` | Transposition, pitch class analysis |
-| Geometry | `PointEncoder`, `VectorEncoder`, `TransformEncoder` | Transformations, distance calculations |
-| Graphs | `GraphEncoder`, `PathEncoder` | Graph properties, pathfinding |
-| Sets | `SetEncoder`, `RelationEncoder` | Set operations, relation composition |
-| Number Theory | `IntegerEncoder`, `PrimeEncoder`, `ModularEncoder` | Primality, modular arithmetic |
-| Data | `ArrayEncoder`, `RecordEncoder` | Array embedding, structured data |
-
-## Usage
 
 ```python
 from fluxem import create_unified_model
 
 model = create_unified_model()
-
-model.compute("1234 + 5678")  # -> ~6912.0
-model.compute("250 * 4")      # -> ~1000.0
-model.compute("1000 / 8")     # -> ~125.0
-model.compute("3 ** 4")       # -> ~81.0
+model.compute("12345 + 67890")  # → 80235.0
+model.compute("144 * 89")       # → 12816.0
 ```
 
-### Domain examples
+## What this is
+
+FluxEM encodes typed domain values into 128-dimensional vectors where selected operations map to linear algebra:
+
+- **Addition/subtraction**: `encode(a) + encode(b) = encode(a + b)`
+- **Multiplication/division**: `log_encode(a) + log_encode(b) = log_encode(a × b)`
+
+This extends to eleven domains—physics, chemistry, biology, mathematics, logic, music, geometry, graphs, sets, number theory, and data—each with encoders that preserve algebraic structure.
+
+| Domain | Example | Operations |
+|--------|---------|------------|
+| Physics | `9.8 m/s²` | Unit conversion, dimensional analysis |
+| Chemistry | `C6H12O6` | Stoichiometry, mass balance |
+| Biology | `ATGCCGTAG` | GC content, melting temp, translation |
+| Math | `3 + 4i` | Complex, matrices, vectors, polynomials |
+| Logic | `p ∧ q → r` | Tautology detection, satisfiability |
+| Music | `{0, 4, 7}` | Transposition, inversion, Forte numbers |
+| Geometry | △ABC | Area, centroid, circumcenter |
+| Graphs | G = (V, E) | Connectivity, cycles, shortest path |
+| Sets | A ∪ B | Union, intersection, composition |
+| Number Theory | 360 = 2³·3²·5 | Prime factorization, modular arithmetic |
+| Data | [x₁, x₂, ...] | Arrays, records, tables |
+
+## What this is not
+
+- **Not symbolic math.** Won't simplify `x + x → 2x`. Use SymPy.
+- **Not semantic embeddings.** Won't find "king − man + woman ≈ queen". Use text embeddings.
+- **Not learned.** No parameters, no training, no drift.
+
+## Domain Examples
 
 ```python
-# Physics: Dimensional analysis
-from fluxem.domains.physics import DimensionalQuantity, Dimensions
+# Physics
+from fluxem.domains.physics import DimensionalQuantity
 enc = DimensionalQuantity()
-velocity = enc.encode(5.0, {'L': 1, 'T': -1})  # 5 m/s
+velocity = enc.encode(9.8, {'L': 1, 'T': -2})
 
-# Chemistry: Molecular formulas
+# Chemistry
 from fluxem.domains.chemistry import MoleculeEncoder, Formula
 enc = MoleculeEncoder()
-water = enc.encode(Formula.parse('H2O'))
+glucose = enc.encode(Formula.parse('C6H12O6'))
 
-# Music: Pitch and chords
-from fluxem.domains.music import PitchEncoder, ChordEncoder
-pitch_enc = PitchEncoder()
-a4 = pitch_enc.encode('A4')  # 440 Hz
-transposed = pitch_enc.transpose(a4, 7)  # Up a fifth
+# Music: pitch-class set theory
+from fluxem.domains.music import AtonalSetEncoder, prime_form, interval_class_vector
+enc = AtonalSetEncoder()
+major = enc.encode([0, 4, 7])
+prime_form([0, 4, 7])              # → (0, 3, 7)
+interval_class_vector([0, 4, 7])   # → (0, 0, 1, 1, 1, 0)
 
-# Biology: DNA sequences
-from fluxem.domains.biology import DNAEncoder
-dna_enc = DNAEncoder()
-seq = dna_enc.encode('ATCGATCG')
+# Biology
+from fluxem.domains.biology import DNAEncoder, translate_dna_to_protein
+enc = DNAEncoder()
+seq = enc.encode('ATGCCGTAG')
+translate_dna_to_protein('ATGCCGTAG')  # → 'MP*'
 
-# Math: Complex numbers, matrices, polynomials
-from fluxem.domains.math import ComplexEncoder, MatrixEncoder
-complex_enc = ComplexEncoder()
-z = complex_enc.encode((3, 4))  # 3 + 4i
+# Logic
+from fluxem.domains.logic import PropositionalEncoder, PropFormula
+p, q = PropFormula.atom('p'), PropFormula.atom('q')
+formula = p.implies(q) | ~p
+enc = PropositionalEncoder()
+enc.is_tautology(enc.encode(formula))
+
+# Number theory
+from fluxem.domains.number_theory import prime_factorization, mod_pow
+prime_factorization(360)  # → {2: 3, 3: 2, 5: 1}
+mod_pow(2, 100, 13)       # → 3
 ```
+
+<details>
+<summary><strong>Where this idea comes from</strong></summary>
+
+In the early twentieth century, Schoenberg and the Second Viennese School developed atonal theory—a framework that treated all twelve chromatic pitches as mathematically equal. This led to pitch-class set theory: reduce notes to numbers 0–11, analyze chords as sets.
+
+Something unexpected emerged. The math revealed hidden structure in tonality itself.
+
+Consider major and minor triads:
+
+```
+C major: {0, 4, 7}  intervals: 4, then 3
+C minor: {0, 3, 7}  intervals: 3, then 4
+```
+
+These are **inversions** of each other—the same intervals, reversed. Their interval-class vector is identical: `(0, 0, 1, 1, 1, 0)`. In pitch-class set theory, they're the same object under a group action.
+
+Paul Hindemith (1895–1963) took this further. He didn't reject atonality—he used its mathematical tools to rebuild tonal theory from first principles. The dichotomy dissolved: tonality and atonality were the same structure, viewed differently.
+
+When you encode pitch-class sets into vector space with the algebra intact:
+- **Transposition** becomes vector addition
+- **Inversion** becomes a linear transformation
+- The relationship between major and minor is geometric
+
+The embedding doesn't represent the structure. It *is* the structure.
+
+This extends across domains. The cyclic group of pitch transposition (Z₁₂) is isomorphic to clock arithmetic. The lattice of propositional logic mirrors set operations. If domains are embedded with their algebra intact, a model could recognize when structures are the same—not similar, but algebraically identical.
+
+Read the full story: [Where this comes from](https://hmbown.github.io/FluxEM/vision.html)
+
+</details>
 
 ## Reproducibility
 
 ```bash
-# Generate data, train models, evaluate
-python experiments/scripts/generate_data.py --config experiments/configs/arithmetic_small.yaml
-python experiments/scripts/train_token_only.py --config experiments/configs/arithmetic_small.yaml
-python experiments/scripts/train_hybrid.py --config experiments/configs/arithmetic_small.yaml
-python experiments/scripts/eval.py --config experiments/configs/arithmetic_small.yaml
+git clone https://github.com/Hmbown/FluxEM.git && cd FluxEM
+pip install -e ".[jax]"
+python experiments/scripts/compare_embeddings.py
 ```
 
-`train_*` scripts require PyTorch. Most comparison scripts can run without torch and emit TSV tables plus artifact paths under `experiments/results/`.
+Outputs TSV tables comparing FluxEM to baselines:
 
-See [docs/HYBRID_TRAINING.md](docs/HYBRID_TRAINING.md) for the mixed-sequence format and [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) for runnable experiments.
-
-## Result schema
-
-The comparison scripts emit machine-parsable output. Tables are emitted as TSV blocks preceded by a `table=<name>` line, and many scripts also print `results_path\t...`.
-
-| Approach | ID Accuracy | OOD-Mag | OOD-Length | Training | Median Error |
-|----------|-------------|---------|------------|----------|--------------|
-| deterministic_encoder | ... | ... | ... | none | ... |
-| token_baseline | ... | ... | ... | ... | ... |
+```
+table=accuracy_by_encoder
+approach              dataset          exact_match    numeric_accuracy
+FluxEM                id               1.000000       1.000000
+FluxEM                ood_magnitude    1.000000       1.000000
+Character             ood_magnitude    0.000000       0.012000
+```
 
 ## Installation
 
-Requires Python 3.10+.
-
 ```bash
-# Core only (NumPy backend)
-pip install fluxem
-
-# With JAX backend
-pip install fluxem[jax]
-
-# With MLX backend
-pip install fluxem[mlx]
-
-# Full installation with HuggingFace integration
-pip install fluxem[full-jax]  # or fluxem[full-mlx]
+pip install fluxem              # Core (NumPy)
+pip install fluxem[jax]         # With JAX
+pip install fluxem[mlx]         # With MLX (Apple Silicon)
+pip install fluxem[full-jax]    # Full with HuggingFace
 ```
 
-Or from source:
+## Precision
 
-```bash
-git clone https://github.com/Hmbown/FluxEM.git
-cd FluxEM && pip install -e ".[jax]"  # or .[mlx]
-```
+| Operation | Relative Error (float32) |
+|-----------|-------------------------|
+| Add/Sub   | < 1e-7 |
+| Mul/Div   | < 1e-6 |
 
-## Limitations
+Edge cases: `log(0)` → masked, division by zero → signed infinity, negative base with fractional exponent → unsupported.
 
-| Constraint | Behavior |
-|------------|----------|
-| Zero | Explicit flag; `log(0)` undefined, masked separately |
-| Sign | Stored in embedding; log-space operates on magnitude only |
-| Negative base + fractional exponent | Unsupported; returns real-valued surrogate |
-| Precision | Float32/float64 semantics; see [ERROR_MODEL.md](docs/ERROR_MODEL.md) |
+See [ERROR_MODEL.md](docs/ERROR_MODEL.md) and [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md).
 
-See [FORMAL_DEFINITION.md](docs/FORMAL_DEFINITION.md) and [ERROR_MODEL.md](docs/ERROR_MODEL.md) for details.
+## Related Work
 
-## References
-
-| Approach | Method | Notes |
-|----------|--------|-------------------|
-| [NALU](https://arxiv.org/abs/1808.00508) (Trask, 2018) | Learned log/exp gates | Learned parameters |
-| [xVal](https://arxiv.org/abs/2310.02989) (Golkar, 2023) | Learned scaling direction | Fixed structure; no training drift |
-| [Abacus](https://arxiv.org/abs/2405.17399) (McLeish, 2024) | Positional digit encoding | Continuous embeddings; not tokenized |
+| Approach | Method | Difference |
+|----------|--------|------------|
+| [NALU](https://arxiv.org/abs/1808.00508) | Learned log/exp gates | FluxEM: no learned parameters |
+| [xVal](https://arxiv.org/abs/2310.02989) | Learned scaling | FluxEM: deterministic, multi-domain |
+| [Abacus](https://arxiv.org/abs/2405.17399) | Positional digits | FluxEM: algebraic structure |
 
 ## Citation
 

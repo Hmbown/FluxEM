@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Where this idea comes from — FluxEM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cream: #fdfbf7;
+            --cream-dark: #f5f2eb;
+            --charcoal: #2d2a26;
+            --charcoal-light: #4a4640;
+            --burgundy: #8b2635;
+            --gold: #c9a227;
+            --sage: #6b7c5e;
+            --ink: #1a1816;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 19px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Crimson Pro', Georgia, serif;
+            background: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.8;
+        }
+
+        /* Grain */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            z-index: 1000;
+        }
+
+        a {
+            color: var(--burgundy);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(139, 38, 53, 0.3);
+            transition: border-color 0.2s ease;
+        }
+
+        a:hover {
+            border-bottom-color: var(--burgundy);
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to bottom, var(--cream) 70%, transparent);
+            z-index: 100;
+        }
+
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: var(--charcoal);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .nav-links a {
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+            text-transform: lowercase;
+            letter-spacing: 0.05em;
+            border-bottom: none;
+        }
+
+        /* Article */
+        article {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 10rem 2rem 6rem;
+        }
+
+        header {
+            margin-bottom: 4rem;
+        }
+
+        .label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--burgundy);
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            font-weight: 400;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--charcoal-light);
+            font-style: italic;
+        }
+
+        /* Content */
+        p {
+            margin-bottom: 1.5rem;
+        }
+
+        p.lead {
+            font-size: 1.15rem;
+        }
+
+        p.lead::first-letter {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            float: left;
+            line-height: 0.75;
+            margin-right: 0.6rem;
+            margin-top: 0.15rem;
+            color: var(--burgundy);
+        }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 400;
+            margin: 4rem 0 1.5rem;
+        }
+
+        h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin: 2.5rem 0 1rem;
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        strong {
+            font-weight: 600;
+        }
+
+        /* Callouts */
+        .callout {
+            background: var(--cream-dark);
+            border-left: 3px solid var(--burgundy);
+            padding: 1.5rem 2rem;
+            margin: 2.5rem 0;
+        }
+
+        .callout p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Code blocks */
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            background: var(--cream-dark);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+        }
+
+        pre {
+            background: var(--ink);
+            color: var(--cream);
+            padding: 1.5rem 2rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            margin: 2rem 0;
+        }
+
+        /* Pitch class circle */
+        .pitch-circle {
+            width: 100%;
+            max-width: 400px;
+            margin: 3rem auto;
+            display: block;
+        }
+
+        .pitch-circle svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .pc-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            fill: var(--charcoal);
+        }
+
+        .pc-note {
+            font-family: 'Crimson Pro', serif;
+            font-size: 11px;
+            fill: var(--charcoal-light);
+        }
+
+        /* Chord visualization */
+        .chord-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .chord-box {
+            background: var(--cream-dark);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .chord-box h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .chord-notes {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            color: var(--burgundy);
+            margin-bottom: 0.5rem;
+        }
+
+        .chord-pcs {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--charcoal-light);
+        }
+
+        .chord-intervals {
+            font-size: 0.85rem;
+            color: var(--sage);
+            margin-top: 0.5rem;
+        }
+
+        /* The transformation arrow */
+        .transform-arrow {
+            text-align: center;
+            margin: 2rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--gold);
+            font-size: 1.5rem;
+        }
+
+        /* Interval vector */
+        .interval-vector {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .interval-vector .vec {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            color: var(--burgundy);
+        }
+
+        .interval-vector .label {
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+            margin-top: 0.5rem;
+        }
+
+        /* Blockquote */
+        blockquote {
+            border-left: 3px solid var(--gold);
+            padding-left: 1.5rem;
+            margin: 2.5rem 0;
+            font-style: italic;
+            color: var(--charcoal-light);
+        }
+
+        blockquote cite {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            font-style: normal;
+        }
+
+        /* Figure */
+        figure {
+            margin: 3rem 0;
+        }
+
+        figcaption {
+            font-size: 0.85rem;
+            color: var(--charcoal-light);
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        /* Section breaks */
+        hr {
+            border: none;
+            text-align: center;
+            margin: 4rem 0;
+        }
+
+        hr::before {
+            content: '⁂';
+            color: var(--charcoal-light);
+            font-size: 1.5rem;
+        }
+
+        /* Footer nav */
+        .article-footer {
+            margin-top: 5rem;
+            padding-top: 3rem;
+            border-top: 1px solid var(--cream-dark);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .article-footer a {
+            font-size: 0.95rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            html {
+                font-size: 17px;
+            }
+
+            nav {
+                padding: 1rem 1.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            article {
+                padding: 7rem 1.5rem 4rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .chord-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="nav-logo" style="border: none;">FluxEM</a>
+        <div class="nav-links">
+            <a href="index.html">home</a>
+            <a href="index.html#domains">domains</a>
+            <a href="paper.html">paper</a>
+            <a href="https://github.com/Hmbown/FluxEM">github</a>
+        </div>
+    </nav>
+
+    <article>
+        <header>
+            <div class="label">The idea behind FluxEM</div>
+            <h1>Where this comes from</h1>
+            <p class="subtitle">On music theory, hidden structure, and why embeddings might matter more than we think</p>
+        </header>
+
+        <p class="lead">There's a story from early twentieth-century music that I keep coming back to. It's about a group of composers who seemed to destroy tonality—and in doing so, revealed structure they didn't expect to find.</p>
+
+        <p>In Vienna, around 1908, Arnold Schoenberg began writing music that abandoned traditional keys. No more C major, no more resolution to the tonic. Just twelve chromatic pitches, treated as equals. His students—Berg, Webern—followed. Critics called it atonal, and they didn't mean it kindly.</p>
+
+        <p>Over the following decades, theorists developed a rigorous framework for analyzing this music. They called it <em>pitch-class set theory</em>. The idea was simple: forget about octaves, forget about note names. Reduce everything to numbers 0 through 11. C becomes 0, C♯ becomes 1, D becomes 2, and so on around the circle.</p>
+
+        <figure class="pitch-circle">
+            <svg viewBox="0 0 300 300">
+                <!-- Circle -->
+                <circle cx="150" cy="150" r="120" fill="none" stroke="#e5e7eb" stroke-width="1" />
+
+                <!-- Pitch class points and labels -->
+                <g>
+                    <!-- 0 / C -->
+                    <circle cx="150" cy="30" r="6" fill="#8b2635" />
+                    <text class="pc-label" x="150" y="18" text-anchor="middle">0</text>
+                    <text class="pc-note" x="150" y="55" text-anchor="middle">C</text>
+
+                    <!-- 1 / C# -->
+                    <circle cx="210" cy="46" r="4" fill="#2d2a26" />
+                    <text class="pc-label" x="225" y="42" text-anchor="start">1</text>
+
+                    <!-- 2 / D -->
+                    <circle cx="254" cy="90" r="4" fill="#2d2a26" />
+                    <text class="pc-label" x="270" y="95" text-anchor="start">2</text>
+
+                    <!-- 3 / Eb -->
+                    <circle cx="270" cy="150" r="6" fill="#6b7c5e" />
+                    <text class="pc-label" x="288" y="155" text-anchor="start">3</text>
+                    <text class="pc-note" x="255" y="170" text-anchor="end">E♭</text>
+
+                    <!-- 4 / E -->
+                    <circle cx="254" cy="210" r="6" fill="#8b2635" />
+                    <text class="pc-label" x="270" y="215" text-anchor="start">4</text>
+                    <text class="pc-note" x="240" y="230" text-anchor="end">E</text>
+
+                    <!-- 5 / F -->
+                    <circle cx="210" cy="254" r="4" fill="#2d2a26" />
+                    <text class="pc-label" x="220" y="272" text-anchor="start">5</text>
+
+                    <!-- 6 / F# -->
+                    <circle cx="150" cy="270" r="4" fill="#2d2a26" />
+                    <text class="pc-label" x="150" y="292" text-anchor="middle">6</text>
+
+                    <!-- 7 / G -->
+                    <circle cx="90" cy="254" r="6" fill="#8b2635" />
+                    <text class="pc-label" x="75" y="272" text-anchor="end">7</text>
+                    <text class="pc-note" x="90" y="238" text-anchor="middle">G</text>
+
+                    <!-- 8 / Ab -->
+                    <circle cx="46" cy="210" r="6" fill="#6b7c5e" />
+                    <text class="pc-label" x="28" y="215" text-anchor="end">8</text>
+                    <text class="pc-note" x="60" y="195" text-anchor="start">A♭</text>
+
+                    <!-- 9 / A -->
+                    <circle cx="30" cy="150" r="4" fill="#2d2a26" />
+                    <text class="pc-label" x="12" y="155" text-anchor="end">9</text>
+
+                    <!-- 10 / Bb -->
+                    <circle cx="46" cy="90" r="4" fill="#2d2a26" />
+                    <text class="pc-label" x="28" y="95" text-anchor="end">10</text>
+
+                    <!-- 11 / B -->
+                    <circle cx="90" cy="46" r="4" fill="#2d2a26" />
+                    <text class="pc-label" x="75" y="42" text-anchor="end">11</text>
+                </g>
+
+                <!-- Major triad: 0, 4, 7 -->
+                <polygon points="150,30 254,210 90,254" fill="rgba(139,38,53,0.1)" stroke="#8b2635" stroke-width="2" />
+
+                <!-- Minor triad: 0, 3, 7 (dashed) -->
+                <polygon points="150,30 270,150 90,254" fill="none" stroke="#6b7c5e" stroke-width="2" stroke-dasharray="6,4" />
+            </svg>
+            <figcaption>The pitch-class circle. C major triad (0, 4, 7) in solid burgundy. C minor (0, 3, 7) in dashed green. Same root, same fifth—different third.</figcaption>
+        </figure>
+
+        <p>A chord becomes a set of numbers. C major—C, E, G—becomes {0, 4, 7}. And once you have numbers, you can do mathematics.</p>
+
+        <h2>The transformation</h2>
+
+        <p>Here's where it gets interesting. Look at the two most fundamental chords in Western music:</p>
+
+        <div class="chord-comparison">
+            <div class="chord-box">
+                <h4>C Major</h4>
+                <div class="chord-notes">C – E – G</div>
+                <div class="chord-pcs">{0, 4, 7}</div>
+                <div class="chord-intervals">intervals: 4, then 3</div>
+            </div>
+            <div class="chord-box">
+                <h4>C Minor</h4>
+                <div class="chord-notes">C – E♭ – G</div>
+                <div class="chord-pcs">{0, 3, 7}</div>
+                <div class="chord-intervals">intervals: 3, then 4</div>
+            </div>
+        </div>
+
+        <p>Musicians have always known these chords are related. There's the parallel major and minor, the relative major and minor. We hear the kinship. But pitch-class set theory makes the relationship <em>precise</em>: major and minor are <strong>inversions</strong> of each other.</p>
+
+        <p>Inversion, in this context, means reflection. Take each pitch class n and map it to (12 − n) mod 12. You're flipping the circle. And when you flip {0, 4, 7}:</p>
+
+        <pre>I({0, 4, 7}) = {12-0, 12-4, 12-7} mod 12
+             = {0, 8, 5}
+             = {0, 5, 8}  (reordered)</pre>
+
+        <p>That's {0, 5, 8}—which, transposed down by 5 (or up by 7), gives you {0, 3, 7}. C minor.</p>
+
+        <p>The same intervals, in reverse order. Not a metaphor. Not a feeling. A mathematical identity.</p>
+
+        <div class="callout">
+            <p>The <strong>interval-class vector</strong> is a fingerprint of a chord's interval content. For both major and minor triads, it's identical:</p>
+        </div>
+
+        <div class="interval-vector">
+            <div class="vec">(0, 0, 1, 1, 1, 0)</div>
+            <div class="label">One each of interval classes 3, 4, and 5</div>
+        </div>
+
+        <p>Major and minor aren't just "related." In the mathematics of pitch-class sets, they're the same object under a group action.</p>
+
+        <hr>
+
+        <h2>Hindemith's turn</h2>
+
+        <p>Now here's the part that matters for us.</p>
+
+        <p>Paul Hindemith was a German composer, born in 1895. A practical musician—he could play nearly every orchestral instrument—and a demanding theorist. In the 1930s and 40s, he wrote <em>The Craft of Musical Composition</em>, a treatise that proposed something counterintuitive.</p>
+
+        <p>Hindemith didn't reject Schoenberg's revolution. He absorbed it. He took the mathematical thinking that had emerged from atonality—the treatment of all twelve tones as structurally equal, the focus on interval relationships rather than key signatures—and used it to <em>rebuild</em> tonal theory from first principles.</p>
+
+        <p>His "Series 1" ranks the twelve tones by their acoustic relationship to a fundamental. His "Series 2" ranks intervals by consonance and dissonance. From these, he derives chord classification, harmonic tension, melodic direction—the whole apparatus of tonality, but now grounded in something more fundamental than convention.</p>
+
+        <blockquote>
+            <p>Hindemith showed that tonality and atonality weren't opposites. They were the same underlying structure, viewed through different lenses.</p>
+        </blockquote>
+
+        <p>The atonal composers thought they were escaping tradition. What they'd actually done was reveal the algebra that tradition had been using all along, without knowing it.</p>
+
+        <hr>
+
+        <h2>Structure as transformation</h2>
+
+        <p>So what does this have to do with embeddings?</p>
+
+        <p>When you encode pitch-class sets into a vector space—properly, with the algebraic structure intact—something happens. The operations that music theorists defined abstractly become <em>geometric</em>:</p>
+
+        <ul style="margin: 1.5rem 0 1.5rem 1.5rem;">
+            <li style="margin-bottom: 0.75rem;"><strong>Transposition</strong> (shift all notes by n semitones) becomes <strong>vector addition</strong></li>
+            <li style="margin-bottom: 0.75rem;"><strong>Inversion</strong> (reflect around a pitch) becomes a <strong>linear transformation</strong></li>
+            <li style="margin-bottom: 0.75rem;">The relationship between major and minor isn't just recorded—it's <strong>embodied in the geometry</strong></li>
+        </ul>
+
+        <p>The embedding doesn't just <em>represent</em> the structure. It <em>is</em> the structure. The transformation from major to minor is a rotation and reflection in the embedding space. Things that were "related" become the same point under transformation.</p>
+
+        <h2>Across domains</h2>
+
+        <p>And now we can ask a bigger question.</p>
+
+        <p>The cyclic group of pitch transposition—shifting notes around the circle of twelve—is mathematically identical to clock arithmetic. The lattice of propositional logic mirrors the algebra of set operations. Certain chemical reaction networks share structure with metabolic pathways.</p>
+
+        <p>If you embed these domains with their algebra intact, something becomes possible that wasn't before: <strong>a model could recognize when structures are the same</strong>.</p>
+
+        <p>Not similar. Not analogous. Algebraically identical.</p>
+
+        <p>A pattern learned in music theory would apply directly when the model encounters the same structure in chemistry. A relationship between logical propositions would transfer to set operations, because in embedding space, they occupy the same geometry.</p>
+
+        <p>This is what Hindemith did with tonality. He saw that the tools developed for one purpose—analyzing atonal music—revealed truths about something seemingly different. The structure transferred because the algebra was the same.</p>
+
+        <div class="callout">
+            <p>FluxEM is an attempt to make that kind of transfer native to neural systems. Embed the algebra, and let the geometry do the work.</p>
+        </div>
+
+        <p>We don't know yet how far this goes. The eleven domains currently implemented—physics, chemistry, biology, mathematics, logic, music, geometry, graphs, sets, number theory, data—are existence proofs, not the final answer. They show that the embedding can be constructed. They show that the homomorphisms hold.</p>
+
+        <p>Whether this enables the cross-domain recognition we hope for—whether a model trained on these embeddings can discover structural kinships we haven't seen—that's the research question.</p>
+
+        <p>But the premise is Hindemith's premise: structure is structure. And when you encode it properly, it becomes visible.</p>
+
+        <hr>
+
+        <h2>Try it</h2>
+
+        <pre>pip install fluxem
+
+from fluxem.domains.music import AtonalSetEncoder, prime_form
+from fluxem.domains.music import interval_class_vector
+
+enc = AtonalSetEncoder()
+
+major = enc.encode([0, 4, 7])
+minor = enc.encode([0, 3, 7])
+
+# Same interval content
+interval_class_vector([0, 4, 7])  # → (0, 0, 1, 1, 1, 0)
+interval_class_vector([0, 3, 7])  # → (0, 0, 1, 1, 1, 0)
+
+# Same prime form (the canonical representative)
+prime_form([0, 4, 7])  # → (0, 3, 7)
+prime_form([0, 3, 7])  # → (0, 3, 7)</pre>
+
+        <nav class="article-footer">
+            <a href="index.html">← Back to home</a>
+            <a href="paper.html">Read the paper →</a>
+        </nav>
+    </article>
+</body>
+</html>

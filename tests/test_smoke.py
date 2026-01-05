@@ -30,7 +30,7 @@ def test_extended_ops_power_and_sqrt():
 def test_extended_ops_edge_cases():
     ops = create_extended_ops()
 
-    assert ops.sqrt(-4) == pytest.approx(2.0, rel=1e-4)
+    assert math.isnan(ops.sqrt(-4))
     assert ops.sqrt(0) == 0.0
     assert math.isinf(ops.ln(0))
     assert math.isinf(ops.ln(-4))
@@ -67,9 +67,9 @@ def test_domain_tags_unique():
     tags = get_domain_tags()
     names = list(tags.keys())
     for i, name in enumerate(names):
-        for other in names[i + 1:]:
+        for other in names[i + 1 :]:
             result = backend.allclose(tags[name], tags[other], atol=0.1)
             # Handle both bool (NumPy) and array (JAX/MLX) return types
-            is_match = result.item() if hasattr(result, 'item') else result
+            is_match = result.item() if hasattr(result, "item") else result
             if is_match:
                 pytest.fail(f"Domain tags collide: {name} vs {other}")

@@ -33,7 +33,14 @@ from fluxem import create_unified_model
 model = create_unified_model()
 model.compute("12345 + 67890")  # → 80235.0
 model.compute("144 * 89")       # → 12816.0
-model.compute("10 m/s * 5 s")   # → 50.0 m
+
+from fluxem.domains.physics import DimensionalQuantity, Dimensions
+
+dq = DimensionalQuantity()
+velocity = dq.encode(10, Dimensions(L=1, T=-1))  # 10 m/s
+duration = dq.encode(5, Dimensions(T=1))        # 5 s
+distance = dq.multiply(velocity, duration)
+print(dq.decode(distance))  # → (50.0, [L])
 ```
 
 ## What This Is
@@ -74,7 +81,7 @@ Adding two embedding vectors is equivalent to adding the polynomials they repres
 ```python
 from fluxem.domains.math import PolynomialEncoder
 
-enc = PolynomialEncoder(degree=2)
+enc = PolynomialEncoder()
 
 # P1: 3x² + 2x + 1
 # P2:       x - 1
@@ -118,7 +125,7 @@ p = PropFormula.atom('p')
 q = PropFormula.atom('q')
 
 enc = PropositionalEncoder()
-formula_vec = enc.encode(p.implies(q) | ~p)
+formula_vec = enc.encode(p | ~p)
 
 print(enc.is_tautology(formula_vec))
 # → True

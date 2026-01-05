@@ -84,7 +84,7 @@ from .core import (
 from .integration.tokenizer import MultiDomainTokenizer, DomainType
 from .integration.pipeline import TrainingPipeline, DomainEncoderRegistry
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 __all__ = [
     # Backend

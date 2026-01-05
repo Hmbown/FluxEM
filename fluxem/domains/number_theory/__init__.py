@@ -38,6 +38,8 @@ from .modular import (
 )
 from .rationals import Rational, RationalEncoder
 
+PrimeFactorEncoder = PrimeEncoder
+
 __all__ = [
     # Integers
     "Integer",
@@ -48,6 +50,7 @@ __all__ = [
     "nth_prime",
     "primes_up_to",
     "PrimeEncoder",
+    "PrimeFactorEncoder",
     # Divisibility
     "gcd",
     "lcm",

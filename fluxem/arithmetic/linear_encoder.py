@@ -96,6 +96,10 @@ class NumberEncoder:
         else:
             return (n / self.scale) * self.direction
 
+    def encode(self, n: float) -> Any:
+        """Encode a number to a linear embedding."""
+        return self.encode_number(n)
+
     def encode_string(self, digit_str: str) -> Any:
         """
         Encode a digit string to a linear embedding.
@@ -150,9 +154,10 @@ class NumberEncoder:
         """
         backend = get_backend()
 
-        ZERO = ord('0')
-        NINE = ord('9')
-        MINUS = ord('-')
+        ZERO = ord("0")
+        NINE = ord("9")
+        MINUS = ord("-")
+        DOT = ord(".")
 
         is_digit = (byte_seq >= ZERO) & (byte_seq <= NINE)
         is_minus = byte_seq == MINUS
@@ -160,7 +165,9 @@ class NumberEncoder:
         first_nonzero_idx = backend.argmax(byte_seq > 0)
         is_negative = byte_seq[first_nonzero_idx] == MINUS
 
-        digit_values = backend.where(is_digit, byte_seq - ZERO, backend.zeros(len(byte_seq)))
+        digit_values = backend.where(
+            is_digit, byte_seq - ZERO, backend.zeros(len(byte_seq))
+        )
 
         positions = backend.arange(len(byte_seq))
         valid_positions = backend.where(is_digit, positions, len(byte_seq))
@@ -168,22 +175,41 @@ class NumberEncoder:
         valid_positions_for_max = backend.where(is_digit, positions, -1)
         last_digit_pos = backend.argmax(valid_positions_for_max)
 
-        n_digits = backend.sum(is_digit.astype(float) if hasattr(is_digit, 'astype') else is_digit)
+        is_dot = byte_seq == DOT
+        dot_exists = float(backend.sum(is_dot)) > 0
 
-        # Cumulative sum for position tracking
-        cumsum = []
-        total = 0
-        for i in range(len(byte_seq)):
-            if is_digit[i]:
-                total += 1
-            cumsum.append(total)
-        position_in_number = backend.array(cumsum) - 1
-
-        place_values = backend.where(
-            is_digit,
-            backend.power(10.0, n_digits - 1 - position_in_number),
-            backend.zeros(len(byte_seq))
-        )
+        if not dot_exists:
+            # No decimal point: integer parsing
+            n_digits = backend.sum(
+                is_digit.astype(float) if hasattr(is_digit, "astype") else is_digit
+            )
+            # Cumulative sum for position tracking
+            cumsum = []
+            total = 0
+            for i in range(len(byte_seq)):
+                if is_digit[i]:
+                    total += 1
+                cumsum.append(total)
+            position_in_number = backend.array(cumsum) - 1
+            place_values = backend.where(
+                is_digit,
+                backend.power(10.0, n_digits - 1 - position_in_number),
+                backend.zeros(len(byte_seq)),
+            )
+        else:
+            # Decimal point present
+            dot_positions = backend.where(is_dot, positions, len(byte_seq))
+            dot_pos = int(backend.argmin(dot_positions))
+            # Compute exponent for each digit: dot_pos - digit_position - 1 if before dot, else dot_pos - digit_position
+            digit_position = positions
+            exponent = backend.where(
+                digit_position < dot_pos,
+                dot_pos - digit_position - 1,
+                dot_pos - digit_position,
+            )
+            place_values = backend.where(
+                is_digit, backend.power(10.0, exponent), backend.zeros(len(byte_seq))
+            )
 
         value = backend.sum(digit_values * place_values)
         value = backend.where(is_negative, -value, value)
@@ -256,13 +282,13 @@ def parse_arithmetic_expression(input_bytes: Any) -> Tuple[Any, int, Any]:
     """
     backend = get_backend()
 
-    PLUS = ord('+')
-    MINUS = ord('-')
-    STAR = ord('*')
-    SLASH = ord('/')
-    EQUALS = ord('=')
-    ZERO = ord('0')
-    NINE = ord('9')
+    PLUS = ord("+")
+    MINUS = ord("-")
+    STAR = ord("*")
+    SLASH = ord("/")
+    EQUALS = ord("=")
+    ZERO = ord("0")
+    NINE = ord("9")
 
     max_len = input_bytes.shape[0]
     positions = backend.arange(max_len)
@@ -290,15 +316,15 @@ def parse_arithmetic_expression(input_bytes: Any) -> Tuple[Any, int, Any]:
     operand1_bytes = backend.where(positions < op_pos, input_bytes, 0)
 
     operand2_bytes = backend.where(
-        (positions > op_pos) & (positions < eq_pos),
-        input_bytes,
-        0
+        (positions > op_pos) & (positions < eq_pos), input_bytes, 0
     )
 
     return operand1_bytes, operator, operand2_bytes
 
 
-def verify_linear_property(encoder: NumberEncoder, a: float, b: float, atol: float = 1e-6) -> bool:
+def verify_linear_property(
+    encoder: NumberEncoder, a: float, b: float, atol: float = 1e-6
+) -> bool:
     """
     Verify that encode(a) + encode(b) == encode(a+b).
 
@@ -366,14 +392,20 @@ if __name__ == "__main__":
         emb = encoder.encode_number(n)
         recovered = encoder.decode(emb)
         error = abs(recovered - n)
-        print(f"  {n:>7} -> encode -> decode -> {recovered:>10.2f} (error: {error:.2e})")
+        print(
+            f"  {n:>7} -> encode -> decode -> {recovered:>10.2f} (error: {error:.2e})"
+        )
 
     print("\n=== Random orthonormal basis (old behavior) ===")
-    encoder_old = NumberEncoder(dim=256, scale=100000.0, basis="random_orthonormal", seed=42)
+    encoder_old = NumberEncoder(
+        dim=256, scale=100000.0, basis="random_orthonormal", seed=42
+    )
 
     print("\nRound-trip (encode -> decode):")
     for n in test_numbers:
         emb = encoder_old.encode_number(n)
         recovered = encoder_old.decode(emb)
         error = abs(recovered - n)
-        print(f"  {n:>7} -> encode -> decode -> {recovered:>10.2f} (error: {error:.2e})")
+        print(
+            f"  {n:>7} -> encode -> decode -> {recovered:>10.2f} (error: {error:.2e})"
+        )

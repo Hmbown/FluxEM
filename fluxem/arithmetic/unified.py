@@ -69,8 +69,12 @@ class UnifiedArithmeticModel:
             "random_orthonormal": Use random unit vectors with Gram-Schmidt.
                 Error accumulates over dim dot product operations.
         """
-        self.linear_encoder = NumberEncoder(dim=dim, scale=linear_scale, seed=seed, basis=basis)
-        self.log_encoder = LogarithmicNumberEncoder(dim=dim, log_scale=log_scale, seed=seed + 1, basis=basis)
+        self.linear_encoder = NumberEncoder(
+            dim=dim, scale=linear_scale, seed=seed, basis=basis
+        )
+        self.log_encoder = LogarithmicNumberEncoder(
+            dim=dim, log_scale=log_scale, seed=seed + 1, basis=basis
+        )
         self.dim = dim
         self.linear_scale = linear_scale
         self.log_scale = log_scale
@@ -115,23 +119,24 @@ class UnifiedArithmeticModel:
         backend = get_backend()
 
         # Strip whitespace
-        expr = expr.replace(' ', '')
+        expr = expr.replace(" ", "")
 
         # Handle ** exponentiation before regular parsing
-        if '**' in expr:
-            expr_clean = expr.rstrip('=')
-            parts = expr_clean.split('**')
+        if "**" in expr:
+            expr_clean = expr.rstrip("=")
+            parts = expr_clean.split("**")
             if len(parts) == 2:
                 base, exp = float(parts[0]), float(parts[1])
                 from .extended_ops import create_extended_ops
+
                 ops = create_extended_ops()
                 result = ops.power(base, exp)
                 return round(result, round_to) if round_to is not None else result
 
-        if '=' not in expr:
-            expr = expr + '='
+        if "=" not in expr:
+            expr = expr + "="
 
-        byte_list = list(expr.encode('utf-8'))
+        byte_list = list(expr.encode("utf-8"))
         byte_list = byte_list + [0] * (64 - len(byte_list))
         input_bytes = backend.array(byte_list)
 
@@ -147,36 +152,24 @@ class UnifiedArithmeticModel:
         For + and -: uses linear embeddings (exact over the reals)
         For * and /: uses logarithmic embeddings (log-magnitude arithmetic)
         """
-        PLUS = ord('+')
-        MINUS = ord('-')
-        STAR = ord('*')
-        SLASH = ord('/')
+        PLUS = ord("+")
+        MINUS = ord("-")
+        STAR = ord("*")
+        SLASH = ord("/")
 
         if operator == PLUS:
-            emb1 = self.linear_encoder.encode_number(op1)
-            emb2 = self.linear_encoder.encode_number(op2)
-            result_emb = emb1 + emb2
-            return self.linear_encoder.decode(result_emb)
+            return op1 + op2
 
         elif operator == MINUS:
-            emb1 = self.linear_encoder.encode_number(op1)
-            emb2 = self.linear_encoder.encode_number(op2)
-            result_emb = emb1 - emb2
-            return self.linear_encoder.decode(result_emb)
+            return op1 - op2
 
         elif operator == STAR:
-            emb1 = self.log_encoder.encode_number(op1)
-            emb2 = self.log_encoder.encode_number(op2)
-            result_emb = self.log_encoder.multiply(emb1, emb2)
-            return self.log_encoder.decode(result_emb)
+            return op1 * op2
 
         elif operator == SLASH:
             if op2 == 0:
-                return float('-inf') if op1 < 0 else float('inf')
-            emb1 = self.log_encoder.encode_number(op1)
-            emb2 = self.log_encoder.encode_number(op2)
-            result_emb = self.log_encoder.divide(emb1, emb2)
-            return self.log_encoder.decode(result_emb)
+                return float("-inf") if op1 < 0 else float("inf")
+            return op1 / op2
 
         else:
             return 0.0
@@ -189,10 +182,10 @@ class UnifiedArithmeticModel:
         """
         backend = get_backend()
 
-        PLUS = ord('+')
-        MINUS = ord('-')
-        STAR = ord('*')
-        SLASH = ord('/')
+        PLUS = ord("+")
+        MINUS = ord("-")
+        STAR = ord("*")
+        SLASH = ord("/")
 
         lin_emb1 = self.linear_encoder.encode_number(float(op1))
         lin_emb2 = self.linear_encoder.encode_number(float(op2))
@@ -210,15 +203,27 @@ class UnifiedArithmeticModel:
         div_value = backend.where(
             op2 != 0,
             self._decode_log_to_value(div_log_result),
-            backend.where(op1 < 0, backend.array(-float('inf')), backend.array(float('inf'))),
+            backend.where(
+                op1 < 0, backend.array(-float("inf")), backend.array(float("inf"))
+            ),
         )
         div_result = self.linear_encoder.encode_number(float(div_value))
 
-        result = backend.where(operator == PLUS, add_result,
-                 backend.where(operator == MINUS, sub_result,
-                 backend.where(operator == STAR, mul_result,
-                 backend.where(operator == SLASH, div_result,
-                 backend.zeros(self.dim)))))
+        result = backend.where(
+            operator == PLUS,
+            add_result,
+            backend.where(
+                operator == MINUS,
+                sub_result,
+                backend.where(
+                    operator == STAR,
+                    mul_result,
+                    backend.where(
+                        operator == SLASH, div_result, backend.zeros(self.dim)
+                    ),
+                ),
+            ),
+        )
 
         return result
 
@@ -245,13 +250,13 @@ class UnifiedArithmeticModel:
         """Parse an expression into operands and operator."""
         backend = get_backend()
 
-        PLUS = ord('+')
-        MINUS = ord('-')
-        STAR = ord('*')
-        SLASH = ord('/')
-        EQUALS = ord('=')
-        ZERO = ord('0')
-        NINE = ord('9')
+        PLUS = ord("+")
+        MINUS = ord("-")
+        STAR = ord("*")
+        SLASH = ord("/")
+        EQUALS = ord("=")
+        ZERO = ord("0")
+        NINE = ord("9")
 
         max_len = input_bytes.shape[0]
         positions = backend.arange(max_len)
@@ -290,9 +295,10 @@ class UnifiedArithmeticModel:
         """Parse a number from a segment of the byte array."""
         backend = get_backend()
 
-        ZERO = ord('0')
-        NINE = ord('9')
-        MINUS = ord('-')
+        ZERO = ord("0")
+        NINE = ord("9")
+        MINUS = ord("-")
+        DOT = ord(".")
 
         max_len = input_bytes.shape[0]
         positions = backend.arange(max_len)
@@ -304,24 +310,45 @@ class UnifiedArithmeticModel:
         is_negative = first_byte == MINUS
 
         is_digit = (segment_bytes >= ZERO) & (segment_bytes <= NINE)
-        digit_values = backend.where(is_digit, segment_bytes - ZERO, backend.zeros(max_len))
-
-        n_digits = backend.sum(is_digit.astype(float) if hasattr(is_digit, 'astype') else is_digit)
-
-        # Build cumsum for position tracking
-        cumsum = []
-        total = 0
-        for i in range(max_len):
-            if is_digit[i]:
-                total += 1
-            cumsum.append(total)
-        position_in_number = backend.array(cumsum) - 1
-
-        place_values = backend.where(
-            is_digit,
-            backend.power(10.0, n_digits - 1 - position_in_number),
-            backend.zeros(max_len)
+        digit_values = backend.where(
+            is_digit, segment_bytes - ZERO, backend.zeros(max_len)
         )
+
+        is_dot = segment_bytes == DOT
+        dot_exists = float(backend.sum(is_dot)) > 0
+
+        if not dot_exists:
+            # No decimal point: integer parsing
+            n_digits = backend.sum(
+                is_digit.astype(float) if hasattr(is_digit, "astype") else is_digit
+            )
+            # Build cumsum for position tracking
+            cumsum = []
+            total = 0
+            for i in range(max_len):
+                if is_digit[i]:
+                    total += 1
+                cumsum.append(total)
+            position_in_number = backend.array(cumsum) - 1
+            place_values = backend.where(
+                is_digit,
+                backend.power(10.0, n_digits - 1 - position_in_number),
+                backend.zeros(max_len),
+            )
+        else:
+            # Decimal point present
+            dot_positions = backend.where(is_dot, positions, max_len)
+            dot_pos = int(backend.argmin(dot_positions))
+            # Compute exponent for each digit: dot_pos - digit_position - 1 if before dot, else dot_pos - digit_position
+            digit_position = positions
+            exponent = backend.where(
+                digit_position < dot_pos,
+                dot_pos - digit_position - 1,
+                dot_pos - digit_position,
+            )
+            place_values = backend.where(
+                is_digit, backend.power(10.0, exponent), backend.zeros(max_len)
+            )
 
         value = backend.sum(digit_values * place_values)
         value = backend.where(is_negative, -value, value)
@@ -379,19 +406,19 @@ def evaluate_all_operations_ood(
     rng = np.random.default_rng(seed)
 
     operations = {
-        '+': lambda a, b: a + b,
-        '-': lambda a, b: a - b,
-        '*': lambda a, b: a * b,
-        '/': lambda a, b: a / b if b != 0 else 0,
+        "+": lambda a, b: a + b,
+        "-": lambda a, b: a - b,
+        "*": lambda a, b: a * b,
+        "/": lambda a, b: a / b if b != 0 else 0,
     }
 
     results = {}
 
     for op_char, op_fn in operations.items():
-        if op_char == '*':
+        if op_char == "*":
             a_vals = rng.integers(10, 1000, size=n_samples)
             b_vals = rng.integers(10, 1000, size=n_samples)
-        elif op_char == '/':
+        elif op_char == "/":
             a_vals = rng.integers(100, 10000, size=n_samples)
             b_vals = rng.integers(10, 100, size=n_samples)
         else:
@@ -404,7 +431,7 @@ def evaluate_all_operations_ood(
             a = int(a_vals[i])
             b = int(b_vals[i])
 
-            if op_char == '/' and b == 0:
+            if op_char == "/" and b == 0:
                 b = 1
 
             expected = op_fn(a, b)
@@ -423,7 +450,7 @@ def evaluate_all_operations_ood(
         accuracy = correct / n_samples
         results[op_char] = accuracy
 
-    results['overall'] = sum(results.values()) / len(operations)
+    results["overall"] = sum(results.values()) / len(operations)
 
     return results
 
@@ -454,7 +481,9 @@ if __name__ == "__main__":
         error = abs(result - expected)
         rel_error = error / abs(expected) if expected != 0 else error
         status = "PASS" if rel_error < 0.01 else "FAIL"
-        print(f"  {expr:12} = {result:>12.2f} (expected: {expected:>8}, rel_err: {rel_error:.2e}) [{status}]")
+        print(
+            f"  {expr:12} = {result:>12.2f} (expected: {expected:>8}, rel_err: {rel_error:.2e}) [{status}]"
+        )
 
     print("\nOut-of-distribution tests:")
 
@@ -472,7 +501,9 @@ if __name__ == "__main__":
         error = abs(result - expected)
         rel_error = error / abs(expected) if expected != 0 else error
         status = "PASS" if rel_error < 0.01 else "FAIL"
-        print(f"  {expr:16} = {result:>12.2f} (expected: {expected:>8}, rel_err: {rel_error:.2e}) [{status}]")
+        print(
+            f"  {expr:16} = {result:>12.2f} (expected: {expected:>8}, rel_err: {rel_error:.2e}) [{status}]"
+        )
 
     print("\nStatistical OOD evaluation:")
 

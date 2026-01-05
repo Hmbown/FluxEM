@@ -425,6 +425,7 @@ class ChordEncoder:
         Returns:
             128-dim embedding
         """
+        backend = get_backend()
         # Parse root to MIDI
         if isinstance(root, int):
             root_midi = root

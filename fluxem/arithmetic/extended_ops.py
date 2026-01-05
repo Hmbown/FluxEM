@@ -73,11 +73,7 @@ class ExtendedOps:
     # POWER OPERATIONS
     # =========================================================================
 
-    def power_from_embedding(
-        self,
-        base_emb: Any,
-        exponent: float
-    ) -> Any:
+    def power_from_embedding(self, base_emb: Any, exponent: float) -> Any:
         """
         Compute a^b in embedding space.
 
@@ -109,10 +105,12 @@ class ExtendedOps:
 
         sign_proj = backend.dot(base_emb, self.log_encoder.sign_direction) / 0.5
         base_sign = backend.sign(sign_proj)
-        base_sign = backend.where(backend.abs(sign_proj) < 0.1, backend.array(1.0), base_sign)
+        base_sign = backend.where(
+            backend.abs(sign_proj) < 0.1, backend.array(1.0), base_sign
+        )
 
         # Check if exponent is odd integer
-        exp_is_int = (exponent == int(exponent))
+        exp_is_int = exponent == int(exponent)
         exp_is_odd = (int(exponent) % 2 == 1) if exp_is_int else False
         result_sign = -1.0 if (float(base_sign) < 0 and exp_is_odd) else 1.0
 
@@ -134,7 +132,7 @@ class ExtendedOps:
         """
         Compute base^exponent using logarithmic embeddings.
 
-        Negative bases with non-integer exponents return magnitude only.
+        Negative bases with non-integer exponents return NaN.
 
         Parameters
         ----------
@@ -149,9 +147,9 @@ class ExtendedOps:
             base^exponent computed via embedding space.
         """
         if base == 0:
-            return 0.0 if exponent > 0 else float('inf')
+            return 0.0 if exponent > 0 else float("inf")
         if base < 0 and exponent != int(exponent):
-            base = abs(base)
+            return float("nan")
 
         base_emb = self.log_encoder.encode_number(base)
         result_emb = self.power_from_embedding(base_emb, exponent)
@@ -191,7 +189,7 @@ class ExtendedOps:
             sqrt(a) computed via embedding space.
         """
         if a < 0:
-            a = abs(a)
+            return float("nan")
         return self.power(a, 0.5)
 
     def cbrt_from_embedding(self, emb: Any) -> Any:
@@ -252,11 +250,11 @@ class ExtendedOps:
             nth_root(a) computed via embedding space.
         """
         if n == 0:
-            return float('inf')
+            return float("inf")
         if a < 0 and n % 2 == 1:
             return -self.power(abs(a), 1.0 / n)
         elif a < 0:
-            a = abs(a)
+            return float("nan")
         return self.power(a, 1.0 / n)
 
     # =========================================================================
@@ -338,7 +336,7 @@ class ExtendedOps:
             ln(a) computed via embedding space.
         """
         if a <= 0:
-            return float('-inf')
+            return float("-inf")
         emb = self.log_encoder.encode_number(a)
         return self.ln_from_embedding(emb)
 
@@ -361,7 +359,7 @@ class ExtendedOps:
             log_base(a).
         """
         if a <= 0 or base <= 0 or base == 1:
-            return float('nan')
+            return float("nan")
         return self.ln(a) / self.ln(base)
 
     def log10(self, a: float) -> float:
@@ -377,10 +375,7 @@ class ExtendedOps:
     # =========================================================================
 
     def verify_power_theorem(
-        self,
-        base: float,
-        exponent: float,
-        tol: float = 0.01
+        self, base: float, exponent: float, tol: float = 0.01
     ) -> bool:
         """
         Verify that log_embed(a^b) ~ b * log_embed(a).
@@ -400,7 +395,7 @@ class ExtendedOps:
         if base <= 0:
             return True
 
-        expected = base ** exponent
+        expected = base**exponent
         computed = self.power(base, exponent)
 
         if expected == 0:
@@ -463,7 +458,9 @@ if __name__ == "__main__":
         result = ops.power(base, exp)
         rel_error = abs(result - expected) / expected if expected != 0 else 0
         status = "PASS" if rel_error < 0.01 else "FAIL"
-        print(f"  {base}^{exp} = {result:.2f} (expected: {expected}, rel_err: {rel_error:.2e}) [{status}]")
+        print(
+            f"  {base}^{exp} = {result:.2f} (expected: {expected}, rel_err: {rel_error:.2e}) [{status}]"
+        )
 
     print("\nRoot operations: log_embed(nth_root(a)) = (1/n) * log_embed(a)")
 
@@ -487,23 +484,27 @@ if __name__ == "__main__":
             symbol = "cbrt"
         rel_error = abs(result - expected) / expected if expected != 0 else 0
         status = "PASS" if rel_error < 0.01 else "FAIL"
-        print(f"  {symbol}({val}) = {result:.2f} (expected: {expected}, rel_err: {rel_error:.2e}) [{status}]")
+        print(
+            f"  {symbol}({val}) = {result:.2f} (expected: {expected}, rel_err: {rel_error:.2e}) [{status}]"
+        )
 
     print("\nExponential: exp(x) = e^x")
 
     exp_tests = [
         (0, 1),
         (1, math.e),
-        (2, math.e ** 2),
-        (5, math.e ** 5),
-        (10, math.e ** 10),
+        (2, math.e**2),
+        (5, math.e**5),
+        (10, math.e**10),
     ]
 
     for x, expected in exp_tests:
         result = ops.exp(x)
         rel_error = abs(result - expected) / expected if expected != 0 else 0
         status = "PASS" if rel_error < 0.01 else "FAIL"
-        print(f"  exp({x}) = {result:.2f} (expected: {expected:.2f}, rel_err: {rel_error:.2e}) [{status}]")
+        print(
+            f"  exp({x}) = {result:.2f} (expected: {expected:.2f}, rel_err: {rel_error:.2e}) [{status}]"
+        )
 
     print("\nNatural log: ln(x)")
 
@@ -519,7 +520,9 @@ if __name__ == "__main__":
         result = ops.ln(x)
         abs_error = abs(result - expected)
         status = "PASS" if abs_error < 0.1 else "FAIL"
-        print(f"  ln({x}) = {result:.4f} (expected: {expected:.4f}, abs_err: {abs_error:.2e}) [{status}]")
+        print(
+            f"  ln({x}) = {result:.4f} (expected: {expected:.4f}, abs_err: {abs_error:.2e}) [{status}]"
+        )
 
     print("\nExp-ln inverse: ln(exp(x)) = x")
 
@@ -528,4 +531,6 @@ if __name__ == "__main__":
         ln_exp_x = ops.ln(exp_x)
         error = abs(ln_exp_x - x)
         status = "PASS" if error < 0.1 else "FAIL"
-        print(f"  ln(exp({x})) = {ln_exp_x:.4f} (expected: {x}, error: {error:.2e}) [{status}]")
+        print(
+            f"  ln(exp({x})) = {ln_exp_x:.4f} (expected: {x}, error: {error:.2e}) [{status}]"
+        )

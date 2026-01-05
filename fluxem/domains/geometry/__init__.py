@@ -32,6 +32,8 @@ from .shapes import (
     ShapeType,
 )
 
+TriangleEncoder = ShapeEncoder
+
 __all__ = [
     # Points
     "Point2D",
@@ -51,6 +53,7 @@ __all__ = [
     "reflect",
     # Shapes
     "Triangle",
+    "TriangleEncoder",
     "Rectangle",
     "Circle",
     "Polygon",

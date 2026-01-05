@@ -79,6 +79,23 @@ class TestOOD:
 class TestEdgeCases:
     """Tests for edge cases."""
 
+    def test_decimal_parsing(self, model):
+        """Test decimal parsing accuracy."""
+        test_cases = [
+            ("1.5+1.5=", 3.0),
+            ("2.5*2=", 5.0),
+            ("10.5-0.5=", 10.0),
+            ("0.5+0.5=", 1.0),
+        ]
+        for expr, expected in test_cases:
+            result = model.compute(expr)
+            assert result == expected, f"Failed for {expr}: got {result}"
+
+    def test_large_multiplication_accuracy(self, model):
+        """Test large integer multiplication accuracy."""
+        result = model.compute("999999*999999=")
+        assert result == 999998000001
+
     def test_division_by_zero_positive(self, model):
         """Test division by zero with positive numerator."""
         result = model.compute("5/0")

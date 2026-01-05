@@ -69,6 +69,11 @@ class TestSqrt:
             rel_error = abs(result - expected) / expected
             assert rel_error < 0.01, f"Failed for sqrt({n}): got {result}"
 
+    def test_sqrt_negative_returns_nan(self, ops):
+        """Test sqrt of negative numbers returns NaN."""
+        result = ops.sqrt(-1)
+        assert math.isnan(result)
+
 
 class TestCbrt:
     """Tests for cube root."""

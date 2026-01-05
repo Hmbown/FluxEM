@@ -83,7 +83,7 @@ class MultiDomainTokenizer:
         # Arithmetic expression: 123 + 456, 10 * 20
         "arithmetic": r"\d+\.?\d*\s*[+\-*/]\s*\d+\.?\d*",
         # Quantity with unit: 10 m/s, 3.14 kg*m/s^2, 9.8 m/s²
-        "quantity": r"(\d+\.?\d*(?:e[+-]?\d+)?)\s*((?:[a-zA-Z]+(?:\^-?\d+)?[*/]?)+)",
+        "quantity": r"(\d+\.?\d*(?:e[+-]?\d+)?)\s*((?:[a-zA-Z]{1,4}(?:\^-?\d+)?(?:\s*[*/]\s*[a-zA-Z]{1,4}(?:\^-?\d+)?)*)+)\b",
         # Chemical reaction: 2H2 + O2 -> 2H2O
         "reaction": r"((?:[A-Z][a-z]?\d*)+(?:\s*\+\s*(?:[A-Z][a-z]?\d*)+)*)\s*(?:->|→|⟶)\s*((?:[A-Z][a-z]?\d*)+(?:\s*\+\s*(?:[A-Z][a-z]?\d*)+)*)",
         # Chemical formula: H2O, C6H12O6, NaCl
@@ -170,6 +170,10 @@ class MultiDomainTokenizer:
                 if pattern_name == "formula":
                     if not self._is_valid_formula(match.group(0)):
                         continue
+                if pattern_name == "quantity":
+                    unit = match.group(2)
+                    if not self._is_valid_quantity_unit(unit):
+                        continue
                 # Skip DNA/protein sequences that are too short
                 if pattern_name in ["dna", "rna", "protein"]:
                     # Pattern already enforces minimum length
@@ -208,6 +212,24 @@ class MultiDomainTokenizer:
         has_multiple_caps = sum(1 for c in text if c.isupper()) > 1
 
         return has_number or has_multiple_caps
+
+    def _is_valid_quantity_unit(self, unit: str) -> bool:
+        """Validate that a quantity unit token is a known physics unit."""
+        try:
+            from ..domains.physics.units import ALL_UNITS, BASE_UNIT_ALIASES
+        except Exception:
+            return False
+
+        parts = re.findall(r"[A-Za-z]+", unit)
+        if not parts:
+            return False
+
+        for part in parts:
+            if part in ALL_UNITS or part in BASE_UNIT_ALIASES:
+                continue
+            return False
+
+        return True
 
     def _parse_metadata(self, pattern_name: str, match: re.Match) -> Dict[str, Any]:
         """Parse metadata from regex match."""

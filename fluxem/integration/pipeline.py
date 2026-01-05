@@ -308,7 +308,13 @@ class TrainingPipeline:
 
         if projector_config is None:
             projector_config = ProjectorConfig(llm_hidden_dim=llm_hidden_dim)
-        self.projector = MultiDomainProjector(projector_config)
+        try:
+            self.projector = MultiDomainProjector(projector_config)
+        except ImportError as exc:
+            raise ImportError(
+                "TrainingPipeline requires MLX (mlx.nn). Install with `pip install fluxem[mlx]` "
+                "or avoid TrainingPipeline on non-MLX environments."
+            ) from exc
 
     def encode(self, text: str) -> EncodedSequence:
         """

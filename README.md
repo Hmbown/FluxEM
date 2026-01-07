@@ -180,6 +180,27 @@ FluxEM                ood_magnitude    1.000000       1.000000
 Character             ood_magnitude    0.000000       0.012000
 ```
 
+## Tool-Calling Orchestration (Qwen3)
+
+We also explore FluxEM as a **tool suite** for LLMs rather than a learned embedding. The `experiments/qwen3_toolcalling/` package wraps Qwen3 for **domain routing + query extraction**, then calls FluxEM tools and returns their outputs directly. This line of work is inspired by NVIDIA’s ToolOrchestra research (https://research.nvidia.com/labs/lpr/ToolOrchestra/) and asks a related question: what counts as a “tool” when the knowledge is algebraic and not naturally tokenized? Our hypothesis is that aligning these operators as tools can yield more reliable outcomes with less compute than trying to learn them from text alone.
+
+We provide **internal benchmarks** to validate the workflow and surface failure modes. These are synthetic and not meant to substitute for public evaluations; they are included for transparency and reproducibility. If you want to compare against external datasets, treat this as a baseline orchestrator with a clear audit trail.
+
+Key artifacts:
+- Method + usage: `experiments/qwen3_toolcalling/README.md`
+- Reports + plots: `experiments/qwen3_toolcalling/results/benchmark_report.md`,
+  `experiments/qwen3_toolcalling/results/accuracy_comparison.png`,
+  `experiments/qwen3_toolcalling/results/time_comparison.png`,
+  `experiments/qwen3_toolcalling/results/improvement_heatmap.png`
+- Raw logs: `experiments/qwen3_toolcalling/results/benchmark_results_*.json`
+
+Example run:
+```bash
+python experiments/qwen3_toolcalling/run_benchmark.py \
+  --quick-test \
+  --save-results
+```
+
 ## Installation
 
 ```bash

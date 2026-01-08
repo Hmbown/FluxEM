@@ -1,0 +1,1341 @@
+{
+  "timestamp": "20260106_185704",
+  "model_path": "~/.mlx/models/Qwen/Qwen3-4B-Instruct-MLX",
+  "mlx_available": false,
+  "total_domains": 11,
+  "domains_tested": [
+    "arithmetic",
+    "physics",
+    "chemistry",
+    "biology",
+    "math",
+    "music",
+    "geometry",
+    "graphs",
+    "sets",
+    "logic",
+    "number_theory"
+  ],
+  "domain_metrics": {
+    "arithmetic": {
+      "domain": "arithmetic",
+      "total_queries": 5,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 40.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.08344650268554688,
+      "avg_baseline_time_ms": 0.00095367431640625,
+      "improvement_ratio": Infinity
+    },
+    "physics": {
+      "domain": "physics",
+      "total_queries": 5,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 20.0,
+      "answer_accuracy": 0.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.04582405090332031,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "chemistry": {
+      "domain": "chemistry",
+      "total_queries": 4,
+      "domain_detection_accuracy": 50.0,
+      "tool_success_rate": 50.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.06389617919921875,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "biology": {
+      "domain": "biology",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 75.0,
+      "answer_accuracy": 0.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.012159347534179688,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "math": {
+      "domain": "math",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 75.0,
+      "answer_accuracy": 25.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.044286251068115234,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "music": {
+      "domain": "music",
+      "total_queries": 4,
+      "domain_detection_accuracy": 50.0,
+      "tool_success_rate": 50.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.009238719940185547,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "geometry": {
+      "domain": "geometry",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 75.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.013172626495361328,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "graphs": {
+      "domain": "graphs",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.05042552947998047,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "sets": {
+      "domain": "sets",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 75.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.01627206802368164,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "logic": {
+      "domain": "logic",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 75.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.014464060465494791,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "number_theory": {
+      "domain": "number_theory",
+      "total_queries": 4,
+      "domain_detection_accuracy": 50.0,
+      "tool_success_rate": 50.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.005245208740234375,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    }
+  },
+  "results": {
+    "arithmetic": {
+      "total": 5,
+      "correct": 2,
+      "accuracy": 0.4,
+      "results": [
+        {
+          "prompt": "What is 54 * 44?",
+          "expected": 2376.0,
+          "tool_call": {
+            "response": 2376.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.1862049102783203
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Calculate 2**16",
+          "expected": 65536.0,
+          "tool_call": {
+            "response": 65536.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.05507469177246094
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 81 + 14 - 7?",
+          "expected": 88.0,
+          "tool_call": {
+            "response": 95.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.06818771362304688
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Compute 1000 / 8 * 3",
+          "expected": 375.0,
+          "tool_call": {
+            "response": 125.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.05793571472167969
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 54 * 44 / 11?",
+          "expected": 216.0,
+          "tool_call": {
+            "response": 2376.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.04982948303222656
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.00095367431640625
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "physics": {
+      "total": 5,
+      "correct": 0,
+      "accuracy": 0.0,
+      "results": [
+        {
+          "prompt": "What are the dimensions of 9.8 m/s^2?",
+          "expected": {
+            "L": 0.0,
+            "M": 1.0,
+            "T": -2.0
+          },
+          "tool_call": {
+            "response": [
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              1.0,
+              -2.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.20000000298023224,
+              -0.8666666746139526,
+              1.0,
+              -0.8666666746139526,
+              0.8666666746139526,
+              -0.8666666746139526,
+              -1.0,
+              0.46666666865348816,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tool_name": "physics_dimensions",
+            "tool_success": true,
+            "time_ms": 0.08702278137207031
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": null,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Convert 5 km to meters",
+          "expected": 5000.0,
+          "tool_call": {
+            "response": null,
+            "tool_name": "physics_convert",
+            "tool_success": false,
+            "time_ms": 0.08106231689453125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "Convert 9.8 m/s^2 to N (newtons)",
+          "expected": 9.8,
+          "tool_call": {
+            "response": null,
+            "tool_name": "physics_convert",
+            "tool_success": false,
+            "time_ms": 0.03409385681152344
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "How many meters in 3.5 km?",
+          "expected": 3500.0,
+          "tool_call": {
+            "response": null,
+            "tool_name": "physics_convert",
+            "tool_success": false,
+            "time_ms": 0.003814697265625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "Convert 100 kg to grams",
+          "expected": 100000.0,
+          "tool_call": {
+            "response": null,
+            "tool_name": "physics_convert",
+            "tool_success": false,
+            "time_ms": 0.023126602172851562
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": false
+          }
+        }
+      ]
+    },
+    "chemistry": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 0.5,
+      "results": [
+        {
+          "prompt": "What's the molecular formula of glucose?",
+          "expected": "C6H12O6",
+          "tool_call": {
+            "response": "C6H12O6",
+            "tool_name": "chemistry_formula",
+            "tool_success": true,
+            "time_ms": 0.1239776611328125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular weight of H2O?",
+          "expected": 18.01528,
+          "tool_call": {
+            "response": null,
+            "tool_name": null,
+            "tool_success": false,
+            "time_ms": 0.0
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "Balance: H2 + O2 -> H2O",
+          "expected": "Balanced: 2 H2 + 1 O2 -> 2 H2O",
+          "tool_call": {
+            "response": "Balanced: 2 H2 + 1 O2 -> 2 H2O",
+            "tool_name": "chemistry_balance_simple",
+            "tool_success": true,
+            "time_ms": 0.003814697265625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular weight of C6H12O6?",
+          "expected": 180.156,
+          "tool_call": {
+            "response": null,
+            "tool_name": null,
+            "tool_success": false,
+            "time_ms": 0.0
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        }
+      ]
+    },
+    "biology": {
+      "total": 4,
+      "correct": 0,
+      "accuracy": 0.0,
+      "results": [
+        {
+          "prompt": "What's the GC content of GATTACA?",
+          "expected": 0.42857,
+          "tool_call": {
+            "response": 0.0,
+            "tool_name": "biology_gc_content",
+            "tool_success": true,
+            "time_ms": 0.026941299438476562
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What's the molecular weight of ATCG?",
+          "expected": 990.66,
+          "tool_call": {
+            "response": null,
+            "tool_name": null,
+            "tool_success": false,
+            "time_ms": 0.0
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "Generate the complementary sequence of ATCG",
+          "expected": "TAGC",
+          "tool_call": {
+            "response": "C",
+            "tool_name": "biology_complement",
+            "tool_success": true,
+            "time_ms": 0.00476837158203125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What's the GC content of the reverse complement of GATTACA?",
+          "expected": 0.57143,
+          "tool_call": {
+            "response": 0.0,
+            "tool_name": "biology_reverse_complement_gc",
+            "tool_success": true,
+            "time_ms": 0.00476837158203125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "math": {
+      "total": 4,
+      "correct": 1,
+      "accuracy": 0.25,
+      "results": [
+        {
+          "prompt": "What is the magnitude of vector [3, 4]?",
+          "expected": 5.0,
+          "tool_call": {
+            "response": null,
+            "tool_name": "math_vector",
+            "tool_success": false,
+            "time_ms": 0.04887580871582031
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "What is the dot product of [1, 2, 3] and [4, 5, 6]?",
+          "expected": 32.0,
+          "tool_call": {
+            "response": 32.00000108330255,
+            "tool_name": "math_dot",
+            "tool_success": true,
+            "time_ms": 0.03719329833984375
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Calculate the determinant of [[1, 2], [3, 4]]",
+          "expected": -2.0,
+          "tool_call": {
+            "response": 0.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.06699562072753906
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Normalize the vector [3, 4]",
+          "expected": [
+            0.6,
+            0.8
+          ],
+          "tool_call": {
+            "response": [
+              0.5999999938579831,
+              0.7999999789908212
+            ],
+            "tool_name": "math_normalize",
+            "tool_success": true,
+            "time_ms": 0.024080276489257812
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "music": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 0.5,
+      "results": [
+        {
+          "prompt": "What is the prime form of [0, 4, 7]?",
+          "expected": [
+            0,
+            4,
+            7
+          ],
+          "tool_call": {
+            "response": [
+              0,
+              4,
+              7
+            ],
+            "tool_name": "music_prime_form",
+            "tool_success": true,
+            "time_ms": 0.015735626220703125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the normal form of [7, 0, 4, 7]?",
+          "expected": [
+            0,
+            4,
+            7
+          ],
+          "tool_call": {
+            "response": null,
+            "tool_name": "math_vector",
+            "tool_success": false,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "What chord type is [0, 4, 7]?",
+          "expected": "major triad",
+          "tool_call": {
+            "response": "major triad",
+            "tool_name": "music_chord_type",
+            "tool_success": true,
+            "time_ms": 0.005245208740234375
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Transpose [0, 4, 7] by 7 semitones",
+          "expected": [
+            7,
+            11,
+            2
+          ],
+          "tool_call": {
+            "response": null,
+            "tool_name": "math_vector",
+            "tool_success": false,
+            "time_ms": 0.011920928955078125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        }
+      ]
+    },
+    "geometry": {
+      "total": 4,
+      "correct": 3,
+      "accuracy": 0.75,
+      "results": [
+        {
+          "prompt": "What's the distance between [0, 0] and [3, 4]?",
+          "expected": 5.0,
+          "tool_call": {
+            "response": 5.0,
+            "tool_name": "geometry_distance",
+            "tool_success": true,
+            "time_ms": 0.0069141387939453125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Find the midpoint of [0, 0] and [3, 4]",
+          "expected": [
+            1.5,
+            2.0
+          ],
+          "tool_call": {
+            "response": [
+              1.5,
+              2.0
+            ],
+            "tool_name": "geometry_midpoint",
+            "tool_success": true,
+            "time_ms": 0.0059604644775390625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What's the distance from the origin to [3, 4]?",
+          "expected": 5.0,
+          "tool_call": {
+            "response": 5.0,
+            "tool_name": "geometry_distance",
+            "tool_success": true,
+            "time_ms": 0.0059604644775390625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Rotate [1, 0] by 90 degrees (\u03c0/2 radians)",
+          "expected": [
+            0.0,
+            1.0
+          ],
+          "tool_call": {
+            "response": [
+              0.9998476951563913,
+              0.01745240643728351
+            ],
+            "tool_name": "geometry_rotate",
+            "tool_success": true,
+            "time_ms": 0.033855438232421875
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "graphs": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 0.5,
+      "results": [
+        {
+          "prompt": "What's the shortest path from node 0 to node 3 in Graph(nodes={0,1,2,3}, edges=[(0,1),(1,2),(2,3)])?",
+          "expected": {
+            "path": [
+              0,
+              1,
+              2
+            ],
+            "distance": 2
+          },
+          "tool_call": {
+            "response": {
+              "path": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "distance": 3
+            },
+            "tool_name": "graphs_shortest_path",
+            "tool_success": true,
+            "time_ms": 0.12063980102539062
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is this graph connected: Graph(nodes={0,1,2}, edges=[(0,1),(1,2),(2,0)])?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "graphs_is_connected",
+            "tool_success": true,
+            "time_ms": 0.04410743713378906
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is Graph(nodes={0,1,2,3}, edges=[(0,1),(1,2),(2,0)]) a tree?",
+          "expected": true,
+          "tool_call": {
+            "response": false,
+            "tool_name": "graphs_is_tree",
+            "tool_success": true,
+            "time_ms": 0.028848648071289062
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "How many nodes does this graph have: Graph(nodes={0,1,2,3,4}, edges=[(0,1),(1,2),(2,3),(3,4)])?",
+          "expected": 5,
+          "tool_call": {
+            "response": 5,
+            "tool_name": "graphs_node_count",
+            "tool_success": true,
+            "time_ms": 0.008106231689453125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "sets": {
+      "total": 4,
+      "correct": 3,
+      "accuracy": 0.75,
+      "results": [
+        {
+          "prompt": "What is the union of {1, 2, 3} and {2, 3, 4}?",
+          "expected": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "tool_call": {
+            "response": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "tool_name": "sets_union",
+            "tool_success": true,
+            "time_ms": 0.04887580871582031
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the intersection of {1, 2, 3} and {2, 3, 4}?",
+          "expected": [
+            2,
+            3
+          ],
+          "tool_call": {
+            "response": [
+              2,
+              3
+            ],
+            "tool_name": "sets_intersection",
+            "tool_success": true,
+            "time_ms": 0.008106231689453125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is {1, 2} a subset of {1, 2, 3, 4}?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "sets_subset",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the complement of {1, 2, 3} relative to {1, 2, 3, 4}?",
+          "expected": [
+            4
+          ],
+          "tool_call": {
+            "response": "TA",
+            "tool_name": "biology_complement",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "logic": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 0.5,
+      "results": [
+        {
+          "prompt": "Is 'p or not p' a tautology?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "logic_tautology",
+            "tool_success": true,
+            "time_ms": 0.036716461181640625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is '(p and q) or (not p and not q)' a tautology?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "logic_tautology",
+            "tool_success": true,
+            "time_ms": 0.003814697265625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is 'p implies q' and 'q implies r' true when p=1, q=2, r=3?",
+          "expected": true,
+          "tool_call": {
+            "response": null,
+            "tool_name": null,
+            "tool_success": false,
+            "time_ms": 0.0
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "Are '(p and not q) and (not p and not q)' logically equivalent?",
+          "expected": true,
+          "tool_call": {
+            "response": false,
+            "tool_name": "logic_tautology",
+            "tool_success": true,
+            "time_ms": 0.00286102294921875
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "number_theory": {
+      "total": 4,
+      "correct": 2,
+      "accuracy": 0.5,
+      "results": [
+        {
+          "prompt": "Is 17 prime?",
+          "expected": true,
+          "tool_call": {
+            "response": null,
+            "tool_name": "music_prime_form",
+            "tool_success": false,
+            "time_ms": 0.007152557373046875
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "What is the GCD of 12 and 18?",
+          "expected": 6,
+          "tool_call": {
+            "response": 6,
+            "tool_name": "number_theory_gcd",
+            "tool_success": true,
+            "time_ms": 0.0050067901611328125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is 97 prime?",
+          "expected": false,
+          "tool_call": {
+            "response": null,
+            "tool_name": "music_prime_form",
+            "tool_success": false,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": false,
+            "tool_success": false
+          }
+        },
+        {
+          "prompt": "What is the GCD of 24, 36, and 48?",
+          "expected": 12,
+          "tool_call": {
+            "response": 12,
+            "tool_name": "number_theory_gcd",
+            "tool_success": true,
+            "time_ms": 0.00476837158203125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    }
+  }
+}

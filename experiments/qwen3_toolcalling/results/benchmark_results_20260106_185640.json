@@ -1,0 +1,263 @@
+{
+  "timestamp": "20260106_185640",
+  "model_path": "~/.mlx/models/Qwen/Qwen3-4B-Instruct-MLX",
+  "mlx_available": false,
+  "total_domains": 11,
+  "domains_tested": [
+    "arithmetic",
+    "physics",
+    "chemistry",
+    "biology",
+    "math",
+    "music",
+    "geometry",
+    "graphs",
+    "sets",
+    "logic",
+    "number_theory"
+  ],
+  "domain_metrics": {
+    "arithmetic": {
+      "domain": "arithmetic",
+      "total_queries": 5,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 40.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.2895355224609375,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "physics": {
+      "domain": "physics",
+      "total_queries": 5,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 20.0,
+      "answer_accuracy": 0.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.04749298095703125,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "chemistry": {
+      "domain": "chemistry",
+      "total_queries": 4,
+      "domain_detection_accuracy": 50.0,
+      "tool_success_rate": 50.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.055670738220214844,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "biology": {
+      "domain": "biology",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 75.0,
+      "answer_accuracy": 0.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.012715657552083334,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "math": {
+      "domain": "math",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 75.0,
+      "answer_accuracy": 25.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.04404783248901367,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "music": {
+      "domain": "music",
+      "total_queries": 4,
+      "domain_detection_accuracy": 50.0,
+      "tool_success_rate": 50.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.010013580322265625,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "geometry": {
+      "domain": "geometry",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 75.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.015437602996826172,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "graphs": {
+      "domain": "graphs",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.052034854888916016,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "sets": {
+      "domain": "sets",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 75.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.016391277313232422,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "logic": {
+      "domain": "logic",
+      "total_queries": 4,
+      "domain_detection_accuracy": 75.0,
+      "tool_success_rate": 75.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.014066696166992188,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    },
+    "number_theory": {
+      "domain": "number_theory",
+      "total_queries": 4,
+      "domain_detection_accuracy": 50.0,
+      "tool_success_rate": 50.0,
+      "answer_accuracy": 50.0,
+      "baseline_accuracy": 0.0,
+      "avg_tool_time_ms": 0.004291534423828125,
+      "avg_baseline_time_ms": 0.0,
+      "improvement_ratio": Infinity
+    }
+  },
+  "results": {
+    "arithmetic": {
+      "total": 5,
+      "correct": 2,
+      "accuracy": 0.4,
+      "results": [
+        {
+          "prompt": "What is 54 * 44?",
+          "expected": 2376.0,
+          "tool_call": {
+            "response": 2376.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 1.19781494140625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Calculate 2**16",
+          "expected": 65536.0,
+          "tool_call": {
+            "response": 65536.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.05888938903808594
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 81 + 14 - 7?",
+          "expected": 88.0,
+          "tool_call": {
+            "response": 95.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.07081031799316406
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Compute 1000 / 8 * 3",
+          "expected": 375.0,
+          "tool_call": {
+            "response": 125.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.06198883056640625
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 54 * 44 / 11?",
+          "expected": 216.0,
+          "tool_call": {
+            "response": 2376.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.05817413330078125
+          },
+          "baseline": {
+            "response": "Model not loaded. Baseline response unavailable.",
+            "time_ms": 0.0
+          },
+          "evaluation": {
+            "correct": false,
+            "baseline_correct": false,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "physics": {
+      "total": 5,
+      "correct": 0,
+      "accuracy": 0.0,
+      "results": [
+        {
+          "prompt": "What are the dimensions of 9.8 m/s^2?",
+          "expected": {
+            "L": 0.0,
+            "M": 1.0,
+            "T": -2.0
+          },
+          "tool_call": {
+            "response": 

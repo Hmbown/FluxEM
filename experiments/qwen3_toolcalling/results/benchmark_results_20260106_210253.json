@@ -1,0 +1,1662 @@
+{
+  "timestamp": "20260106_210253",
+  "model_path": "~/.mlx/models/Qwen/Qwen3-4B-Instruct-MLX",
+  "mlx_available": false,
+  "total_domains": 11,
+  "domains_tested": [
+    "arithmetic",
+    "physics",
+    "chemistry",
+    "biology",
+    "math",
+    "music",
+    "geometry",
+    "graphs",
+    "sets",
+    "logic",
+    "number_theory"
+  ],
+  "domain_metrics": {
+    "arithmetic": {
+      "domain": "arithmetic",
+      "total_queries": 10,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.02257823944091797,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "physics": {
+      "domain": "physics",
+      "total_queries": 5,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.13866424560546875,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "chemistry": {
+      "domain": "chemistry",
+      "total_queries": 8,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.038236379623413086,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "biology": {
+      "domain": "biology",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.014722347259521484,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "math": {
+      "domain": "math",
+      "total_queries": 8,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.030338764190673828,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "music": {
+      "domain": "music",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.016927719116210938,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "geometry": {
+      "domain": "geometry",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.014543533325195312,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "graphs": {
+      "domain": "graphs",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.04684925079345703,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "sets": {
+      "domain": "sets",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.014722347259521484,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "logic": {
+      "domain": "logic",
+      "total_queries": 4,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.010013580322265625,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    },
+    "number_theory": {
+      "domain": "number_theory",
+      "total_queries": 11,
+      "domain_detection_accuracy": 100.0,
+      "tool_success_rate": 100.0,
+      "answer_accuracy": 100.0,
+      "baseline_accuracy": null,
+      "avg_tool_time_ms": 0.0191818584095348,
+      "avg_baseline_time_ms": null,
+      "improvement_ratio": null
+    }
+  },
+  "results": {
+    "arithmetic": {
+      "total": 10,
+      "correct": 10,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What is 54 * 44?",
+          "expected": 2376.0,
+          "tool_call": {
+            "response": 2376.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.12874603271484375
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Calculate 2**16",
+          "expected": 65536.0,
+          "tool_call": {
+            "response": 65536.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.014066696166992188
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 81 + 14 - 7?",
+          "expected": 88.0,
+          "tool_call": {
+            "response": 88.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.013113021850585938
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Compute 1000 / 8 * 3",
+          "expected": 375.0,
+          "tool_call": {
+            "response": 375.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.010013580322265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 54 * 44 / 11?",
+          "expected": 216.0,
+          "tool_call": {
+            "response": 216.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.009298324584960938
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 123456789 * 987654321?",
+          "expected": 1.2193263111263526e+17,
+          "tool_call": {
+            "response": 1.2193263111263526e+17,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.007867813110351562
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Calculate (2.718281828)^10",
+          "expected": 22026.465794806718,
+          "tool_call": {
+            "response": 22026.465757609883,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.009775161743164062
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the exact value of pi * 10^6?",
+          "expected": 3141592.653589793,
+          "tool_call": {
+            "response": 3141592.653589793,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.014066696166992188
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Compute 1 / 7 as a decimal to 20 places",
+          "expected": 0.14285714285714285,
+          "tool_call": {
+            "response": 0.14285714285714285,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.010967254638671875
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 999999999999999 / 3?",
+          "expected": 333333333333333.0,
+          "tool_call": {
+            "response": 333333333333333.0,
+            "tool_name": "arithmetic",
+            "tool_success": true,
+            "time_ms": 0.007867813110351562
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "physics": {
+      "total": 5,
+      "correct": 5,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What are the dimensions of 9.8 m/s^2?",
+          "expected": {
+            "L": 1.0,
+            "T": -2.0
+          },
+          "tool_call": {
+            "response": {
+              "M": 0,
+              "L": 1,
+              "T": -2,
+              "I": 0,
+              "Theta": 0,
+              "N": 0,
+              "J": 0
+            },
+            "tool_name": "physics_dimensions",
+            "tool_success": true,
+            "time_ms": 0.07200241088867188
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Convert 5 km to meters",
+          "expected": 5000.0,
+          "tool_call": {
+            "response": 5000.000479631573,
+            "tool_name": "physics_convert",
+            "tool_success": true,
+            "time_ms": 0.4551410675048828
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Convert 9.8 N to kg*m/s^2",
+          "expected": 9.8,
+          "tool_call": {
+            "response": 9.8,
+            "tool_name": "physics_convert",
+            "tool_success": true,
+            "time_ms": 0.06890296936035156
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "How many meters in 3.5 km?",
+          "expected": 3500.0,
+          "tool_call": {
+            "response": 3500.000335742102,
+            "tool_name": "physics_convert",
+            "tool_success": true,
+            "time_ms": 0.05316734313964844
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Convert 100 kg to grams",
+          "expected": 100000.0,
+          "tool_call": {
+            "response": 100000.00959263147,
+            "tool_name": "physics_convert",
+            "tool_success": true,
+            "time_ms": 0.04410743713378906
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "chemistry": {
+      "total": 8,
+      "correct": 8,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What's the molecular formula of glucose?",
+          "expected": "C6H12O6",
+          "tool_call": {
+            "response": "C6H12O6",
+            "tool_name": "chemistry_formula",
+            "tool_success": true,
+            "time_ms": 0.09489059448242188
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular weight of H2O?",
+          "expected": 18.01528,
+          "tool_call": {
+            "response": 18.016,
+            "tool_name": "chemistry_molecule",
+            "tool_success": true,
+            "time_ms": 0.12302398681640625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Balance: H2 + O2 -> H2O",
+          "expected": "Balanced: 2 H2 + 1 O2 -> 2 H2O",
+          "tool_call": {
+            "response": "Balanced: 2 H2 + 1 O2 -> 2 H2O",
+            "tool_name": "chemistry_balance_simple",
+            "tool_success": true,
+            "time_ms": 0.0030994415283203125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular weight of C6H12O6?",
+          "expected": 180.156,
+          "tool_call": {
+            "response": 180.156,
+            "tool_name": "chemistry_molecule",
+            "tool_success": true,
+            "time_ms": 0.030994415283203125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular formula of caffeine?",
+          "expected": "C8H10N4O2",
+          "tool_call": {
+            "response": "C8H10N4O2",
+            "tool_name": "chemistry_formula",
+            "tool_success": true,
+            "time_ms": 0.0030994415283203125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular weight of caffeine (C8H10N4O2)?",
+          "expected": 194.19,
+          "tool_call": {
+            "response": 194.2,
+            "tool_name": "chemistry_molecule",
+            "tool_success": true,
+            "time_ms": 0.025987625122070312
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular formula of aspirin?",
+          "expected": "C9H8O4",
+          "tool_call": {
+            "response": "C9H8O4",
+            "tool_name": "chemistry_formula",
+            "tool_success": true,
+            "time_ms": 0.00286102294921875
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the molecular weight of aspirin (C9H8O4)?",
+          "expected": 180.16,
+          "tool_call": {
+            "response": 180.154,
+            "tool_name": "chemistry_molecule",
+            "tool_success": true,
+            "time_ms": 0.02193450927734375
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "biology": {
+      "total": 4,
+      "correct": 4,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What's the GC content of GATTACA?",
+          "expected": 0.28571,
+          "tool_call": {
+            "response": 0.2857142857142857,
+            "tool_name": "biology_gc_content",
+            "tool_success": true,
+            "time_ms": 0.04696846008300781
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What's the molecular weight of ATCG?",
+          "expected": 1235.79,
+          "tool_call": {
+            "response": 1235.79,
+            "tool_name": "biology_mw",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Generate the complementary sequence of ATCG",
+          "expected": "TAGC",
+          "tool_call": {
+            "response": "TAGC",
+            "tool_name": "biology_complement",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What's the GC content of the reverse complement of GATTACA?",
+          "expected": 0.28571,
+          "tool_call": {
+            "response": 0.2857142857142857,
+            "tool_name": "biology_reverse_complement_gc",
+            "tool_success": true,
+            "time_ms": 0.003814697265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "math": {
+      "total": 8,
+      "correct": 8,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What is the magnitude of vector [3, 4]?",
+          "expected": 5.0,
+          "tool_call": {
+            "response": 5.000000150353914,
+            "tool_name": "math_vector",
+            "tool_success": true,
+            "time_ms": 0.052928924560546875
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the dot product of [1, 2, 3] and [4, 5, 6]?",
+          "expected": 32.0,
+          "tool_call": {
+            "response": 32.00000108330255,
+            "tool_name": "math_dot",
+            "tool_success": true,
+            "time_ms": 0.02384185791015625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Calculate the determinant of [[1, 2], [3, 4]]",
+          "expected": -2.0,
+          "tool_call": {
+            "response": -2.0000000038093084,
+            "tool_name": "math_determinant",
+            "tool_success": true,
+            "time_ms": 0.06103515625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Normalize the vector [3, 4]",
+          "expected": [
+            0.6,
+            0.8
+          ],
+          "tool_call": {
+            "response": [
+              0.5999999938579831,
+              0.7999999789908212
+            ],
+            "tool_name": "math_normalize",
+            "tool_success": true,
+            "time_ms": 0.017881393432617188
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the dot product of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] and [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]?",
+          "expected": 220.0,
+          "tool_call": {
+            "response": 220.00000372266942,
+            "tool_name": "math_dot",
+            "tool_success": true,
+            "time_ms": 0.03504753112792969
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Calculate the determinant of [[1, 2, 3], [4, 5, 6], [7, 8, 9]]",
+          "expected": 0.0,
+          "tool_call": {
+            "response": 0.0,
+            "tool_name": "math_determinant",
+            "tool_success": true,
+            "time_ms": 0.023126602172851562
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the magnitude of vector [5, 12, 0, 0]?",
+          "expected": 13.0,
+          "tool_call": {
+            "response": 12.999998915820502,
+            "tool_name": "math_vector",
+            "tool_success": true,
+            "time_ms": 0.009059906005859375
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the dot product of [1, 1, 1, 1, 1] and [2, 2, 2, 2, 2]?",
+          "expected": 10.0,
+          "tool_call": {
+            "response": 10.000000019046542,
+            "tool_name": "math_dot",
+            "tool_success": true,
+            "time_ms": 0.019788742065429688
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "music": {
+      "total": 4,
+      "correct": 4,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What is the prime form of [0, 4, 7]?",
+          "expected": [
+            0,
+            4,
+            7
+          ],
+          "tool_call": {
+            "response": [
+              0,
+              4,
+              7
+            ],
+            "tool_name": "music_prime_form",
+            "tool_success": true,
+            "time_ms": 0.016927719116210938
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the normal form of [7, 0, 4, 7]?",
+          "expected": [
+            0,
+            4,
+            7
+          ],
+          "tool_call": {
+            "response": [
+              0,
+              4,
+              7
+            ],
+            "tool_name": "music_normal_form",
+            "tool_success": true,
+            "time_ms": 0.008106231689453125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What chord type is [0, 4, 7]?",
+          "expected": "major triad",
+          "tool_call": {
+            "response": "major triad",
+            "tool_name": "music_chord_type",
+            "tool_success": true,
+            "time_ms": 0.003814697265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Transpose [0, 4, 7] by 7 semitones",
+          "expected": [
+            7,
+            11,
+            2
+          ],
+          "tool_call": {
+            "response": [
+              7.0,
+              11.0,
+              2.0
+            ],
+            "tool_name": "music_transpose",
+            "tool_success": true,
+            "time_ms": 0.03886222839355469
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "geometry": {
+      "total": 4,
+      "correct": 4,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What's the distance between [0, 0] and [3, 4]?",
+          "expected": 5.0,
+          "tool_call": {
+            "response": 5.0,
+            "tool_name": "geometry_distance",
+            "tool_success": true,
+            "time_ms": 0.007152557373046875
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Find the midpoint of [0, 0] and [3, 4]",
+          "expected": [
+            1.5,
+            2.0
+          ],
+          "tool_call": {
+            "response": [
+              1.5,
+              2.0
+            ],
+            "tool_name": "geometry_midpoint",
+            "tool_success": true,
+            "time_ms": 0.0050067901611328125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What's the distance from the origin to [3, 4]?",
+          "expected": 5.0,
+          "tool_call": {
+            "response": 5.0,
+            "tool_name": "geometry_distance",
+            "tool_success": true,
+            "time_ms": 0.0050067901611328125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Rotate [1, 0] by 90 degrees (\u03c0/2 radians)",
+          "expected": [
+            0.0,
+            1.0
+          ],
+          "tool_call": {
+            "response": [
+              6.123233995736766e-17,
+              1.0
+            ],
+            "tool_name": "geometry_rotate",
+            "tool_success": true,
+            "time_ms": 0.04100799560546875
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "graphs": {
+      "total": 4,
+      "correct": 4,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What's the shortest path from node 0 to node 3 in Graph(nodes={0,1,2,3}, edges=[(0,1),(1,2),(2,3)])?",
+          "expected": {
+            "path": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "distance": 3
+          },
+          "tool_call": {
+            "response": {
+              "path": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "distance": 3
+            },
+            "tool_name": "graphs_shortest_path",
+            "tool_success": true,
+            "time_ms": 0.12326240539550781
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is this graph connected: Graph(nodes={0,1,2}, edges=[(0,1),(1,2),(2,0)])?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "graphs_is_connected",
+            "tool_success": true,
+            "time_ms": 0.03409385681152344
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is Graph(nodes={0,1,2,3}, edges=[(0,1),(1,2),(2,0)]) a tree?",
+          "expected": false,
+          "tool_call": {
+            "response": false,
+            "tool_name": "graphs_is_tree",
+            "tool_success": true,
+            "time_ms": 0.023126602172851562
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "How many nodes does this graph have: Graph(nodes={0,1,2,3,4}, edges=[(0,1),(1,2),(2,3),(3,4)])?",
+          "expected": 5,
+          "tool_call": {
+            "response": 5,
+            "tool_name": "graphs_node_count",
+            "tool_success": true,
+            "time_ms": 0.0069141387939453125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "sets": {
+      "total": 4,
+      "correct": 4,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "What is the union of {1, 2, 3} and {2, 3, 4}?",
+          "expected": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "tool_call": {
+            "response": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "tool_name": "sets_union",
+            "tool_success": true,
+            "time_ms": 0.04076957702636719
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the intersection of {1, 2, 3} and {2, 3, 4}?",
+          "expected": [
+            2,
+            3
+          ],
+          "tool_call": {
+            "response": [
+              2,
+              3
+            ],
+            "tool_name": "sets_intersection",
+            "tool_success": true,
+            "time_ms": 0.0069141387939453125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is {1, 2} a subset of {1, 2, 3, 4}?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "sets_subset",
+            "tool_success": true,
+            "time_ms": 0.005245208740234375
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the complement of {1, 2, 3} relative to {1, 2, 3, 4}?",
+          "expected": [
+            4
+          ],
+          "tool_call": {
+            "response": [
+              4
+            ],
+            "tool_name": "sets_complement",
+            "tool_success": true,
+            "time_ms": 0.0059604644775390625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "logic": {
+      "total": 4,
+      "correct": 4,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "Is 'p or not p' a tautology?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "logic_tautology",
+            "tool_success": true,
+            "time_ms": 0.031948089599609375
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is '(p and q) or (not p and not q)' a tautology?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "logic_tautology",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is 'p implies q' and 'q implies r' true when p=1, q=2, r=3?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "logic_tautology",
+            "tool_success": true,
+            "time_ms": 0.0021457672119140625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Are '(p and not q) and (not p and not q)' logically equivalent?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "logic_tautology",
+            "tool_success": true,
+            "time_ms": 0.0019073486328125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    },
+    "number_theory": {
+      "total": 11,
+      "correct": 11,
+      "accuracy": 1.0,
+      "results": [
+        {
+          "prompt": "Is 17 prime?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "number_theory_is_prime",
+            "tool_success": true,
+            "time_ms": 0.053882598876953125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the GCD of 12 and 18?",
+          "expected": 6,
+          "tool_call": {
+            "response": 6,
+            "tool_name": "number_theory_gcd",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Is 97 prime?",
+          "expected": true,
+          "tool_call": {
+            "response": true,
+            "tool_name": "number_theory_is_prime",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the GCD of 24, 36, and 48?",
+          "expected": 12,
+          "tool_call": {
+            "response": 12,
+            "tool_name": "number_theory_gcd",
+            "tool_success": true,
+            "time_ms": 0.0030994415283203125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 17^13 mod 23?",
+          "expected": 10,
+          "tool_call": {
+            "response": 10,
+            "tool_name": "number_theory_mod_inverse",
+            "tool_success": true,
+            "time_ms": 0.023126602172851562
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the modular inverse of 17 mod 23?",
+          "expected": 19,
+          "tool_call": {
+            "response": 19,
+            "tool_name": "number_theory_mod_inverse",
+            "tool_success": true,
+            "time_ms": 0.0040531158447265625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is the modular inverse of 17 mod 23?",
+          "expected": 19,
+          "tool_call": {
+            "response": 19,
+            "tool_name": "number_theory_mod_inverse",
+            "tool_success": true,
+            "time_ms": 0.00286102294921875
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Find the 100th prime number",
+          "expected": 541,
+          "tool_call": {
+            "response": 541,
+            "tool_name": "number_theory_nth_prime",
+            "tool_success": true,
+            "time_ms": 0.06389617919921875
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "List all primes up to 50",
+          "expected": [
+            2,
+            3,
+            5,
+            7,
+            11,
+            13,
+            17,
+            19,
+            23,
+            29,
+            31,
+            37,
+            41,
+            43,
+            47
+          ],
+          "tool_call": {
+            "response": [
+              2,
+              3,
+              5,
+              7,
+              11,
+              13,
+              17,
+              19,
+              23,
+              29,
+              31,
+              37,
+              41,
+              43,
+              47
+            ],
+            "tool_name": "number_theory_primes_up_to",
+            "tool_success": true,
+            "time_ms": 0.04291534423828125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "What is 3^(-1) mod 11?",
+          "expected": 4,
+          "tool_call": {
+            "response": 4,
+            "tool_name": "number_theory_mod_pow",
+            "tool_success": true,
+            "time_ms": 0.0059604644775390625
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        },
+        {
+          "prompt": "Find GCD of 123456 and 7890",
+          "expected": 6,
+          "tool_call": {
+            "response": 6,
+            "tool_name": "number_theory_gcd",
+            "tool_success": true,
+            "time_ms": 0.0030994415283203125
+          },
+          "baseline": {
+            "response": null,
+            "time_ms": null
+          },
+          "evaluation": {
+            "correct": true,
+            "baseline_correct": null,
+            "domain_correct": true,
+            "tool_success": true
+          }
+        }
+      ]
+    }
+  }
+}

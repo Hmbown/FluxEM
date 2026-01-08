@@ -175,7 +175,7 @@ class ReactionEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Encode reactant side composition (dims 8-71)
         reactant_comp = reaction.reactant_composition()
@@ -250,7 +250,7 @@ class ReactionEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid reaction."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -343,7 +343,7 @@ class ReactionEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Add reactant sides
         for i in range(min(16, len(COMMON_ELEMENTS))):
@@ -385,7 +385,7 @@ class ReactionEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Swap: reactants (8-71) <-> products (72-127)
         for i in range(min(16, len(COMMON_ELEMENTS))):
@@ -408,7 +408,7 @@ class ReactionEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Scale both sides
         for i in range(min(16, len(COMMON_ELEMENTS))):

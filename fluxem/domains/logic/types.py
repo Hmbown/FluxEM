@@ -335,7 +335,7 @@ class TypeEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Type kind (one-hot)
         kind_map = {
@@ -349,30 +349,30 @@ class TypeEncoder:
             TypeKind.VARIABLE: 7,
         }
         kind_idx = kind_map.get(typ.kind, 0)
-        emb = backend.at_add(emb, 8 + KIND_OFFSET + kind_idx, 1.0)
+        emb = backend.at_add(emb, 16 + KIND_OFFSET + kind_idx, 1.0)
 
         # Size (log scale)
         size = typ.size()
-        emb = backend.at_add(emb, 8 + SIZE_OFFSET, backend.log(backend.array(float(size + 1))))
+        emb = backend.at_add(emb, 16 + SIZE_OFFSET, backend.log(backend.array(float(size + 1))))
 
         # Depth (normalized by 10)
         depth = typ.depth()
-        emb = backend.at_add(emb, 8 + DEPTH_OFFSET, float(depth) / 10.0)
+        emb = backend.at_add(emb, 16 + DEPTH_OFFSET, float(depth) / 10.0)
 
         # Arrow depth
         arrow_depth = typ.arrow_depth()
-        emb = backend.at_add(emb, 8 + ARROW_DEPTH_OFFSET, float(arrow_depth) / 10.0)
+        emb = backend.at_add(emb, 16 + ARROW_DEPTH_OFFSET, float(arrow_depth) / 10.0)
 
         # Arity
         arity = typ.arity()
-        emb = backend.at_add(emb, 8 + ARITY_OFFSET, float(arity) / 10.0)
+        emb = backend.at_add(emb, 16 + ARITY_OFFSET, float(arity) / 10.0)
 
         # Type variables
         free_vars = typ.free_variables()
-        emb = backend.at_add(emb, 8 + VAR_COUNT_OFFSET, float(len(free_vars)) / 10.0)
+        emb = backend.at_add(emb, 16 + VAR_COUNT_OFFSET, float(len(free_vars)) / 10.0)
 
         # Ground type flag
-        emb = backend.at_add(emb, 8 + GROUND_FLAG_OFFSET, 1.0 if typ.is_ground() else 0.0)
+        emb = backend.at_add(emb, 16 + GROUND_FLAG_OFFSET, 1.0 if typ.is_ground() else 0.0)
 
         # Base type bitmap
         base_types = self._collect_base_types(typ)
@@ -380,31 +380,31 @@ class TypeEncoder:
             if base_name in BASE_TYPE_IDS:
                 idx = BASE_TYPE_IDS[base_name]
                 if idx < 8:
-                    emb = backend.at_add(emb, 8 + BASE_BITMAP_OFFSET + idx, 1.0)
+                    emb = backend.at_add(emb, 16 + BASE_BITMAP_OFFSET + idx, 1.0)
 
         # Type variable hash
         for i, var_name in enumerate(sorted(free_vars)[:8]):
             var_hash = hash(var_name) % 256
-            emb = backend.at_add(emb, 8 + VAR_HASH_OFFSET + i, float(var_hash) / 256.0)
+            emb = backend.at_add(emb, 16 + VAR_HASH_OFFSET + i, float(var_hash) / 256.0)
 
         # Structural signature
         sig = self._compute_signature(typ)
         for i, val in enumerate(sig[:8]):
-            emb = backend.at_add(emb, 8 + SIGNATURE_OFFSET + i, val)
+            emb = backend.at_add(emb, 16 + SIGNATURE_OFFSET + i, val)
 
         # Domain/codomain features for function types
         if typ.kind == TypeKind.FUNCTION and len(typ.children) >= 2:
             domain_features = self._type_features(typ.children[0])
             for i, val in enumerate(domain_features[:8]):
-                emb = backend.at_add(emb, 8 + DOMAIN_OFFSET + i, val)
+                emb = backend.at_add(emb, 16 + DOMAIN_OFFSET + i, val)
 
             codomain_features = self._type_features(typ.children[1])
             for i, val in enumerate(codomain_features[:8]):
-                emb = backend.at_add(emb, 8 + CODOMAIN_OFFSET + i, val)
+                emb = backend.at_add(emb, 16 + CODOMAIN_OFFSET + i, val)
         elif typ.kind == TypeKind.LIST and len(typ.children) >= 1:
             element_features = self._type_features(typ.children[0])
             for i, val in enumerate(element_features[:8]):
-                emb = backend.at_add(emb, 8 + CODOMAIN_OFFSET + i, val)
+                emb = backend.at_add(emb, 16 + CODOMAIN_OFFSET + i, val)
 
         return emb
 
@@ -502,7 +502,7 @@ class TypeEncoder:
         kind_idx = 0
         max_val = 0.0
         for i in range(8):
-            val = emb[8 + KIND_OFFSET + i].item()
+            val = emb[16 + KIND_OFFSET + i].item()
             if val > max_val:
                 max_val = val
                 kind_idx = i
@@ -526,7 +526,7 @@ class TypeEncoder:
         elif kind == TypeKind.BASE:
             # Find which base type from bitmap
             for name, idx in BASE_TYPE_IDS.items():
-                if idx < 8 and emb[8 + BASE_BITMAP_OFFSET + idx].item() > 0.5:
+                if idx < 8 and emb[16 + BASE_BITMAP_OFFSET + idx].item() > 0.5:
                     return Type.base(name)
             return Type.base("Unknown")
         elif kind == TypeKind.VARIABLE:
@@ -546,7 +546,7 @@ class TypeEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid type."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -566,56 +566,56 @@ class TypeEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # FUNCTION kind
-        result = backend.at_add(result, 8 + KIND_OFFSET + 1, 1.0)
+        result = backend.at_add(result, 16 + KIND_OFFSET + 1, 1.0)
 
         # Size is sum + 1
-        s1 = domain_emb[8 + SIZE_OFFSET].item()
-        s2 = codomain_emb[8 + SIZE_OFFSET].item()
-        result = backend.at_add(result, 8 + SIZE_OFFSET, 
+        s1 = domain_emb[16 + SIZE_OFFSET].item()
+        s2 = codomain_emb[16 + SIZE_OFFSET].item()
+        result = backend.at_add(result, 16 + SIZE_OFFSET, 
             backend.log(backend.exp(backend.array(s1)) + backend.exp(backend.array(s2)) + 1)
         )
 
         # Depth is max + 1
-        d1 = domain_emb[8 + DEPTH_OFFSET].item()
-        d2 = codomain_emb[8 + DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + DEPTH_OFFSET, max(d1, d2) + 0.1)
+        d1 = domain_emb[16 + DEPTH_OFFSET].item()
+        d2 = codomain_emb[16 + DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + DEPTH_OFFSET, max(d1, d2) + 0.1)
 
         # Arrow depth increases
-        ad1 = domain_emb[8 + ARROW_DEPTH_OFFSET].item()
-        ad2 = codomain_emb[8 + ARROW_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + ARROW_DEPTH_OFFSET, max(ad1, ad2) + 0.1)
+        ad1 = domain_emb[16 + ARROW_DEPTH_OFFSET].item()
+        ad2 = codomain_emb[16 + ARROW_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + ARROW_DEPTH_OFFSET, max(ad1, ad2) + 0.1)
 
         # Arity from codomain + 1
-        old_arity = codomain_emb[8 + ARITY_OFFSET].item()
-        result = backend.at_add(result, 8 + ARITY_OFFSET, old_arity + 0.1)
+        old_arity = codomain_emb[16 + ARITY_OFFSET].item()
+        result = backend.at_add(result, 16 + ARITY_OFFSET, old_arity + 0.1)
 
         # Combine variable counts
-        vc1 = domain_emb[8 + VAR_COUNT_OFFSET].item()
-        vc2 = codomain_emb[8 + VAR_COUNT_OFFSET].item()
-        result = backend.at_add(result, 8 + VAR_COUNT_OFFSET, vc1 + vc2)
+        vc1 = domain_emb[16 + VAR_COUNT_OFFSET].item()
+        vc2 = codomain_emb[16 + VAR_COUNT_OFFSET].item()
+        result = backend.at_add(result, 16 + VAR_COUNT_OFFSET, vc1 + vc2)
 
         # Ground only if both ground
-        g1 = domain_emb[8 + GROUND_FLAG_OFFSET].item() > 0.5
-        g2 = codomain_emb[8 + GROUND_FLAG_OFFSET].item() > 0.5
-        result = backend.at_add(result, 8 + GROUND_FLAG_OFFSET, 1.0 if (g1 and g2) else 0.0)
+        g1 = domain_emb[16 + GROUND_FLAG_OFFSET].item() > 0.5
+        g2 = codomain_emb[16 + GROUND_FLAG_OFFSET].item() > 0.5
+        result = backend.at_add(result, 16 + GROUND_FLAG_OFFSET, 1.0 if (g1 and g2) else 0.0)
 
         # Combine base type bitmaps
         for i in range(8):
-            v1 = domain_emb[8 + BASE_BITMAP_OFFSET + i].item()
-            v2 = codomain_emb[8 + BASE_BITMAP_OFFSET + i].item()
+            v1 = domain_emb[16 + BASE_BITMAP_OFFSET + i].item()
+            v2 = codomain_emb[16 + BASE_BITMAP_OFFSET + i].item()
             if v1 > 0.5 or v2 > 0.5:
-                result = backend.at_add(result, 8 + BASE_BITMAP_OFFSET + i, 1.0)
+                result = backend.at_add(result, 16 + BASE_BITMAP_OFFSET + i, 1.0)
 
         # Store domain and codomain features
         for i in range(8):
-            result = backend.at_add(result, 8 + DOMAIN_OFFSET + i, 
-                domain_emb[8 + KIND_OFFSET + i].item()
+            result = backend.at_add(result, 16 + DOMAIN_OFFSET + i, 
+                domain_emb[16 + KIND_OFFSET + i].item()
             )
-            result = backend.at_add(result, 8 + CODOMAIN_OFFSET + i, 
-                codomain_emb[8 + KIND_OFFSET + i].item()
+            result = backend.at_add(result, 16 + CODOMAIN_OFFSET + i, 
+                codomain_emb[16 + KIND_OFFSET + i].item()
             )
 
         return result
@@ -633,44 +633,44 @@ class TypeEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # PRODUCT kind
-        result = backend.at_add(result, 8 + KIND_OFFSET + 2, 1.0)
+        result = backend.at_add(result, 16 + KIND_OFFSET + 2, 1.0)
 
         # Size is sum + 1
-        s1 = left_emb[8 + SIZE_OFFSET].item()
-        s2 = right_emb[8 + SIZE_OFFSET].item()
-        result = backend.at_add(result, 8 + SIZE_OFFSET, 
+        s1 = left_emb[16 + SIZE_OFFSET].item()
+        s2 = right_emb[16 + SIZE_OFFSET].item()
+        result = backend.at_add(result, 16 + SIZE_OFFSET, 
             backend.log(backend.exp(backend.array(s1)) + backend.exp(backend.array(s2)) + 1)
         )
 
         # Depth is max + 1
-        d1 = left_emb[8 + DEPTH_OFFSET].item()
-        d2 = right_emb[8 + DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + DEPTH_OFFSET, max(d1, d2) + 0.1)
+        d1 = left_emb[16 + DEPTH_OFFSET].item()
+        d2 = right_emb[16 + DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + DEPTH_OFFSET, max(d1, d2) + 0.1)
 
         # Arrow depth is max
-        ad1 = left_emb[8 + ARROW_DEPTH_OFFSET].item()
-        ad2 = right_emb[8 + ARROW_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + ARROW_DEPTH_OFFSET, max(ad1, ad2))
+        ad1 = left_emb[16 + ARROW_DEPTH_OFFSET].item()
+        ad2 = right_emb[16 + ARROW_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + ARROW_DEPTH_OFFSET, max(ad1, ad2))
 
         # Combine variable counts
-        vc1 = left_emb[8 + VAR_COUNT_OFFSET].item()
-        vc2 = right_emb[8 + VAR_COUNT_OFFSET].item()
-        result = backend.at_add(result, 8 + VAR_COUNT_OFFSET, vc1 + vc2)
+        vc1 = left_emb[16 + VAR_COUNT_OFFSET].item()
+        vc2 = right_emb[16 + VAR_COUNT_OFFSET].item()
+        result = backend.at_add(result, 16 + VAR_COUNT_OFFSET, vc1 + vc2)
 
         # Ground only if both ground
-        g1 = left_emb[8 + GROUND_FLAG_OFFSET].item() > 0.5
-        g2 = right_emb[8 + GROUND_FLAG_OFFSET].item() > 0.5
-        result = backend.at_add(result, 8 + GROUND_FLAG_OFFSET, 1.0 if (g1 and g2) else 0.0)
+        g1 = left_emb[16 + GROUND_FLAG_OFFSET].item() > 0.5
+        g2 = right_emb[16 + GROUND_FLAG_OFFSET].item() > 0.5
+        result = backend.at_add(result, 16 + GROUND_FLAG_OFFSET, 1.0 if (g1 and g2) else 0.0)
 
         # Combine base type bitmaps
         for i in range(8):
-            v1 = left_emb[8 + BASE_BITMAP_OFFSET + i].item()
-            v2 = right_emb[8 + BASE_BITMAP_OFFSET + i].item()
+            v1 = left_emb[16 + BASE_BITMAP_OFFSET + i].item()
+            v2 = right_emb[16 + BASE_BITMAP_OFFSET + i].item()
             if v1 > 0.5 or v2 > 0.5:
-                result = backend.at_add(result, 8 + BASE_BITMAP_OFFSET + i, 1.0)
+                result = backend.at_add(result, 16 + BASE_BITMAP_OFFSET + i, 1.0)
 
         return result
 
@@ -687,44 +687,44 @@ class TypeEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # SUM kind
-        result = backend.at_add(result, 8 + KIND_OFFSET + 3, 1.0)
+        result = backend.at_add(result, 16 + KIND_OFFSET + 3, 1.0)
 
         # Size is sum + 1
-        s1 = left_emb[8 + SIZE_OFFSET].item()
-        s2 = right_emb[8 + SIZE_OFFSET].item()
-        result = backend.at_add(result, 8 + SIZE_OFFSET, 
+        s1 = left_emb[16 + SIZE_OFFSET].item()
+        s2 = right_emb[16 + SIZE_OFFSET].item()
+        result = backend.at_add(result, 16 + SIZE_OFFSET, 
             backend.log(backend.exp(backend.array(s1)) + backend.exp(backend.array(s2)) + 1)
         )
 
         # Depth is max + 1
-        d1 = left_emb[8 + DEPTH_OFFSET].item()
-        d2 = right_emb[8 + DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + DEPTH_OFFSET, max(d1, d2) + 0.1)
+        d1 = left_emb[16 + DEPTH_OFFSET].item()
+        d2 = right_emb[16 + DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + DEPTH_OFFSET, max(d1, d2) + 0.1)
 
         # Arrow depth is max
-        ad1 = left_emb[8 + ARROW_DEPTH_OFFSET].item()
-        ad2 = right_emb[8 + ARROW_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + ARROW_DEPTH_OFFSET, max(ad1, ad2))
+        ad1 = left_emb[16 + ARROW_DEPTH_OFFSET].item()
+        ad2 = right_emb[16 + ARROW_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + ARROW_DEPTH_OFFSET, max(ad1, ad2))
 
         # Combine variable counts
-        vc1 = left_emb[8 + VAR_COUNT_OFFSET].item()
-        vc2 = right_emb[8 + VAR_COUNT_OFFSET].item()
-        result = backend.at_add(result, 8 + VAR_COUNT_OFFSET, vc1 + vc2)
+        vc1 = left_emb[16 + VAR_COUNT_OFFSET].item()
+        vc2 = right_emb[16 + VAR_COUNT_OFFSET].item()
+        result = backend.at_add(result, 16 + VAR_COUNT_OFFSET, vc1 + vc2)
 
         # Ground only if both ground
-        g1 = left_emb[8 + GROUND_FLAG_OFFSET].item() > 0.5
-        g2 = right_emb[8 + GROUND_FLAG_OFFSET].item() > 0.5
-        result = backend.at_add(result, 8 + GROUND_FLAG_OFFSET, 1.0 if (g1 and g2) else 0.0)
+        g1 = left_emb[16 + GROUND_FLAG_OFFSET].item() > 0.5
+        g2 = right_emb[16 + GROUND_FLAG_OFFSET].item() > 0.5
+        result = backend.at_add(result, 16 + GROUND_FLAG_OFFSET, 1.0 if (g1 and g2) else 0.0)
 
         # Combine base type bitmaps
         for i in range(8):
-            v1 = left_emb[8 + BASE_BITMAP_OFFSET + i].item()
-            v2 = right_emb[8 + BASE_BITMAP_OFFSET + i].item()
+            v1 = left_emb[16 + BASE_BITMAP_OFFSET + i].item()
+            v2 = right_emb[16 + BASE_BITMAP_OFFSET + i].item()
             if v1 > 0.5 or v2 > 0.5:
-                result = backend.at_add(result, 8 + BASE_BITMAP_OFFSET + i, 1.0)
+                result = backend.at_add(result, 16 + BASE_BITMAP_OFFSET + i, 1.0)
 
         return result
 
@@ -747,8 +747,8 @@ class TypeEncoder:
         max_val1 = 0.0
         max_val2 = 0.0
         for i in range(8):
-            v1 = emb1[8 + KIND_OFFSET + i].item()
-            v2 = emb2[8 + KIND_OFFSET + i].item()
+            v1 = emb1[16 + KIND_OFFSET + i].item()
+            v2 = emb2[16 + KIND_OFFSET + i].item()
             if v1 > max_val1:
                 max_val1 = v1
                 kind1 = i
@@ -760,21 +760,21 @@ class TypeEncoder:
             return False
 
         # Compare size
-        s1 = emb1[8 + SIZE_OFFSET].item()
-        s2 = emb2[8 + SIZE_OFFSET].item()
+        s1 = emb1[16 + SIZE_OFFSET].item()
+        s2 = emb2[16 + SIZE_OFFSET].item()
         if abs(s1 - s2) > 0.1:
             return False
 
         # Compare depth
-        d1 = emb1[8 + DEPTH_OFFSET].item()
-        d2 = emb2[8 + DEPTH_OFFSET].item()
+        d1 = emb1[16 + DEPTH_OFFSET].item()
+        d2 = emb2[16 + DEPTH_OFFSET].item()
         if abs(d1 - d2) > 0.1:
             return False
 
         # Compare base type bitmap
         for i in range(8):
-            b1 = emb1[8 + BASE_BITMAP_OFFSET + i].item() > 0.5
-            b2 = emb2[8 + BASE_BITMAP_OFFSET + i].item() > 0.5
+            b1 = emb1[16 + BASE_BITMAP_OFFSET + i].item() > 0.5
+            b2 = emb2[16 + BASE_BITMAP_OFFSET + i].item() > 0.5
             if b1 != b2:
                 return False
 
@@ -802,7 +802,7 @@ class TypeEncoder:
         func_kind = 0
         max_val = 0.0
         for i in range(8):
-            val = func_emb[8 + KIND_OFFSET + i].item()
+            val = func_emb[16 + KIND_OFFSET + i].item()
             if val > max_val:
                 max_val = val
                 func_kind = i
@@ -814,7 +814,7 @@ class TypeEncoder:
         arg_kind = 0
         max_val = 0.0
         for i in range(8):
-            val = arg_emb[8 + KIND_OFFSET + i].item()
+            val = arg_emb[16 + KIND_OFFSET + i].item()
             if val > max_val:
                 max_val = val
                 arg_kind = i
@@ -822,7 +822,7 @@ class TypeEncoder:
         # Compare domain features with arg features
         # First check kind match (dims 0-3 in the feature encoding)
         for i in range(4):
-            domain_val = func_emb[8 + DOMAIN_OFFSET + i].item()
+            domain_val = func_emb[16 + DOMAIN_OFFSET + i].item()
             # For arg, we need to check its kind
             arg_val = 1.0 if i == arg_kind else 0.0
             if domain_val > 0.5 and arg_val < 0.5:
@@ -834,11 +834,11 @@ class TypeEncoder:
         if arg_kind == 0:  # arg is a base type
             # Extract arg's base type ID from its bitmap
             for i in range(4):
-                domain_base_bit = func_emb[8 + DOMAIN_OFFSET + 4 + i].item()
+                domain_base_bit = func_emb[16 + DOMAIN_OFFSET + 4 + i].item()
                 # Find arg's base type from its bitmap
                 arg_base_bit = 0.0
                 for name, idx in BASE_TYPE_IDS.items():
-                    if idx < 8 and arg_emb[8 + BASE_BITMAP_OFFSET + idx].item() > 0.5:
+                    if idx < 8 and arg_emb[16 + BASE_BITMAP_OFFSET + idx].item() > 0.5:
                         # Found the base type, check bit i
                         if (idx >> i) & 1:
                             arg_base_bit = 1.0
@@ -863,24 +863,24 @@ class TypeEncoder:
 
         # Return the codomain as the result
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Copy codomain features as the new type's kind
         for i in range(8):
-            codomain_val = func_emb[8 + CODOMAIN_OFFSET + i].item()
-            result = backend.at_add(result, 8 + KIND_OFFSET + i, codomain_val)
+            codomain_val = func_emb[16 + CODOMAIN_OFFSET + i].item()
+            result = backend.at_add(result, 16 + KIND_OFFSET + i, codomain_val)
 
         # Reduce arrow depth
-        ad = func_emb[8 + ARROW_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + ARROW_DEPTH_OFFSET, max(0, ad - 0.1))
+        ad = func_emb[16 + ARROW_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + ARROW_DEPTH_OFFSET, max(0, ad - 0.1))
 
         # Reduce arity
-        ar = func_emb[8 + ARITY_OFFSET].item()
-        result = backend.at_add(result, 8 + ARITY_OFFSET, max(0, ar - 0.1))
+        ar = func_emb[16 + ARITY_OFFSET].item()
+        result = backend.at_add(result, 16 + ARITY_OFFSET, max(0, ar - 0.1))
 
         # Keep other features from func
-        result = backend.at_add(result, 8 + VAR_COUNT_OFFSET, func_emb[8 + VAR_COUNT_OFFSET].item())
-        result = backend.at_add(result, 8 + GROUND_FLAG_OFFSET, func_emb[8 + GROUND_FLAG_OFFSET].item())
+        result = backend.at_add(result, 16 + VAR_COUNT_OFFSET, func_emb[16 + VAR_COUNT_OFFSET].item())
+        result = backend.at_add(result, 16 + GROUND_FLAG_OFFSET, func_emb[16 + GROUND_FLAG_OFFSET].item())
 
         return result
 
@@ -917,7 +917,7 @@ class TypeEncoder:
         kind_idx = 0
         max_val = 0.0
         for i in range(8):
-            val = emb[8 + KIND_OFFSET + i].item()
+            val = emb[16 + KIND_OFFSET + i].item()
             if val > max_val:
                 max_val = val
                 kind_idx = i
@@ -948,8 +948,8 @@ class TypeEncoder:
 
     def is_ground_type(self, emb: Any) -> bool:
         """Check if embedding represents a ground (no variables) type."""
-        return emb[8 + GROUND_FLAG_OFFSET].item() > 0.5
+        return emb[16 + GROUND_FLAG_OFFSET].item() > 0.5
 
     def get_arity(self, emb: Any) -> int:
         """Get the arity of a function type."""
-        return int(emb[8 + ARITY_OFFSET].item() * 10.0 + 0.5)
+        return int(emb[16 + ARITY_OFFSET].item() * 10.0 + 0.5)

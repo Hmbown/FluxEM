@@ -74,48 +74,48 @@ class ComplexEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         r = abs(z)
         theta = cmath.phase(z)
 
         # Handle zero
         if r < EPSILON:
-            emb = backend.at_add(emb, 8 + IS_ZERO_FLAG, 1.0)
-            emb = backend.at_add(emb, 8 + LOG_MAG_OFFSET, 0.0)
-            emb = backend.at_add(emb, 8 + LOG_MAG_OFFSET + 1, -100.0)  # Zero sentinel
-            emb = backend.at_add(emb, 8 + PHASE_OFFSET, 1.0)  # cos(0)
-            emb = backend.at_add(emb, 8 + PHASE_OFFSET + 1, 0.0)  # sin(0)
+            emb = backend.at_add(emb, 16 + IS_ZERO_FLAG, 1.0)
+            emb = backend.at_add(emb, 16 + LOG_MAG_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + LOG_MAG_OFFSET + 1, -100.0)  # Zero sentinel
+            emb = backend.at_add(emb, 16 + PHASE_OFFSET, 1.0)  # cos(0)
+            emb = backend.at_add(emb, 16 + PHASE_OFFSET + 1, 0.0)  # sin(0)
         else:
             # Log-magnitude
-            emb = backend.at_add(emb, 8 + LOG_MAG_OFFSET, 1.0)  # Magnitude is positive
-            emb = backend.at_add(emb, 8 + LOG_MAG_OFFSET + 1, math.log(r))
+            emb = backend.at_add(emb, 16 + LOG_MAG_OFFSET, 1.0)  # Magnitude is positive
+            emb = backend.at_add(emb, 16 + LOG_MAG_OFFSET + 1, math.log(r))
 
             # Phase on unit circle representation
-            emb = backend.at_add(emb, 8 + PHASE_OFFSET, math.cos(theta))
-            emb = backend.at_add(emb, 8 + PHASE_OFFSET + 1, math.sin(theta))
+            emb = backend.at_add(emb, 16 + PHASE_OFFSET, math.cos(theta))
+            emb = backend.at_add(emb, 16 + PHASE_OFFSET + 1, math.sin(theta))
 
         # Real and imaginary parts (for reconstruction stability)
         re = z.real
         im = z.imag
 
         if abs(re) < EPSILON:
-            emb = backend.at_add(emb, 8 + REAL_OFFSET, 0.0)
-            emb = backend.at_add(emb, 8 + REAL_OFFSET + 1, -100.0)
+            emb = backend.at_add(emb, 16 + REAL_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + REAL_OFFSET + 1, -100.0)
         else:
-            emb = backend.at_add(emb, 8 + REAL_OFFSET, 1.0 if re > 0 else -1.0)
-            emb = backend.at_add(emb, 8 + REAL_OFFSET + 1, math.log(abs(re)))
+            emb = backend.at_add(emb, 16 + REAL_OFFSET, 1.0 if re > 0 else -1.0)
+            emb = backend.at_add(emb, 16 + REAL_OFFSET + 1, math.log(abs(re)))
 
         if abs(im) < EPSILON:
-            emb = backend.at_add(emb, 8 + IMAG_OFFSET, 0.0)
-            emb = backend.at_add(emb, 8 + IMAG_OFFSET + 1, -100.0)
+            emb = backend.at_add(emb, 16 + IMAG_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + IMAG_OFFSET + 1, -100.0)
         else:
-            emb = backend.at_add(emb, 8 + IMAG_OFFSET, 1.0 if im > 0 else -1.0)
-            emb = backend.at_add(emb, 8 + IMAG_OFFSET + 1, math.log(abs(im)))
+            emb = backend.at_add(emb, 16 + IMAG_OFFSET, 1.0 if im > 0 else -1.0)
+            emb = backend.at_add(emb, 16 + IMAG_OFFSET + 1, math.log(abs(im)))
 
         # Flags
-        emb = backend.at_add(emb, 8 + IS_REAL_FLAG, 1.0 if abs(im) < EPSILON else 0.0)
-        emb = backend.at_add(emb, 8 + IS_PURE_IMAG_FLAG, 
+        emb = backend.at_add(emb, 16 + IS_REAL_FLAG, 1.0 if abs(im) < EPSILON else 0.0)
+        emb = backend.at_add(emb, 16 + IS_PURE_IMAG_FLAG, 
             1.0 if abs(re) < EPSILON and abs(im) >= EPSILON else 0.0
         )
 
@@ -127,31 +127,31 @@ class ComplexEncoder:
 
         Uses polar form for primary reconstruction.
         """
-        is_zero = emb[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero = emb[16 + IS_ZERO_FLAG].item() > 0.5
         if is_zero:
             return complex(0, 0)
 
         # Reconstruct from polar form
-        log_r = emb[8 + LOG_MAG_OFFSET + 1].item()
+        log_r = emb[16 + LOG_MAG_OFFSET + 1].item()
         r = math.exp(log_r)
 
-        cos_theta = emb[8 + PHASE_OFFSET].item()
-        sin_theta = emb[8 + PHASE_OFFSET + 1].item()
+        cos_theta = emb[16 + PHASE_OFFSET].item()
+        sin_theta = emb[16 + PHASE_OFFSET + 1].item()
         theta = math.atan2(sin_theta, cos_theta)
 
         return r * cmath.exp(1j * theta)
 
     def decode_polar(self, emb: Any) -> Tuple[float, float]:
         """Decode to (magnitude, phase)."""
-        is_zero = emb[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero = emb[16 + IS_ZERO_FLAG].item() > 0.5
         if is_zero:
             return (0.0, 0.0)
 
-        log_r = emb[8 + LOG_MAG_OFFSET + 1].item()
+        log_r = emb[16 + LOG_MAG_OFFSET + 1].item()
         r = math.exp(log_r)
 
-        cos_theta = emb[8 + PHASE_OFFSET].item()
-        sin_theta = emb[8 + PHASE_OFFSET + 1].item()
+        cos_theta = emb[16 + PHASE_OFFSET].item()
+        sin_theta = emb[16 + PHASE_OFFSET + 1].item()
         theta = math.atan2(sin_theta, cos_theta)
 
         return (r, theta)
@@ -159,7 +159,7 @@ class ComplexEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid complex number."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -174,42 +174,42 @@ class ComplexEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
-        is_zero1 = emb1[8 + IS_ZERO_FLAG].item() > 0.5
-        is_zero2 = emb2[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero1 = emb1[16 + IS_ZERO_FLAG].item() > 0.5
+        is_zero2 = emb2[16 + IS_ZERO_FLAG].item() > 0.5
 
         if is_zero1 or is_zero2:
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-            result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, -100.0)
-            result = backend.at_add(result, 8 + PHASE_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, -100.0)
+            result = backend.at_add(result, 16 + PHASE_OFFSET, 1.0)
             return result
 
         # Add log-magnitudes
-        log_r1 = emb1[8 + LOG_MAG_OFFSET + 1].item()
-        log_r2 = emb2[8 + LOG_MAG_OFFSET + 1].item()
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET, 1.0)
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, log_r1 + log_r2)
+        log_r1 = emb1[16 + LOG_MAG_OFFSET + 1].item()
+        log_r2 = emb2[16 + LOG_MAG_OFFSET + 1].item()
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET, 1.0)
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, log_r1 + log_r2)
 
         # Add phases (rotate): (cos θ1, sin θ1) * (cos θ2, sin θ2)
-        cos1, sin1 = emb1[8 + PHASE_OFFSET].item(), emb1[8 + PHASE_OFFSET + 1].item()
-        cos2, sin2 = emb2[8 + PHASE_OFFSET].item(), emb2[8 + PHASE_OFFSET + 1].item()
+        cos1, sin1 = emb1[16 + PHASE_OFFSET].item(), emb1[16 + PHASE_OFFSET + 1].item()
+        cos2, sin2 = emb2[16 + PHASE_OFFSET].item(), emb2[16 + PHASE_OFFSET + 1].item()
 
         # Rotation formula
         cos_result = cos1 * cos2 - sin1 * sin2
         sin_result = sin1 * cos2 + cos1 * sin2
 
-        result = backend.at_add(result, 8 + PHASE_OFFSET, cos_result)
-        result = backend.at_add(result, 8 + PHASE_OFFSET + 1, sin_result)
+        result = backend.at_add(result, 16 + PHASE_OFFSET, cos_result)
+        result = backend.at_add(result, 16 + PHASE_OFFSET + 1, sin_result)
 
         # Update real/imag (decode and re-encode)
         z = self.decode(result)
         if abs(z.real) >= EPSILON:
-            result = backend.at_add(result, 8 + REAL_OFFSET, 1.0 if z.real > 0 else -1.0)
-            result = backend.at_add(result, 8 + REAL_OFFSET + 1, math.log(abs(z.real)))
+            result = backend.at_add(result, 16 + REAL_OFFSET, 1.0 if z.real > 0 else -1.0)
+            result = backend.at_add(result, 16 + REAL_OFFSET + 1, math.log(abs(z.real)))
         if abs(z.imag) >= EPSILON:
-            result = backend.at_add(result, 8 + IMAG_OFFSET, 1.0 if z.imag > 0 else -1.0)
-            result = backend.at_add(result, 8 + IMAG_OFFSET + 1, math.log(abs(z.imag)))
+            result = backend.at_add(result, 16 + IMAG_OFFSET, 1.0 if z.imag > 0 else -1.0)
+            result = backend.at_add(result, 16 + IMAG_OFFSET + 1, math.log(abs(z.imag)))
 
         return result
 
@@ -221,39 +221,39 @@ class ComplexEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
-        is_zero1 = emb1[8 + IS_ZERO_FLAG].item() > 0.5
-        is_zero2 = emb2[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero1 = emb1[16 + IS_ZERO_FLAG].item() > 0.5
+        is_zero2 = emb2[16 + IS_ZERO_FLAG].item() > 0.5
 
         if is_zero2:
             # Division by zero -> infinity
-            result = backend.at_add(result, 8 + LOG_MAG_OFFSET, 1.0)
-            result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, 100.0)  # Infinity
+            result = backend.at_add(result, 16 + LOG_MAG_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, 100.0)  # Infinity
             return result
 
         if is_zero1:
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-            result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, -100.0)
-            result = backend.at_add(result, 8 + PHASE_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, -100.0)
+            result = backend.at_add(result, 16 + PHASE_OFFSET, 1.0)
             return result
 
         # Subtract log-magnitudes
-        log_r1 = emb1[8 + LOG_MAG_OFFSET + 1].item()
-        log_r2 = emb2[8 + LOG_MAG_OFFSET + 1].item()
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET, 1.0)
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, log_r1 - log_r2)
+        log_r1 = emb1[16 + LOG_MAG_OFFSET + 1].item()
+        log_r2 = emb2[16 + LOG_MAG_OFFSET + 1].item()
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET, 1.0)
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, log_r1 - log_r2)
 
         # Subtract phases (counter-rotate)
-        cos1, sin1 = emb1[8 + PHASE_OFFSET].item(), emb1[8 + PHASE_OFFSET + 1].item()
-        cos2, sin2 = emb2[8 + PHASE_OFFSET].item(), emb2[8 + PHASE_OFFSET + 1].item()
+        cos1, sin1 = emb1[16 + PHASE_OFFSET].item(), emb1[16 + PHASE_OFFSET + 1].item()
+        cos2, sin2 = emb2[16 + PHASE_OFFSET].item(), emb2[16 + PHASE_OFFSET + 1].item()
 
         # Division = multiply by conjugate normalized: (cos -θ2, sin -θ2) = (cos2, -sin2)
         cos_result = cos1 * cos2 + sin1 * sin2
         sin_result = sin1 * cos2 - cos1 * sin2
 
-        result = backend.at_add(result, 8 + PHASE_OFFSET, cos_result)
-        result = backend.at_add(result, 8 + PHASE_OFFSET + 1, sin_result)
+        result = backend.at_add(result, 16 + PHASE_OFFSET, cos_result)
+        result = backend.at_add(result, 16 + PHASE_OFFSET + 1, sin_result)
 
         return result
 
@@ -265,39 +265,39 @@ class ComplexEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Copy magnitude
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET, emb[8 + LOG_MAG_OFFSET])
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, emb[8 + LOG_MAG_OFFSET + 1])
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET, emb[16 + LOG_MAG_OFFSET])
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, emb[16 + LOG_MAG_OFFSET + 1])
 
         # Negate phase (negate sin, keep cos)
-        result = backend.at_add(result, 8 + PHASE_OFFSET, emb[8 + PHASE_OFFSET])
-        result = backend.at_add(result, 8 + PHASE_OFFSET + 1, -emb[8 + PHASE_OFFSET + 1])
+        result = backend.at_add(result, 16 + PHASE_OFFSET, emb[16 + PHASE_OFFSET])
+        result = backend.at_add(result, 16 + PHASE_OFFSET + 1, -emb[16 + PHASE_OFFSET + 1])
 
         # Copy real, negate imaginary
-        result = backend.at_add(result, 8 + REAL_OFFSET, emb[8 + REAL_OFFSET])
-        result = backend.at_add(result, 8 + REAL_OFFSET + 1, emb[8 + REAL_OFFSET + 1])
-        result = backend.at_add(result, 8 + IMAG_OFFSET, -emb[8 + IMAG_OFFSET])
-        result = backend.at_add(result, 8 + IMAG_OFFSET + 1, emb[8 + IMAG_OFFSET + 1])
+        result = backend.at_add(result, 16 + REAL_OFFSET, emb[16 + REAL_OFFSET])
+        result = backend.at_add(result, 16 + REAL_OFFSET + 1, emb[16 + REAL_OFFSET + 1])
+        result = backend.at_add(result, 16 + IMAG_OFFSET, -emb[16 + IMAG_OFFSET])
+        result = backend.at_add(result, 16 + IMAG_OFFSET + 1, emb[16 + IMAG_OFFSET + 1])
 
         # Copy flags
-        result = backend.at_add(result, 8 + IS_ZERO_FLAG, emb[8 + IS_ZERO_FLAG])
-        result = backend.at_add(result, 8 + IS_REAL_FLAG, emb[8 + IS_REAL_FLAG])
+        result = backend.at_add(result, 16 + IS_ZERO_FLAG, emb[16 + IS_ZERO_FLAG])
+        result = backend.at_add(result, 16 + IS_REAL_FLAG, emb[16 + IS_REAL_FLAG])
 
         return result
 
     def magnitude(self, emb: Any) -> float:
         """Extract the magnitude |z|."""
-        if emb[8 + IS_ZERO_FLAG].item() > 0.5:
+        if emb[16 + IS_ZERO_FLAG].item() > 0.5:
             return 0.0
-        log_r = emb[8 + LOG_MAG_OFFSET + 1].item()
+        log_r = emb[16 + LOG_MAG_OFFSET + 1].item()
         return math.exp(log_r)
 
     def phase(self, emb: Any) -> float:
         """Extract the phase arg(z)."""
-        cos_theta = emb[8 + PHASE_OFFSET].item()
-        sin_theta = emb[8 + PHASE_OFFSET + 1].item()
+        cos_theta = emb[16 + PHASE_OFFSET].item()
+        sin_theta = emb[16 + PHASE_OFFSET + 1].item()
         return math.atan2(sin_theta, cos_theta)
 
     def power(self, emb: Any, n: int) -> Any:
@@ -308,29 +308,29 @@ class ComplexEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
-        if emb[8 + IS_ZERO_FLAG].item() > 0.5:
+        if emb[16 + IS_ZERO_FLAG].item() > 0.5:
             if n > 0:
-                result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-                result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, -100.0)
+                result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+                result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, -100.0)
             else:
-                result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, 100.0)  # Infinity
+                result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, 100.0)  # Infinity
             return result
 
         # Scale log-magnitude
-        log_r = emb[8 + LOG_MAG_OFFSET + 1].item()
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET, 1.0)
-        result = backend.at_add(result, 8 + LOG_MAG_OFFSET + 1, log_r * n)
+        log_r = emb[16 + LOG_MAG_OFFSET + 1].item()
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET, 1.0)
+        result = backend.at_add(result, 16 + LOG_MAG_OFFSET + 1, log_r * n)
 
         # Scale phase
-        cos_theta = emb[8 + PHASE_OFFSET].item()
-        sin_theta = emb[8 + PHASE_OFFSET + 1].item()
+        cos_theta = emb[16 + PHASE_OFFSET].item()
+        sin_theta = emb[16 + PHASE_OFFSET + 1].item()
         theta = math.atan2(sin_theta, cos_theta)
         new_theta = theta * n
 
-        result = backend.at_add(result, 8 + PHASE_OFFSET, math.cos(new_theta))
-        result = backend.at_add(result, 8 + PHASE_OFFSET + 1, math.sin(new_theta))
+        result = backend.at_add(result, 16 + PHASE_OFFSET, math.cos(new_theta))
+        result = backend.at_add(result, 16 + PHASE_OFFSET + 1, math.sin(new_theta))
 
         return result
 
@@ -352,8 +352,8 @@ class ComplexEncoder:
 
     def is_real(self, emb: Any) -> bool:
         """Check if the number is real."""
-        return emb[8 + IS_REAL_FLAG].item() > 0.5
+        return emb[16 + IS_REAL_FLAG].item() > 0.5
 
     def is_pure_imaginary(self, emb: Any) -> bool:
         """Check if the number is pure imaginary."""
-        return emb[8 + IS_PURE_IMAG_FLAG].item() > 0.5
+        return emb[16 + IS_PURE_IMAG_FLAG].item() > 0.5

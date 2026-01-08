@@ -124,7 +124,7 @@ class ProteinEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Amino acid composition (normalized)
         total = len(sequence)
@@ -133,42 +133,42 @@ class ProteinEncoder:
         if total > 0:
             for i, aa in enumerate(aa_list):
                 count = sequence.count(aa)
-                emb = backend.at_add(emb, 8 + COMPOSITION_OFFSET + i, count / total)
+                emb = backend.at_add(emb, 16 + COMPOSITION_OFFSET + i, count / total)
 
         # Sequence length (log encoded)
         _, log_length = log_encode_value(total)
-        emb = backend.at_add(emb, 8 + LENGTH_OFFSET, log_length)
+        emb = backend.at_add(emb, 16 + LENGTH_OFFSET, log_length)
 
         # Molecular weight (log encoded)
         mw = self._molecular_weight(sequence)
         _, log_mw = log_encode_value(mw)
-        emb = backend.at_add(emb, 8 + MW_OFFSET, log_mw)
+        emb = backend.at_add(emb, 16 + MW_OFFSET, log_mw)
 
         # Isoelectric point estimate
         pi = self._isoelectric_point(sequence)
-        emb = backend.at_add(emb, 8 + PI_OFFSET, pi / 14.0)  # Normalize [0,1]
+        emb = backend.at_add(emb, 16 + PI_OFFSET, pi / 14.0)  # Normalize [0,1]
 
         # Average hydrophobicity
         hydro = self._average_hydrophobicity(sequence)
-        emb = backend.at_add(emb, 8 + HYDROPHOBICITY_OFFSET, hydro / 5.0)  # Normalize
+        emb = backend.at_add(emb, 16 + HYDROPHOBICITY_OFFSET, hydro / 5.0)  # Normalize
 
         # Instability index
         instability = self._instability_index(sequence)
-        emb = backend.at_add(emb, 8 + INSTABILITY_OFFSET, instability / 100.0)
+        emb = backend.at_add(emb, 16 + INSTABILITY_OFFSET, instability / 100.0)
 
         # Aliphatic index
         aliphatic = self._aliphatic_index(sequence)
-        emb = backend.at_add(emb, 8 + ALIPHATIC_OFFSET, aliphatic / 150.0)
+        emb = backend.at_add(emb, 16 + ALIPHATIC_OFFSET, aliphatic / 150.0)
 
         # Secondary structure propensity
         helix_prop, sheet_prop = self._secondary_structure_propensity(sequence)
-        emb = backend.at_add(emb, 8 + SECONDARY_OFFSET, helix_prop)
-        emb = backend.at_add(emb, 8 + SECONDARY_OFFSET + 1, sheet_prop)
+        emb = backend.at_add(emb, 16 + SECONDARY_OFFSET, helix_prop)
+        emb = backend.at_add(emb, 16 + SECONDARY_OFFSET + 1, sheet_prop)
 
         # Sequence embedding (hash-based)
         seq_hash = self._sequence_hash(sequence)
         for i, val in enumerate(seq_hash):
-            emb = backend.at_add(emb, 8 + SEQUENCE_EMBED_OFFSET + i, val)
+            emb = backend.at_add(emb, 16 + SEQUENCE_EMBED_OFFSET + i, val)
 
         return emb
 
@@ -180,14 +180,14 @@ class ProteinEncoder:
         """
         backend = get_backend()
         # Extract properties
-        log_length = emb[8 + LENGTH_OFFSET].item()
+        log_length = emb[16 + LENGTH_OFFSET].item()
         length = int(round(backend.exp(backend.array(log_length)).item()))
 
         # Get composition
         aa_list = list(AMINO_ACIDS.keys())
         composition = {}
         for i, aa in enumerate(aa_list):
-            count = emb[8 + COMPOSITION_OFFSET + i].item()
+            count = emb[16 + COMPOSITION_OFFSET + i].item()
             if count > 0:
                 composition[aa] = int(round(count * length))
 
@@ -197,15 +197,15 @@ class ProteinEncoder:
         return ProteinSequence(
             sequence=seq,
             length=length,
-            molecular_weight=backend.exp(backend.array(emb[8 + MW_OFFSET].item())).item(),
-            isoelectric_point=emb[8 + PI_OFFSET].item() * 14.0,
-            hydrophobicity=emb[8 + HYDROPHOBICITY_OFFSET].item() * 5.0,
+            molecular_weight=backend.exp(backend.array(emb[16 + MW_OFFSET].item())).item(),
+            isoelectric_point=emb[16 + PI_OFFSET].item() * 14.0,
+            hydrophobicity=emb[16 + HYDROPHOBICITY_OFFSET].item() * 5.0,
         )
 
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid protein sequence."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -222,8 +222,8 @@ class ProteinEncoder:
         # Compare composition
         comp_diff = (
             backend.abs(
-                emb1[8 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 20]
-                - emb2[8 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 20]
+                emb1[16 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 20]
+                - emb2[16 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 20]
             )
             .mean()
             .item()
@@ -232,8 +232,8 @@ class ProteinEncoder:
         comp_sim = 1.0 - comp_diff
 
         # Compare hydrophobicity
-        hydro1 = emb1[8 + HYDROPHOBICITY_OFFSET].item()
-        hydro2 = emb2[8 + HYDROPHOBICITY_OFFSET].item()
+        hydro1 = emb1[16 + HYDROPHOBICITY_OFFSET].item()
+        hydro2 = emb2[16 + HYDROPHOBICITY_OFFSET].item()
         hydro_sim = 1.0 - abs(hydro1 - hydro2) / 5.0
 
         return (comp_sim + hydro_sim) / 2.0

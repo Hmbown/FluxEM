@@ -157,7 +157,7 @@ class DNAEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Nucleotide composition (normalized)
         total = len(sequence)
@@ -172,28 +172,28 @@ class DNAEncoder:
             composition = [0.0, 0.0, 0.0, 0.0]
 
         for i, comp in enumerate(composition):
-            emb = backend.at_add(emb, 8 + COMPOSITION_OFFSET + i, comp)
+            emb = backend.at_add(emb, 16 + COMPOSITION_OFFSET + i, comp)
 
         # GC content
-        emb = backend.at_add(emb, 8 + GC_CONTENT_OFFSET, gc_content(sequence))
+        emb = backend.at_add(emb, 16 + GC_CONTENT_OFFSET, gc_content(sequence))
 
         # Sequence length (log encoded)
         _, log_length = log_encode_value(total)
-        emb = backend.at_add(emb, 8 + LENGTH_OFFSET, log_length)
+        emb = backend.at_add(emb, 16 + LENGTH_OFFSET, log_length)
 
         # Molecular weight (log encoded)
         mw = molecular_weight(sequence)
         _, log_mw = log_encode_value(mw)
-        emb = backend.at_add(emb, 8 + MW_OFFSET, log_mw)
+        emb = backend.at_add(emb, 16 + MW_OFFSET, log_mw)
 
         # Melting temperature
         tm = melting_temperature(sequence) / 100.0  # Normalize
-        emb = backend.at_add(emb, 8 + TM_OFFSET, tm)
+        emb = backend.at_add(emb, 16 + TM_OFFSET, tm)
 
         # Sequence embedding (hash-based for now)
         seq_hash = self._sequence_hash(sequence)
         for i, val in enumerate(seq_hash):
-            emb = backend.at_add(emb, 8 + SEQUENCE_EMBED_OFFSET + i, val)
+            emb = backend.at_add(emb, 16 + SEQUENCE_EMBED_OFFSET + i, val)
 
         return emb
 
@@ -206,10 +206,10 @@ class DNAEncoder:
         """
         backend = get_backend()
         # Extract properties
-        log_length = emb[8 + LENGTH_OFFSET].item()
+        log_length = emb[16 + LENGTH_OFFSET].item()
         length = int(round(backend.exp(backend.array(log_length)).item()))
 
-        gc = emb[8 + GC_CONTENT_OFFSET].item()
+        gc = emb[16 + GC_CONTENT_OFFSET].item()
 
         # Reconstruct sequence from stored base values
         seq = self._reconstruct_sequence(length, emb)
@@ -218,13 +218,13 @@ class DNAEncoder:
             sequence=seq,
             length=length,
             gc_content=gc,
-            molecular_weight=backend.exp(backend.array(emb[8 + MW_OFFSET].item())).item(),
+            molecular_weight=backend.exp(backend.array(emb[16 + MW_OFFSET].item())).item(),
         )
 
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid DNA sequence."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -239,16 +239,16 @@ class DNAEncoder:
         result = emb
 
         # Swap A and T in composition
-        a_comp = result[8 + COMPOSITION_OFFSET + 0]
-        t_comp = result[8 + COMPOSITION_OFFSET + 1]
-        result = backend.at_add(result, 8 + COMPOSITION_OFFSET + 0, t_comp - a_comp)
-        result = backend.at_add(result, 8 + COMPOSITION_OFFSET + 1, a_comp - t_comp)
+        a_comp = result[16 + COMPOSITION_OFFSET + 0]
+        t_comp = result[16 + COMPOSITION_OFFSET + 1]
+        result = backend.at_add(result, 16 + COMPOSITION_OFFSET + 0, t_comp - a_comp)
+        result = backend.at_add(result, 16 + COMPOSITION_OFFSET + 1, a_comp - t_comp)
 
         # Swap G and C
-        g_comp = result[8 + COMPOSITION_OFFSET + 2]
-        c_comp = result[8 + COMPOSITION_OFFSET + 3]
-        result = backend.at_add(result, 8 + COMPOSITION_OFFSET + 2, c_comp - g_comp)
-        result = backend.at_add(result, 8 + COMPOSITION_OFFSET + 3, g_comp - c_comp)
+        g_comp = result[16 + COMPOSITION_OFFSET + 2]
+        c_comp = result[16 + COMPOSITION_OFFSET + 3]
+        result = backend.at_add(result, 16 + COMPOSITION_OFFSET + 2, c_comp - g_comp)
+        result = backend.at_add(result, 16 + COMPOSITION_OFFSET + 3, g_comp - c_comp)
 
         return result
 
@@ -260,13 +260,13 @@ class DNAEncoder:
         """
         backend = get_backend()
         # Compare composition
-        comp1 = emb1[8 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
-        comp2 = emb2[8 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
+        comp1 = emb1[16 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
+        comp2 = emb2[16 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
         comp_sim = 1.0 - backend.abs(comp1 - comp2).mean().item() / 2.0
 
         # Compare GC content
-        gc1 = emb1[8 + GC_CONTENT_OFFSET].item()
-        gc2 = emb2[8 + GC_CONTENT_OFFSET].item()
+        gc1 = emb1[16 + GC_CONTENT_OFFSET].item()
+        gc2 = emb2[16 + GC_CONTENT_OFFSET].item()
         gc_sim = 1.0 - abs(gc1 - gc2)
 
         return (comp_sim + gc_sim) / 2.0
@@ -278,8 +278,8 @@ class DNAEncoder:
         Based on composition difference.
         """
         backend = get_backend()
-        log_len1 = emb1[8 + LENGTH_OFFSET].item()
-        log_len2 = emb2[8 + LENGTH_OFFSET].item()
+        log_len1 = emb1[16 + LENGTH_OFFSET].item()
+        log_len2 = emb2[16 + LENGTH_OFFSET].item()
 
         len1 = backend.exp(backend.array(log_len1)).item()
         len2 = backend.exp(backend.array(log_len2)).item()
@@ -287,8 +287,8 @@ class DNAEncoder:
         # Composition difference
         comp_diff = (
             backend.abs(
-                emb1[8 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
-                - emb2[8 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
+                emb1[16 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
+                - emb2[16 + COMPOSITION_OFFSET : 8 + COMPOSITION_OFFSET + 4]
             )
             .sum()
             .item()
@@ -348,7 +348,7 @@ class DNAEncoder:
         reconstruct_length = min(length, 32)
 
         for i in range(reconstruct_length):
-            val = emb[8 + SEQUENCE_EMBED_OFFSET + i].item()
+            val = emb[16 + SEQUENCE_EMBED_OFFSET + i].item()
             # Find closest matching base value
             closest_base = "A"  # Default
             closest_dist = float("inf")

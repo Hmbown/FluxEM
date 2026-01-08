@@ -187,7 +187,7 @@ class IntegerEncoder:
         embedding = backend.zeros((EMBEDDING_DIM,))
 
         # Domain tag
-        embedding = backend.at_add(embedding, slice(0, 8), self.domain_tag)
+        embedding = backend.at_add(embedding, slice(0, 16), self.domain_tag)
 
         # Sign
         embedding = backend.at_add(embedding, self.SIGN_POS, float(integer.sign))
@@ -238,7 +238,7 @@ class IntegerEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is valid for this domain."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # Integer operations on embeddings

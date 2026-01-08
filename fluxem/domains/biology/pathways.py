@@ -94,30 +94,30 @@ class PathwayEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Reactants stoichiometry
         for i, (met, coeff) in enumerate(list(reaction.reactants.items())[:16]):
             idx = self._get_metabolite_index(met)
-            emb = backend.at_add(emb, 8 + REACTANT_OFFSET + i, float(idx))
-            emb = backend.at_add(emb, 8 + REACTANT_OFFSET + i + 16, coeff)
+            emb = backend.at_add(emb, 16 + REACTANT_OFFSET + i, float(idx))
+            emb = backend.at_add(emb, 16 + REACTANT_OFFSET + i + 16, coeff)
 
         # Products stoichiometry
         for i, (met, coeff) in enumerate(list(reaction.products.items())[:16]):
             idx = self._get_metabolite_index(met)
-            emb = backend.at_add(emb, 8 + PRODUCT_OFFSET + i, float(idx))
-            emb = backend.at_add(emb, 8 + PRODUCT_OFFSET + i + 16, coeff)
+            emb = backend.at_add(emb, 16 + PRODUCT_OFFSET + i, float(idx))
+            emb = backend.at_add(emb, 16 + PRODUCT_OFFSET + i + 16, coeff)
 
         # Directionality
         if not reaction.reversible:
-            emb = backend.at_add(emb, 8 + DIRECTION_OFFSET, 1.0)
+            emb = backend.at_add(emb, 16 + DIRECTION_OFFSET, 1.0)
         else:
-            emb = backend.at_add(emb, 8 + DIRECTION_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + DIRECTION_OFFSET, 0.0)
 
         # ΔG (free energy change)
         if reaction.delta_g is not None:
             _, log_dg = log_encode_value(abs(reaction.delta_g))
-            emb = backend.at_add(emb, 8 + DG_OFFSET, log_dg)
+            emb = backend.at_add(emb, 16 + DG_OFFSET, log_dg)
 
         # Enzyme information
         if reaction.enzyme:
@@ -141,10 +141,10 @@ class PathwayEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Pathway ID
-        emb = backend.at_add(emb, 8 + PATHWAY_OFFSET, float(pathway_id))
+        emb = backend.at_add(emb, 16 + PATHWAY_OFFSET, float(pathway_id))
 
         # Aggregate stoichiometry from all reactions
         total_reactants = {}
@@ -159,13 +159,13 @@ class PathwayEncoder:
         # Encode aggregated stoichiometry
         for i, (met, coeff) in enumerate(list(total_reactants.items())[:16]):
             idx = self._get_metabolite_index(met)
-            emb = backend.at_add(emb, 8 + REACTANT_OFFSET + i, float(idx))
-            emb = backend.at_add(emb, 8 + REACTANT_OFFSET + i + 16, coeff)
+            emb = backend.at_add(emb, 16 + REACTANT_OFFSET + i, float(idx))
+            emb = backend.at_add(emb, 16 + REACTANT_OFFSET + i + 16, coeff)
 
         for i, (met, coeff) in enumerate(list(total_products.items())[:16]):
             idx = self._get_metabolite_index(met)
-            emb = backend.at_add(emb, 8 + PRODUCT_OFFSET + i, float(idx))
-            emb = backend.at_add(emb, 8 + PRODUCT_OFFSET + i + 16, coeff)
+            emb = backend.at_add(emb, 16 + PRODUCT_OFFSET + i, float(idx))
+            emb = backend.at_add(emb, 16 + PRODUCT_OFFSET + i + 16, coeff)
 
         return emb
 
@@ -176,14 +176,14 @@ class PathwayEncoder:
         products = {}
 
         for i in range(16):
-            met_idx = int(emb[8 + REACTANT_OFFSET + i].item())
-            coeff = emb[8 + REACTANT_OFFSET + i + 16].item()
+            met_idx = int(emb[16 + REACTANT_OFFSET + i].item())
+            coeff = emb[16 + REACTANT_OFFSET + i + 16].item()
             if coeff > 0:
                 met = self._get_metabolite_from_index(met_idx)
                 reactants[met] = coeff
 
-            met_idx = int(emb[8 + PRODUCT_OFFSET + i].item())
-            coeff = emb[8 + PRODUCT_OFFSET + i + 16].item()
+            met_idx = int(emb[16 + PRODUCT_OFFSET + i].item())
+            coeff = emb[16 + PRODUCT_OFFSET + i + 16].item()
             if coeff > 0:
                 met = self._get_metabolite_from_index(met_idx)
                 products[met] = coeff
@@ -196,7 +196,7 @@ class PathwayEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid pathway/reaction."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -211,7 +211,7 @@ class PathwayEncoder:
         result = emb1 + emb2
 
         # Renormalize domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag - result[0:8])
+        result = backend.at_add(result, slice(0, 16), self.domain_tag - result[0:16])
 
         return result
 
@@ -225,7 +225,7 @@ class PathwayEncoder:
         result = emb1 - emb2
 
         # Renormalize domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag - result[0:8])
+        result = backend.at_add(result, slice(0, 16), self.domain_tag - result[0:16])
 
         return result
 
@@ -237,8 +237,8 @@ class PathwayEncoder:
         """
         backend = get_backend()
         # Extract reactant and product stoichiometry
-        reactant_coeffs = emb[8 + REACTANT_OFFSET + 16 : 8 + REACTANT_OFFSET + 32]
-        product_coeffs = emb[8 + PRODUCT_OFFSET + 16 : 8 + PRODUCT_OFFSET + 32]
+        reactant_coeffs = emb[16 + REACTANT_OFFSET + 16 : 8 + REACTANT_OFFSET + 32]
+        product_coeffs = emb[16 + PRODUCT_OFFSET + 16 : 8 + PRODUCT_OFFSET + 32]
 
         # Simple check: total moles in = total moles out
         reactant_total = backend.sum(reactant_coeffs).item()
@@ -272,13 +272,13 @@ class PathwayEncoder:
             for i, part in enumerate(ec_parts[:5]):
                 try:
                     ec_val = float(part) / 99.0  # Normalize EC number components
-                    emb = backend.at_add(emb, 8 + ENZYME_OFFSET + i, ec_val)
+                    emb = backend.at_add(emb, 16 + ENZYME_OFFSET + i, ec_val)
                 except ValueError:
                     pass
         else:
             # Hash enzyme name
             hash_val = hash(enzyme) % 10000 / 10000.0
-            emb = backend.at_add(emb, 8 + ENZYME_OFFSET, hash_val)
+            emb = backend.at_add(emb, 16 + ENZYME_OFFSET, hash_val)
 
         return emb
 

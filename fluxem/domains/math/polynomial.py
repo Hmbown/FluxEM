@@ -68,40 +68,40 @@ class PolynomialEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Check for zero polynomial
         if len(coefficients) == 0 or all(abs(c) < EPSILON for c in coefficients):
-            emb = backend.at_add(emb, 8 + IS_ZERO_FLAG, 1.0)
-            emb = backend.at_add(emb, 8 + DEGREE_OFFSET, 1.0)
-            emb = backend.at_add(emb, 8 + DEGREE_OFFSET + 1, 0.0)  # log(0+1) = 0
+            emb = backend.at_add(emb, 16 + IS_ZERO_FLAG, 1.0)
+            emb = backend.at_add(emb, 16 + DEGREE_OFFSET, 1.0)
+            emb = backend.at_add(emb, 16 + DEGREE_OFFSET + 1, 0.0)  # log(0+1) = 0
             return emb
 
         degree = len(coefficients) - 1
 
         # Degree
-        emb = backend.at_add(emb, 8 + DEGREE_OFFSET, 1.0)
-        emb = backend.at_add(emb, 8 + DEGREE_OFFSET + 1, math.log(degree + 1))
+        emb = backend.at_add(emb, 16 + DEGREE_OFFSET, 1.0)
+        emb = backend.at_add(emb, 16 + DEGREE_OFFSET + 1, math.log(degree + 1))
 
         # Coefficients (up to degree 14)
         for i, c in enumerate(coefficients[:MAX_COEFFS]):
             offset = COEFF_OFFSET + i * 2
 
             if abs(c) < EPSILON:
-                emb = backend.at_add(emb, 8 + offset, 0.0)
-                emb = backend.at_add(emb, 8 + offset + 1, 0.0)
+                emb = backend.at_add(emb, 16 + offset, 0.0)
+                emb = backend.at_add(emb, 16 + offset + 1, 0.0)
             else:
-                emb = backend.at_add(emb, 8 + offset, 1.0 if c > 0 else -1.0)
-                emb = backend.at_add(emb, 8 + offset + 1, math.log(abs(c) + 1))
+                emb = backend.at_add(emb, 16 + offset, 1.0 if c > 0 else -1.0)
+                emb = backend.at_add(emb, 16 + offset + 1, math.log(abs(c) + 1))
 
         # Leading coefficient
         leading = coefficients[-1] if coefficients else 0
         if abs(leading) >= EPSILON:
-            emb = backend.at_add(emb, 8 + LEADING_COEFF_OFFSET, 1.0 if leading > 0 else -1.0)
-            emb = backend.at_add(emb, 8 + LEADING_COEFF_OFFSET + 1, math.log(abs(leading)))
+            emb = backend.at_add(emb, 16 + LEADING_COEFF_OFFSET, 1.0 if leading > 0 else -1.0)
+            emb = backend.at_add(emb, 16 + LEADING_COEFF_OFFSET + 1, math.log(abs(leading)))
 
             # Is monic?
-            emb = backend.at_add(emb, 8 + IS_MONIC_FLAG, 1.0 if abs(leading - 1.0) < EPSILON else 0.0)
+            emb = backend.at_add(emb, 16 + IS_MONIC_FLAG, 1.0 if abs(leading - 1.0) < EPSILON else 0.0)
 
         return emb
 
@@ -109,11 +109,11 @@ class PolynomialEncoder:
         """
         Decode embedding to coefficient list.
         """
-        if emb[8 + IS_ZERO_FLAG].item() > 0.5:
+        if emb[16 + IS_ZERO_FLAG].item() > 0.5:
             return [0.0]
 
         # Get degree
-        log_deg = emb[8 + DEGREE_OFFSET + 1].item()
+        log_deg = emb[16 + DEGREE_OFFSET + 1].item()
         degree = int(round(math.exp(log_deg) - 1))
         degree = min(degree, MAX_COEFFS - 1)
 
@@ -121,11 +121,11 @@ class PolynomialEncoder:
         for i in range(degree + 1):
             offset = COEFF_OFFSET + i * 2
 
-            sign = emb[8 + offset].item()
+            sign = emb[16 + offset].item()
             if abs(sign) < 0.5:
                 coefficients.append(0.0)
             else:
-                log_c = emb[8 + offset + 1].item()
+                log_c = emb[16 + offset + 1].item()
                 c = math.exp(log_c) - 1
                 coefficients.append(sign * c if sign > 0 else -c)
 
@@ -134,7 +134,7 @@ class PolynomialEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid polynomial."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -149,11 +149,11 @@ class PolynomialEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Get degrees
-        deg1 = int(round(math.exp(emb1[8 + DEGREE_OFFSET + 1].item()) - 1))
-        deg2 = int(round(math.exp(emb2[8 + DEGREE_OFFSET + 1].item()) - 1))
+        deg1 = int(round(math.exp(emb1[16 + DEGREE_OFFSET + 1].item()) - 1))
+        deg2 = int(round(math.exp(emb2[16 + DEGREE_OFFSET + 1].item()) - 1))
         max_deg = max(deg1, deg2)
 
         # Add coefficients
@@ -166,27 +166,27 @@ class PolynomialEncoder:
 
             # Get coefficient from first polynomial
             if i <= deg1:
-                sign1 = emb1[8 + offset].item()
+                sign1 = emb1[16 + offset].item()
                 if abs(sign1) >= 0.5:
-                    log_c1 = emb1[8 + offset + 1].item()
+                    log_c1 = emb1[16 + offset + 1].item()
                     c1 = (1 if sign1 > 0 else -1) * (math.exp(log_c1) - 1)
 
             # Get coefficient from second polynomial
             if i <= deg2:
-                sign2 = emb2[8 + offset].item()
+                sign2 = emb2[16 + offset].item()
                 if abs(sign2) >= 0.5:
-                    log_c2 = emb2[8 + offset + 1].item()
+                    log_c2 = emb2[16 + offset + 1].item()
                     c2 = (1 if sign2 > 0 else -1) * (math.exp(log_c2) - 1)
 
             c_sum = c1 + c2
             coefficients.append(c_sum)
 
             if abs(c_sum) < EPSILON:
-                result = backend.at_add(result, 8 + offset, 0.0)
-                result = backend.at_add(result, 8 + offset + 1, 0.0)
+                result = backend.at_add(result, 16 + offset, 0.0)
+                result = backend.at_add(result, 16 + offset + 1, 0.0)
             else:
-                result = backend.at_add(result, 8 + offset, 1.0 if c_sum > 0 else -1.0)
-                result = backend.at_add(result, 8 + offset + 1, math.log(abs(c_sum) + 1))
+                result = backend.at_add(result, 16 + offset, 1.0 if c_sum > 0 else -1.0)
+                result = backend.at_add(result, 16 + offset + 1, math.log(abs(c_sum) + 1))
 
         # Update degree (find actual degree after addition)
         actual_deg = 0
@@ -195,19 +195,19 @@ class PolynomialEncoder:
                 actual_deg = i
                 break
 
-        result = backend.at_add(result, 8 + DEGREE_OFFSET, 1.0)
-        result = backend.at_add(result, 8 + DEGREE_OFFSET + 1, math.log(actual_deg + 1))
+        result = backend.at_add(result, 16 + DEGREE_OFFSET, 1.0)
+        result = backend.at_add(result, 16 + DEGREE_OFFSET + 1, math.log(actual_deg + 1))
 
         # Update leading coefficient
         leading = coefficients[actual_deg] if coefficients else 0
         if abs(leading) >= EPSILON:
-            result = backend.at_add(result, 8 + LEADING_COEFF_OFFSET, 1.0 if leading > 0 else -1.0)
-            result = backend.at_add(result, 8 + LEADING_COEFF_OFFSET + 1, math.log(abs(leading)))
-            result = backend.at_add(result, 8 + IS_MONIC_FLAG, 1.0 if abs(leading - 1.0) < EPSILON else 0.0)
+            result = backend.at_add(result, 16 + LEADING_COEFF_OFFSET, 1.0 if leading > 0 else -1.0)
+            result = backend.at_add(result, 16 + LEADING_COEFF_OFFSET + 1, math.log(abs(leading)))
+            result = backend.at_add(result, 16 + IS_MONIC_FLAG, 1.0 if abs(leading - 1.0) < EPSILON else 0.0)
 
         # Check if result is zero
         if all(abs(c) < EPSILON for c in coefficients):
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
 
         return result
 
@@ -220,25 +220,25 @@ class PolynomialEncoder:
         """Negate a polynomial (multiply by -1)."""
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Copy degree
-        result = backend.at_add(result, 8 + DEGREE_OFFSET, emb[8 + DEGREE_OFFSET])
-        result = backend.at_add(result, 8 + DEGREE_OFFSET + 1, emb[8 + DEGREE_OFFSET + 1])
+        result = backend.at_add(result, 16 + DEGREE_OFFSET, emb[16 + DEGREE_OFFSET])
+        result = backend.at_add(result, 16 + DEGREE_OFFSET + 1, emb[16 + DEGREE_OFFSET + 1])
 
         # Negate all coefficients (flip signs)
         for i in range(MAX_COEFFS):
             offset = COEFF_OFFSET + i * 2
-            result = backend.at_add(result, 8 + offset, -emb[8 + offset])  # Flip sign
-            result = backend.at_add(result, 8 + offset + 1, emb[8 + offset + 1])  # Keep magnitude
+            result = backend.at_add(result, 16 + offset, -emb[16 + offset])  # Flip sign
+            result = backend.at_add(result, 16 + offset + 1, emb[16 + offset + 1])  # Keep magnitude
 
         # Negate leading coefficient
-        result = backend.at_add(result, 8 + LEADING_COEFF_OFFSET, -emb[8 + LEADING_COEFF_OFFSET])
-        result = backend.at_add(result, 8 + LEADING_COEFF_OFFSET + 1, emb[8 + LEADING_COEFF_OFFSET + 1])
+        result = backend.at_add(result, 16 + LEADING_COEFF_OFFSET, -emb[16 + LEADING_COEFF_OFFSET])
+        result = backend.at_add(result, 16 + LEADING_COEFF_OFFSET + 1, emb[16 + LEADING_COEFF_OFFSET + 1])
 
         # Copy flags
-        result = backend.at_add(result, 8 + IS_ZERO_FLAG, emb[8 + IS_ZERO_FLAG])
-        result = backend.at_add(result, 8 + IS_MONIC_FLAG, emb[8 + IS_MONIC_FLAG])
+        result = backend.at_add(result, 16 + IS_ZERO_FLAG, emb[16 + IS_ZERO_FLAG])
+        result = backend.at_add(result, 16 + IS_MONIC_FLAG, emb[16 + IS_MONIC_FLAG])
 
         return result
 
@@ -252,16 +252,16 @@ class PolynomialEncoder:
         if abs(scalar) < EPSILON:
             # Result is zero polynomial
             result = create_embedding()
-            result = backend.at_add(result, slice(0, 8), self.domain_tag)
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, slice(0, 16), self.domain_tag)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
             return result
 
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Copy degree
-        result = backend.at_add(result, 8 + DEGREE_OFFSET, emb[8 + DEGREE_OFFSET])
-        result = backend.at_add(result, 8 + DEGREE_OFFSET + 1, emb[8 + DEGREE_OFFSET + 1])
+        result = backend.at_add(result, 16 + DEGREE_OFFSET, emb[16 + DEGREE_OFFSET])
+        result = backend.at_add(result, 16 + DEGREE_OFFSET + 1, emb[16 + DEGREE_OFFSET + 1])
 
         log_scalar = math.log(abs(scalar))
         sign_scalar = 1.0 if scalar > 0 else -1.0
@@ -270,7 +270,7 @@ class PolynomialEncoder:
         for i in range(MAX_COEFFS):
             offset = COEFF_OFFSET + i * 2
 
-            sign_c = emb[8 + offset].item()
+            sign_c = emb[16 + offset].item()
             if abs(sign_c) < 0.5:
                 continue
 
@@ -278,22 +278,22 @@ class PolynomialEncoder:
             new_sign = sign_c * sign_scalar
 
             # Add log magnitudes (approximately)
-            log_c = emb[8 + offset + 1].item()
+            log_c = emb[16 + offset + 1].item()
             c = math.exp(log_c) - 1
             new_c = c * abs(scalar)
 
-            result = backend.at_add(result, 8 + offset, new_sign)
-            result = backend.at_add(result, 8 + offset + 1, math.log(new_c + 1))
+            result = backend.at_add(result, 16 + offset, new_sign)
+            result = backend.at_add(result, 16 + offset + 1, math.log(new_c + 1))
 
         # Update leading coefficient
-        sign_lead = emb[8 + LEADING_COEFF_OFFSET].item()
+        sign_lead = emb[16 + LEADING_COEFF_OFFSET].item()
         if abs(sign_lead) >= 0.5:
             new_sign = sign_lead * sign_scalar
-            log_lead = emb[8 + LEADING_COEFF_OFFSET + 1].item()
+            log_lead = emb[16 + LEADING_COEFF_OFFSET + 1].item()
             new_log = log_lead + log_scalar
 
-            result = backend.at_add(result, 8 + LEADING_COEFF_OFFSET, new_sign)
-            result = backend.at_add(result, 8 + LEADING_COEFF_OFFSET + 1, new_log)
+            result = backend.at_add(result, 16 + LEADING_COEFF_OFFSET, new_sign)
+            result = backend.at_add(result, 16 + LEADING_COEFF_OFFSET + 1, new_log)
 
         return result
 
@@ -357,15 +357,15 @@ class PolynomialEncoder:
 
     def degree(self, emb: Any) -> int:
         """Get the degree of the polynomial."""
-        if emb[8 + IS_ZERO_FLAG].item() > 0.5:
+        if emb[16 + IS_ZERO_FLAG].item() > 0.5:
             return -1  # Zero polynomial has degree -1 by convention
 
-        log_deg = emb[8 + DEGREE_OFFSET + 1].item()
+        log_deg = emb[16 + DEGREE_OFFSET + 1].item()
         return int(round(math.exp(log_deg) - 1))
 
     def is_zero(self, emb: Any) -> bool:
         """Check if this is the zero polynomial."""
-        return emb[8 + IS_ZERO_FLAG].item() > 0.5
+        return emb[16 + IS_ZERO_FLAG].item() > 0.5
 
     def is_constant(self, emb: Any) -> bool:
         """Check if this is a constant polynomial."""
@@ -373,12 +373,12 @@ class PolynomialEncoder:
 
     def is_monic(self, emb: Any) -> bool:
         """Check if the polynomial is monic (leading coeff = 1)."""
-        return emb[8 + IS_MONIC_FLAG].item() > 0.5
+        return emb[16 + IS_MONIC_FLAG].item() > 0.5
 
     def leading_coefficient(self, emb: Any) -> float:
         """Get the leading coefficient."""
-        sign = emb[8 + LEADING_COEFF_OFFSET].item()
+        sign = emb[16 + LEADING_COEFF_OFFSET].item()
         if abs(sign) < 0.5:
             return 0.0
-        log_c = emb[8 + LEADING_COEFF_OFFSET + 1].item()
+        log_c = emb[16 + LEADING_COEFF_OFFSET + 1].item()
         return sign * math.exp(log_c)

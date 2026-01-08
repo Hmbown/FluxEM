@@ -203,38 +203,38 @@ class PitchEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # MIDI number (normalized)
-        emb = backend.at_add(emb, 8 + PITCH_MIDI_OFFSET, midi / 127.0)
+        emb = backend.at_add(emb, 16 + PITCH_MIDI_OFFSET, midi / 127.0)
 
         # Frequency (log encoded)
         freq = midi_to_freq(midi)
         _, log_freq = log_encode_value(freq)
-        emb = backend.at_add(emb, 8 + PITCH_FREQ_OFFSET, log_freq)
+        emb = backend.at_add(emb, 16 + PITCH_FREQ_OFFSET, log_freq)
 
         # Octave
         octave = midi // 12 - 1
-        emb = backend.at_add(emb, 8 + PITCH_OCTAVE_OFFSET, octave / 10.0)
+        emb = backend.at_add(emb, 16 + PITCH_OCTAVE_OFFSET, octave / 10.0)
 
         # Chromatic degree
         chromatic = midi % 12
-        emb = backend.at_add(emb, 8 + PITCH_CHROMATIC, chromatic / 12.0)
+        emb = backend.at_add(emb, 16 + PITCH_CHROMATIC, chromatic / 12.0)
 
         # Accidentals (derive from note name)
         note_name, _ = midi_to_note_octave(midi)
         if "#" in note_name:
-            emb = backend.at_add(emb, 8 + PITCH_ACCIDENTAL, 1.0)  # Sharp
+            emb = backend.at_add(emb, 16 + PITCH_ACCIDENTAL, 1.0)  # Sharp
         elif "b" in note_name:
-            emb = backend.at_add(emb, 8 + PITCH_ACCIDENTAL, -1.0)  # Flat
+            emb = backend.at_add(emb, 16 + PITCH_ACCIDENTAL, -1.0)  # Flat
         else:
-            emb = backend.at_add(emb, 8 + PITCH_ACCIDENTAL, 0.0)  # Natural
+            emb = backend.at_add(emb, 16 + PITCH_ACCIDENTAL, 0.0)  # Natural
 
         # Harmonic series (first 8 partials)
         for i in range(8):
             harmonic_freq = freq * (i + 1)
             _, log_harmonic = log_encode_value(harmonic_freq)
-            emb = backend.at_add(emb, 8 + PITCH_HARMONIC_OFFSET + i, log_harmonic / 50.0)
+            emb = backend.at_add(emb, 16 + PITCH_HARMONIC_OFFSET + i, log_harmonic / 50.0)
 
         return emb
 
@@ -245,14 +245,14 @@ class PitchEncoder:
         Returns:
             MIDI note number (0-127)
         """
-        midi_norm = emb[8 + PITCH_MIDI_OFFSET].item()
+        midi_norm = emb[16 + PITCH_MIDI_OFFSET].item()
         midi = int(round(midi_norm * 127.0))
         return max(0, min(127, midi))
 
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid pitch."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -261,7 +261,7 @@ class PitchEncoder:
 
     def transpose(self, emb: Any, semitones: int) -> Any:
         """Transpose a pitch by semitone interval."""
-        midi_norm = emb[8 + PITCH_MIDI_OFFSET].item()
+        midi_norm = emb[16 + PITCH_MIDI_OFFSET].item()
         midi = int(round(midi_norm * 127.0))
 
         # Transpose
@@ -273,15 +273,15 @@ class PitchEncoder:
 
     def interval(self, emb1: Any, emb2: Any) -> int:
         """Calculate the interval between two pitches in semitones."""
-        midi1 = int(round(emb1[8 + PITCH_MIDI_OFFSET].item() * 127.0))
-        midi2 = int(round(emb2[8 + PITCH_MIDI_OFFSET].item() * 127.0))
+        midi1 = int(round(emb1[16 + PITCH_MIDI_OFFSET].item() * 127.0))
+        midi2 = int(round(emb2[16 + PITCH_MIDI_OFFSET].item() * 127.0))
 
         return midi2 - midi1
 
     def frequency_ratio(self, emb1: Any, emb2: Any) -> float:
         """Calculate the frequency ratio between two pitches."""
-        log_freq1 = emb1[8 + PITCH_FREQ_OFFSET].item()
-        log_freq2 = emb2[8 + PITCH_FREQ_OFFSET].item()
+        log_freq1 = emb1[16 + PITCH_FREQ_OFFSET].item()
+        log_freq2 = emb2[16 + PITCH_FREQ_OFFSET].item()
 
         # Ratio = freq2 / freq1 = exp(log_freq2 - log_freq1)
         return math.exp(log_freq2 - log_freq1)
@@ -296,8 +296,8 @@ class PitchEncoder:
         Returns:
             True if both pitches are diatonic to the key
         """
-        midi1 = int(round(emb1[8 + PITCH_MIDI_OFFSET].item() * 127.0))
-        midi2 = int(round(emb2[8 + PITCH_MIDI_OFFSET].item() * 127.0))
+        midi1 = int(round(emb1[16 + PITCH_MIDI_OFFSET].item() * 127.0))
+        midi2 = int(round(emb2[16 + PITCH_MIDI_OFFSET].item() * 127.0))
 
         # Get chromatic degrees relative to key
         degree1 = (midi1 - key_root) % 12
@@ -435,33 +435,33 @@ class ChordEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Root note
-        emb = backend.at_add(emb, 8 + CHORD_ROOT_OFFSET, root_midi / 127.0)
+        emb = backend.at_add(emb, 16 + CHORD_ROOT_OFFSET, root_midi / 127.0)
 
         # Chord quality
         quality_code = self._quality_codes.get(quality, 0) / 10.0
-        emb = backend.at_add(emb, 8 + CHORD_QUALITY_OFFSET, quality_code)
+        emb = backend.at_add(emb, 16 + CHORD_QUALITY_OFFSET, quality_code)
 
         # Inversion
-        emb = backend.at_add(emb, 8 + CHORD_INVERSION, inversion / 4.0)
+        emb = backend.at_add(emb, 16 + CHORD_INVERSION, inversion / 4.0)
 
         # Extensions
         if extensions is None:
             extensions = []
 
         for i, ext in enumerate(extensions[:4]):
-            emb = backend.at_add(emb, 8 + CHORD_EXTENSION_OFFSET + i, ext / 14.0)
+            emb = backend.at_add(emb, 16 + CHORD_EXTENSION_OFFSET + i, ext / 14.0)
 
         # Interval pattern (semitones from root)
         pattern = CHORD_PATTERNS.get(quality, [0, 4, 7])
         for i, interval in enumerate(pattern):
-            emb = backend.at_add(emb, 8 + CHORD_INTERVAL_OFFSET + i, interval / 12.0)
+            emb = backend.at_add(emb, 16 + CHORD_INTERVAL_OFFSET + i, interval / 12.0)
 
         # Tension score (simple heuristic)
         tension = self._calculate_tension(pattern, extensions)
-        emb = backend.at_add(emb, 8 + CHORD_TENSION_OFFSET, tension)
+        emb = backend.at_add(emb, 16 + CHORD_TENSION_OFFSET, tension)
 
         return emb
 
@@ -469,9 +469,9 @@ class ChordEncoder:
         """
         Decode embedding to (root_note, quality, inversion).
         """
-        root_midi = int(round(emb[8 + CHORD_ROOT_OFFSET].item() * 127.0))
-        quality_code = int(round(emb[8 + CHORD_QUALITY_OFFSET].item() * 10.0))
-        inversion = int(round(emb[8 + CHORD_INVERSION].item() * 4.0))
+        root_midi = int(round(emb[16 + CHORD_ROOT_OFFSET].item() * 127.0))
+        quality_code = int(round(emb[16 + CHORD_QUALITY_OFFSET].item() * 10.0))
+        inversion = int(round(emb[16 + CHORD_INVERSION].item() * 4.0))
 
         # Reverse lookup quality
         quality = {v: k for k, v in self._quality_codes.items()}.get(
@@ -486,7 +486,7 @@ class ChordEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid chord."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -496,15 +496,15 @@ class ChordEncoder:
     def transpose(self, emb: Any, semitones: int) -> Any:
         """Transpose a chord by semitone interval."""
         # Extract MIDI directly for arithmetic
-        root_midi = int(round(emb[8 + CHORD_ROOT_OFFSET].item() * 127.0))
+        root_midi = int(round(emb[16 + CHORD_ROOT_OFFSET].item() * 127.0))
         _, quality, inversion = self.decode(emb)
         new_root = root_midi + semitones
         return self.encode(new_root, quality, inversion)
 
     def interval_between(self, emb1: Any, emb2: Any) -> int:
         """Calculate interval between chord roots."""
-        root1 = int(round(emb1[8 + CHORD_ROOT_OFFSET].item() * 127.0))
-        root2 = int(round(emb2[8 + CHORD_ROOT_OFFSET].item() * 127.0))
+        root1 = int(round(emb1[16 + CHORD_ROOT_OFFSET].item() * 127.0))
+        root2 = int(round(emb2[16 + CHORD_ROOT_OFFSET].item() * 127.0))
         return root2 - root1
 
     def is_consonant(self, emb: Any) -> bool:
@@ -513,17 +513,17 @@ class ChordEncoder:
 
         Based on interval content.
         """
-        tension = emb[8 + CHORD_TENSION_OFFSET].item()
+        tension = emb[16 + CHORD_TENSION_OFFSET].item()
         return tension < 0.5  # Simple threshold
 
     def has_common_tones(self, emb1: Any, emb2: Any) -> bool:
         """Check if two chords have common tones."""
-        root1 = int(round(emb1[8 + CHORD_ROOT_OFFSET].item() * 127.0))
-        root2 = int(round(emb2[8 + CHORD_ROOT_OFFSET].item() * 127.0))
+        root1 = int(round(emb1[16 + CHORD_ROOT_OFFSET].item() * 127.0))
+        root2 = int(round(emb2[16 + CHORD_ROOT_OFFSET].item() * 127.0))
 
         # Get chord tones (simplified)
-        quality1 = int(round(emb1[8 + CHORD_QUALITY_OFFSET].item() * 10.0))
-        quality2 = int(round(emb2[8 + CHORD_QUALITY_OFFSET].item() * 10.0))
+        quality1 = int(round(emb1[16 + CHORD_QUALITY_OFFSET].item() * 10.0))
+        quality2 = int(round(emb2[16 + CHORD_QUALITY_OFFSET].item() * 10.0))
 
         pattern1 = CHORD_PATTERNS.get(
             {v: k for k, v in self._quality_codes.items()}.get(quality1, "major"),
@@ -635,26 +635,26 @@ class ScaleEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Root note
-        emb = backend.at_add(emb, 8 + SCALE_ROOT_OFFSET, root_midi / 127.0)
+        emb = backend.at_add(emb, 16 + SCALE_ROOT_OFFSET, root_midi / 127.0)
 
         # Scale type
         scale_code = self._scale_codes.get(scale_type, 0) / 12.0
-        emb = backend.at_add(emb, 8 + SCALE_TYPE_OFFSET, scale_code)
+        emb = backend.at_add(emb, 16 + SCALE_TYPE_OFFSET, scale_code)
 
         # Scale degrees (which chromatic notes are in scale)
         pattern = SCALE_PATTERNS.get(scale_type, [0, 2, 4, 5, 7, 9, 11])
         for i in range(12):
             if i in pattern:
-                emb = backend.at_add(emb, 8 + SCALE_DEGREES_OFFSET + i, 1.0)
+                emb = backend.at_add(emb, 16 + SCALE_DEGREES_OFFSET + i, 1.0)
             else:
-                emb = backend.at_add(emb, 8 + SCALE_DEGREES_OFFSET + i, 0.0)
+                emb = backend.at_add(emb, 16 + SCALE_DEGREES_OFFSET + i, 0.0)
 
         # Scale intervals (semitones from root)
         for i, interval in enumerate(pattern):
-            emb = backend.at_add(emb, 8 + SCALE_INTERVALS_OFFSET + i, interval / 12.0)
+            emb = backend.at_add(emb, 16 + SCALE_INTERVALS_OFFSET + i, interval / 12.0)
 
         return emb
 
@@ -662,8 +662,8 @@ class ScaleEncoder:
         """
         Decode embedding to (root_midi, scale_type).
         """
-        root_midi = int(round(emb[8 + SCALE_ROOT_OFFSET].item() * 127.0))
-        scale_code = int(round(emb[8 + SCALE_TYPE_OFFSET].item() * 12.0))
+        root_midi = int(round(emb[16 + SCALE_ROOT_OFFSET].item() * 127.0))
+        scale_code = int(round(emb[16 + SCALE_TYPE_OFFSET].item() * 12.0))
 
         # Reverse lookup scale type
         scale_type = {v: k for k, v in self._scale_codes.items()}.get(
@@ -675,7 +675,7 @@ class ScaleEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid scale."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -701,19 +701,19 @@ class ScaleEncoder:
 
     def contains_note(self, emb: Any, note_midi: int) -> bool:
         """Check if a note is in the scale."""
-        root_midi = int(round(emb[8 + SCALE_ROOT_OFFSET].item() * 127.0))
+        root_midi = int(round(emb[16 + SCALE_ROOT_OFFSET].item() * 127.0))
         chromatic_degree = (note_midi - root_midi) % 12
 
         # Check if this degree is in the scale
-        degree_flag = emb[8 + SCALE_DEGREES_OFFSET + chromatic_degree].item()
+        degree_flag = emb[16 + SCALE_DEGREES_OFFSET + chromatic_degree].item()
         return degree_flag > 0.5
 
     def modulation_distance(self, emb1: Any, emb2: Any) -> int:
         """Calculate modulation distance (number of common tones)."""
         common = 0
         for i in range(12):
-            deg1 = emb1[8 + SCALE_DEGREES_OFFSET + i].item()
-            deg2 = emb2[8 + SCALE_DEGREES_OFFSET + i].item()
+            deg1 = emb1[16 + SCALE_DEGREES_OFFSET + i].item()
+            deg2 = emb2[16 + SCALE_DEGREES_OFFSET + i].item()
             if deg1 > 0.5 and deg2 > 0.5:
                 common += 1
 
@@ -749,7 +749,7 @@ def note_to_freq(note: str) -> float:
     """Convert note string to frequency."""
     encoder = PitchEncoder()
     emb = encoder.encode(note)
-    log_freq = emb[8 + PITCH_FREQ_OFFSET].item()
+    log_freq = emb[16 + PITCH_FREQ_OFFSET].item()
     return math.exp(log_freq)
 
 
@@ -1122,37 +1122,37 @@ class AtonalSetEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Pitch class set (12-dim binary vector)
         pc_vec = pitch_class_set_to_vector(pcs)
         for i in range(12):
-            emb = backend.at_add(emb, 8 + PC_SET_VECTOR_OFFSET + i, pc_vec[i])
+            emb = backend.at_add(emb, 16 + PC_SET_VECTOR_OFFSET + i, pc_vec[i])
 
         # Interval class vector (6-dim)
         icv = interval_class_vector(pcs)
         for i in range(6):
-            emb = backend.at_add(emb, 8 + IC_VECTOR_OFFSET + i, icv[i])
+            emb = backend.at_add(emb, 16 + IC_VECTOR_OFFSET + i, icv[i])
 
         # Prime form
         pf = prime_form(pcs)
         for i, pc in enumerate(pf):
-            emb = backend.at_add(emb, 8 + PRIME_FORM_OFFSET + i, float(pc) / 12.0)
+            emb = backend.at_add(emb, 16 + PRIME_FORM_OFFSET + i, float(pc) / 12.0)
 
         # Cardinality
-        emb = backend.at_add(emb, 8 + CARDINALITY_OFFSET, 
+        emb = backend.at_add(emb, 16 + CARDINALITY_OFFSET, 
             float(len(set(pc % 12 for pc in pcs))) / 12.0
         )
 
         # Fortean number
         forte = forte_number_helper(pcs)
         _, log_forte = log_encode_value(float(forte))
-        emb = backend.at_add(emb, 8 + FORTEAN_OFFSET, log_forte / 12.0)
+        emb = backend.at_add(emb, 16 + FORTEAN_OFFSET, log_forte / 12.0)
 
         # Tn invariance (which transpositions preserve set)
         tn_inv = invariant_under_Tn(pcs)
         for n in tn_inv:
-            emb = backend.at_add(emb, 8 + INVARIANCE_OFFSET + n, 1.0)
+            emb = backend.at_add(emb, 16 + INVARIANCE_OFFSET + n, 1.0)
 
         return emb
 
@@ -1163,7 +1163,7 @@ class AtonalSetEncoder:
         # Extract pitch class set
         pcs = []
         for i in range(12):
-            if emb[8 + PC_SET_VECTOR_OFFSET + i].item() > 0.5:
+            if emb[16 + PC_SET_VECTOR_OFFSET + i].item() > 0.5:
                 pcs.append(i)
 
         return pcs
@@ -1171,7 +1171,7 @@ class AtonalSetEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is valid."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -1250,8 +1250,8 @@ class AtonalSetEncoder:
 
         # Override with prime form only
         for i, pc in enumerate(pf):
-            result = backend.at_add(result, 8 + PRIME_FORM_OFFSET + i, 
-                float(pc) / 12.0 - result[8 + PRIME_FORM_OFFSET + i]
+            result = backend.at_add(result, 16 + PRIME_FORM_OFFSET + i, 
+                float(pc) / 12.0 - result[16 + PRIME_FORM_OFFSET + i]
             )
 
         return result

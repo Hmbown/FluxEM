@@ -141,47 +141,47 @@ class DateTimeEncoder:
         emb = create_embedding()
         
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
         
         # Year
         year_sign, year_log = log_encode_value(float(abs(dt.year)))
-        emb = backend.at_add(emb, 8 + YEAR_OFFSET, 1.0 if dt.year >= 0 else -1.0)
-        emb = backend.at_add(emb, 8 + YEAR_OFFSET + 1, year_log)
+        emb = backend.at_add(emb, 16 + YEAR_OFFSET, 1.0 if dt.year >= 0 else -1.0)
+        emb = backend.at_add(emb, 16 + YEAR_OFFSET + 1, year_log)
         
         # Month (1-12 -> 0-1)
-        emb = backend.at_add(emb, 8 + MONTH_OFFSET, (dt.month - 1) / 11.0)
+        emb = backend.at_add(emb, 16 + MONTH_OFFSET, (dt.month - 1) / 11.0)
         
         # Day (1-31 -> 0-1)
-        emb = backend.at_add(emb, 8 + DAY_OFFSET, (dt.day - 1) / 30.0)
+        emb = backend.at_add(emb, 16 + DAY_OFFSET, (dt.day - 1) / 30.0)
         
         # Day of week (Monday=0)
         dow = dt.weekday()
-        emb = backend.at_add(emb, 8 + DOW_OFFSET, dow / 6.0)
+        emb = backend.at_add(emb, 16 + DOW_OFFSET, dow / 6.0)
         
         # Day of year
         doy = _day_of_year(dt.year, dt.month, dt.day)
-        emb = backend.at_add(emb, 8 + DOY_OFFSET, (doy - 1) / 365.0)
+        emb = backend.at_add(emb, 16 + DOY_OFFSET, (doy - 1) / 365.0)
         
         # Flags
         is_leap = _is_leap_year(dt.year)
         is_weekend = dow >= 5
-        emb = backend.at_add(emb, 8 + IS_LEAP_FLAG, 1.0 if is_leap else 0.0)
-        emb = backend.at_add(emb, 8 + IS_WEEKEND_FLAG, 1.0 if is_weekend else 0.0)
-        emb = backend.at_add(emb, 8 + HAS_TIME_FLAG, 1.0 if has_time else 0.0)
+        emb = backend.at_add(emb, 16 + IS_LEAP_FLAG, 1.0 if is_leap else 0.0)
+        emb = backend.at_add(emb, 16 + IS_WEEKEND_FLAG, 1.0 if is_weekend else 0.0)
+        emb = backend.at_add(emb, 16 + HAS_TIME_FLAG, 1.0 if has_time else 0.0)
         
         # Time components
         if has_time:
-            emb = backend.at_add(emb, 8 + HOUR_OFFSET, dt.hour / 23.0)
-            emb = backend.at_add(emb, 8 + MINUTE_OFFSET, dt.minute / 59.0)
-            emb = backend.at_add(emb, 8 + SECOND_OFFSET, dt.second / 59.0)
-            emb = backend.at_add(emb, 8 + MICROSECOND_OFFSET, dt.microsecond / 999999.0)
+            emb = backend.at_add(emb, 16 + HOUR_OFFSET, dt.hour / 23.0)
+            emb = backend.at_add(emb, 16 + MINUTE_OFFSET, dt.minute / 59.0)
+            emb = backend.at_add(emb, 16 + SECOND_OFFSET, dt.second / 59.0)
+            emb = backend.at_add(emb, 16 + MICROSECOND_OFFSET, dt.microsecond / 999999.0)
         
         # Unix timestamp
         try:
             ts = dt.timestamp()
             ts_sign, ts_log = log_encode_value(abs(ts))
-            emb = backend.at_add(emb, 8 + UNIX_TS_OFFSET, 1.0 if ts >= 0 else -1.0)
-            emb = backend.at_add(emb, 8 + UNIX_TS_OFFSET + 1, ts_log)
+            emb = backend.at_add(emb, 16 + UNIX_TS_OFFSET, 1.0 if ts >= 0 else -1.0)
+            emb = backend.at_add(emb, 16 + UNIX_TS_OFFSET + 1, ts_log)
         except:
             pass  # Pre-1970 dates may not have timestamp
         
@@ -195,28 +195,28 @@ class DateTimeEncoder:
             datetime object
         """
         # Year
-        year_sign = emb[8 + YEAR_OFFSET].item()
-        year_log = emb[8 + YEAR_OFFSET + 1].item()
+        year_sign = emb[16 + YEAR_OFFSET].item()
+        year_log = emb[16 + YEAR_OFFSET + 1].item()
         year = int(round(log_decode_value(1.0, year_log)))
         if year_sign < 0:
             year = -year
         year = max(1, min(9999, year))
         
         # Month
-        month = int(round(emb[8 + MONTH_OFFSET].item() * 11.0)) + 1
+        month = int(round(emb[16 + MONTH_OFFSET].item() * 11.0)) + 1
         month = max(1, min(12, month))
         
         # Day
-        day = int(round(emb[8 + DAY_OFFSET].item() * 30.0)) + 1
+        day = int(round(emb[16 + DAY_OFFSET].item() * 30.0)) + 1
         max_day = _days_in_month(year, month)
         day = max(1, min(max_day, day))
         
         # Time
-        has_time = emb[8 + HAS_TIME_FLAG].item() > 0.5
+        has_time = emb[16 + HAS_TIME_FLAG].item() > 0.5
         if has_time:
-            hour = int(round(emb[8 + HOUR_OFFSET].item() * 23.0))
-            minute = int(round(emb[8 + MINUTE_OFFSET].item() * 59.0))
-            second = int(round(emb[8 + SECOND_OFFSET].item() * 59.0))
+            hour = int(round(emb[16 + HOUR_OFFSET].item() * 23.0))
+            minute = int(round(emb[16 + MINUTE_OFFSET].item() * 59.0))
+            second = int(round(emb[16 + SECOND_OFFSET].item() * 59.0))
             hour = max(0, min(23, hour))
             minute = max(0, min(59, minute))
             second = max(0, min(59, second))
@@ -227,7 +227,7 @@ class DateTimeEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid datetime."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
     
     # =========================================================================
@@ -236,34 +236,34 @@ class DateTimeEncoder:
     
     def get_year(self, emb: Any) -> int:
         """Get year from embedding."""
-        year_sign = emb[8 + YEAR_OFFSET].item()
-        year_log = emb[8 + YEAR_OFFSET + 1].item()
+        year_sign = emb[16 + YEAR_OFFSET].item()
+        year_log = emb[16 + YEAR_OFFSET + 1].item()
         year = int(round(log_decode_value(1.0, year_log)))
         return year if year_sign >= 0 else -year
     
     def get_month(self, emb: Any) -> int:
         """Get month from embedding (1-12)."""
-        return int(round(emb[8 + MONTH_OFFSET].item() * 11.0)) + 1
+        return int(round(emb[16 + MONTH_OFFSET].item() * 11.0)) + 1
     
     def get_day(self, emb: Any) -> int:
         """Get day from embedding (1-31)."""
-        return int(round(emb[8 + DAY_OFFSET].item() * 30.0)) + 1
+        return int(round(emb[16 + DAY_OFFSET].item() * 30.0)) + 1
     
     def get_day_of_week(self, emb: Any) -> int:
         """Get day of week (0=Monday, 6=Sunday)."""
-        return int(round(emb[8 + DOW_OFFSET].item() * 6.0))
+        return int(round(emb[16 + DOW_OFFSET].item() * 6.0))
     
     def get_day_of_year(self, emb: Any) -> int:
         """Get day of year (1-366)."""
-        return int(round(emb[8 + DOY_OFFSET].item() * 365.0)) + 1
+        return int(round(emb[16 + DOY_OFFSET].item() * 365.0)) + 1
     
     def is_leap_year(self, emb: Any) -> bool:
         """Check if year is a leap year."""
-        return emb[8 + IS_LEAP_FLAG].item() > 0.5
+        return emb[16 + IS_LEAP_FLAG].item() > 0.5
     
     def is_weekend(self, emb: Any) -> bool:
         """Check if date is on a weekend."""
-        return emb[8 + IS_WEEKEND_FLAG].item() > 0.5
+        return emb[16 + IS_WEEKEND_FLAG].item() > 0.5
     
     # =========================================================================
     # Date Arithmetic
@@ -347,15 +347,15 @@ class DurationEncoder:
         emb = create_embedding()
         
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
         
         # Total seconds (log magnitude)
         is_negative = total_seconds < 0
         abs_seconds = abs(total_seconds)
         
         sign, log_mag = log_encode_value(abs_seconds)
-        emb = backend.at_add(emb, 8 + DUR_SECONDS_OFFSET, sign)
-        emb = backend.at_add(emb, 8 + DUR_SECONDS_OFFSET + 1, log_mag)
+        emb = backend.at_add(emb, 16 + DUR_SECONDS_OFFSET, sign)
+        emb = backend.at_add(emb, 16 + DUR_SECONDS_OFFSET + 1, log_mag)
         
         # Components (for human-readable representation)
         days = int(abs_seconds // 86400)
@@ -366,24 +366,24 @@ class DurationEncoder:
         seconds = remaining % 60
         
         # Normalize to [0, 1] ranges
-        emb = backend.at_add(emb, 8 + DUR_DAYS_OFFSET, min(days, 365) / 365.0)
-        emb = backend.at_add(emb, 8 + DUR_HOURS_OFFSET, hours / 23.0)
-        emb = backend.at_add(emb, 8 + DUR_MINUTES_OFFSET, minutes / 59.0)
-        emb = backend.at_add(emb, 8 + DUR_SECS_OFFSET, seconds / 59.0)
+        emb = backend.at_add(emb, 16 + DUR_DAYS_OFFSET, min(days, 365) / 365.0)
+        emb = backend.at_add(emb, 16 + DUR_HOURS_OFFSET, hours / 23.0)
+        emb = backend.at_add(emb, 16 + DUR_MINUTES_OFFSET, minutes / 59.0)
+        emb = backend.at_add(emb, 16 + DUR_SECS_OFFSET, seconds / 59.0)
         
         # Negative flag
-        emb = backend.at_add(emb, 8 + DUR_NEG_FLAG, 1.0 if is_negative else 0.0)
+        emb = backend.at_add(emb, 16 + DUR_NEG_FLAG, 1.0 if is_negative else 0.0)
         
         return emb
     
     def decode(self, emb: Any) -> timedelta:
         """Decode embedding to timedelta."""
-        sign = emb[8 + DUR_SECONDS_OFFSET].item()
-        log_mag = emb[8 + DUR_SECONDS_OFFSET + 1].item()
+        sign = emb[16 + DUR_SECONDS_OFFSET].item()
+        log_mag = emb[16 + DUR_SECONDS_OFFSET + 1].item()
         
         total_seconds = log_decode_value(sign, log_mag)
         
-        is_negative = emb[8 + DUR_NEG_FLAG].item() > 0.5
+        is_negative = emb[16 + DUR_NEG_FLAG].item() > 0.5
         if is_negative:
             total_seconds = -abs(total_seconds)
         
@@ -392,7 +392,7 @@ class DurationEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid duration."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
     
     # =========================================================================

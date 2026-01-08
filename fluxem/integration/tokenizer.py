@@ -42,6 +42,17 @@ class DomainType(Enum):
     SCALE = 23  # Musical scale: C major, A minor
     RHYTHM = 24  # Rhythm/time signature: 4/4, 3/4
     ATONAL = 25  # Atonal pitch class set: [0,4,7]
+    # New expanded domains
+    COMBINATORICS = 26  # Combinatorial expressions: n!, C(n,k), P(n,k)
+    PROBABILITY = 27  # Probability distributions: bernoulli, binomial
+    STATISTICS = 28  # Statistical summaries: mean, std, etc.
+    INFO_THEORY = 29  # Information theory: entropy, KL divergence
+    SIGNAL = 30  # Signal processing: time series, spectra
+    CALCULUS = 31  # Calculus polynomials: derivatives, integrals
+    TEMPORAL = 32  # Temporal dates with calendar features
+    FINANCE = 33  # Financial cashflows and NPV
+    OPTIMIZATION = 34  # Optimization steps: x, gradient, step size
+    CONTROL = 35  # Control systems: state space A, B, x, u
 
 
 @dataclass

@@ -215,46 +215,46 @@ class BondEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Element atomic numbers
         z1 = ELEMENT_TO_Z.get(bond.element1, 6)  # Default to carbon
         z2 = ELEMENT_TO_Z.get(bond.element2, 6)
 
         sign1, log1 = log_encode_value(float(z1))
-        emb = backend.at_add(emb, 8 + ELEM1_OFFSET, sign1)
-        emb = backend.at_add(emb, 8 + ELEM1_OFFSET + 1, log1)
+        emb = backend.at_add(emb, 16 + ELEM1_OFFSET, sign1)
+        emb = backend.at_add(emb, 16 + ELEM1_OFFSET + 1, log1)
 
         sign2, log2 = log_encode_value(float(z2))
-        emb = backend.at_add(emb, 8 + ELEM2_OFFSET, sign2)
-        emb = backend.at_add(emb, 8 + ELEM2_OFFSET + 1, log2)
+        emb = backend.at_add(emb, 16 + ELEM2_OFFSET, sign2)
+        emb = backend.at_add(emb, 16 + ELEM2_OFFSET + 1, log2)
 
         # Bond type (normalized to [0, 1])
-        emb = backend.at_add(emb, 8 + BOND_TYPE_OFFSET, bond.bond_type.value / 5.0)
+        emb = backend.at_add(emb, 16 + BOND_TYPE_OFFSET, bond.bond_type.value / 5.0)
 
         # Bond order (normalized, 0.5-3 -> 0-1)
         order_norm = (bond.bond_order - 0.5) / 2.5
-        emb = backend.at_add(emb, 8 + BOND_ORDER_OFFSET, order_norm)
+        emb = backend.at_add(emb, 16 + BOND_ORDER_OFFSET, order_norm)
 
         # Bond length
         if bond.length is not None:
             sign_l, log_l = log_encode_value(bond.length)
-            emb = backend.at_add(emb, 8 + LENGTH_OFFSET, sign_l)
-            emb = backend.at_add(emb, 8 + LENGTH_OFFSET + 1, log_l)
+            emb = backend.at_add(emb, 16 + LENGTH_OFFSET, sign_l)
+            emb = backend.at_add(emb, 16 + LENGTH_OFFSET + 1, log_l)
 
         # Bond energy
         if bond.energy is not None:
             sign_e, log_e = log_encode_value(bond.energy)
-            emb = backend.at_add(emb, 8 + ENERGY_OFFSET, sign_e)
-            emb = backend.at_add(emb, 8 + ENERGY_OFFSET + 1, log_e)
+            emb = backend.at_add(emb, 16 + ENERGY_OFFSET, sign_e)
+            emb = backend.at_add(emb, 16 + ENERGY_OFFSET + 1, log_e)
 
         # Polarity
         if bond.polarity is not None:
-            emb = backend.at_add(emb, 8 + POLARITY_OFFSET, bond.polarity / 4.0)
+            emb = backend.at_add(emb, 16 + POLARITY_OFFSET, bond.polarity / 4.0)
 
         # Flags
-        emb = backend.at_add(emb, 8 + IS_POLAR_FLAG, 1.0 if bond.is_polar else 0.0)
-        emb = backend.at_add(emb, 8 + IS_ROTATABLE_FLAG, 1.0 if bond.is_rotatable else 0.0)
+        emb = backend.at_add(emb, 16 + IS_POLAR_FLAG, 1.0 if bond.is_polar else 0.0)
+        emb = backend.at_add(emb, 16 + IS_ROTATABLE_FLAG, 1.0 if bond.is_rotatable else 0.0)
 
         return emb
 
@@ -303,13 +303,13 @@ class BondEncoder:
             Bond object
         """
         # Decode element atomic numbers
-        sign1 = emb[8 + ELEM1_OFFSET].item()
-        log1 = emb[8 + ELEM1_OFFSET + 1].item()
+        sign1 = emb[16 + ELEM1_OFFSET].item()
+        log1 = emb[16 + ELEM1_OFFSET + 1].item()
         z1 = int(round(log_decode_value(sign1, log1)))
         z1 = max(1, min(118, z1))
 
-        sign2 = emb[8 + ELEM2_OFFSET].item()
-        log2 = emb[8 + ELEM2_OFFSET + 1].item()
+        sign2 = emb[16 + ELEM2_OFFSET].item()
+        log2 = emb[16 + ELEM2_OFFSET + 1].item()
         z2 = int(round(log_decode_value(sign2, log2)))
         z2 = max(1, min(118, z2))
 
@@ -317,12 +317,12 @@ class BondEncoder:
         e2 = Z_TO_ELEMENT.get(z2, "C")
 
         # Decode bond type
-        type_val = int(round(emb[8 + BOND_TYPE_OFFSET].item() * 5.0))
+        type_val = int(round(emb[16 + BOND_TYPE_OFFSET].item() * 5.0))
         type_val = max(0, min(5, type_val))
         bond_type = BondType(type_val)
 
         # Decode bond order
-        order_norm = emb[8 + BOND_ORDER_OFFSET].item()
+        order_norm = emb[16 + BOND_ORDER_OFFSET].item()
         bond_order = order_norm * 2.5 + 0.5
         # Round to nearest valid order
         if bond_order < 0.75:
@@ -337,21 +337,21 @@ class BondEncoder:
             bond_order = 3
 
         # Decode length
-        sign_l = emb[8 + LENGTH_OFFSET].item()
-        log_l = emb[8 + LENGTH_OFFSET + 1].item()
+        sign_l = emb[16 + LENGTH_OFFSET].item()
+        log_l = emb[16 + LENGTH_OFFSET + 1].item()
         length = log_decode_value(sign_l, log_l) if abs(sign_l) > 0.5 else None
 
         # Decode energy
-        sign_e = emb[8 + ENERGY_OFFSET].item()
-        log_e = emb[8 + ENERGY_OFFSET + 1].item()
+        sign_e = emb[16 + ENERGY_OFFSET].item()
+        log_e = emb[16 + ENERGY_OFFSET + 1].item()
         energy = log_decode_value(sign_e, log_e) if abs(sign_e) > 0.5 else None
 
         # Decode polarity
-        polarity = emb[8 + POLARITY_OFFSET].item() * 4.0
+        polarity = emb[16 + POLARITY_OFFSET].item() * 4.0
 
         # Decode flags
-        is_polar = emb[8 + IS_POLAR_FLAG].item() > 0.5
-        is_rotatable = emb[8 + IS_ROTATABLE_FLAG].item() > 0.5
+        is_polar = emb[16 + IS_POLAR_FLAG].item() > 0.5
+        is_rotatable = emb[16 + IS_ROTATABLE_FLAG].item() > 0.5
 
         return Bond(
             element1=e1,
@@ -368,7 +368,7 @@ class BondEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid bond."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -382,42 +382,42 @@ class BondEncoder:
 
     def get_bond_order(self, emb: Any) -> float:
         """Get the bond order."""
-        order_norm = emb[8 + BOND_ORDER_OFFSET].item()
+        order_norm = emb[16 + BOND_ORDER_OFFSET].item()
         return order_norm * 2.5 + 0.5
 
     def get_bond_type(self, emb: Any) -> BondType:
         """Get the bond type."""
-        type_val = int(round(emb[8 + BOND_TYPE_OFFSET].item() * 5.0))
+        type_val = int(round(emb[16 + BOND_TYPE_OFFSET].item() * 5.0))
         type_val = max(0, min(5, type_val))
         return BondType(type_val)
 
     def get_length(self, emb: Any) -> Optional[float]:
         """Get bond length in Angstroms."""
-        sign = emb[8 + LENGTH_OFFSET].item()
+        sign = emb[16 + LENGTH_OFFSET].item()
         if abs(sign) < 0.5:
             return None
-        log_l = emb[8 + LENGTH_OFFSET + 1].item()
+        log_l = emb[16 + LENGTH_OFFSET + 1].item()
         return log_decode_value(sign, log_l)
 
     def get_energy(self, emb: Any) -> Optional[float]:
         """Get bond energy in kJ/mol."""
-        sign = emb[8 + ENERGY_OFFSET].item()
+        sign = emb[16 + ENERGY_OFFSET].item()
         if abs(sign) < 0.5:
             return None
-        log_e = emb[8 + ENERGY_OFFSET + 1].item()
+        log_e = emb[16 + ENERGY_OFFSET + 1].item()
         return log_decode_value(sign, log_e)
 
     def get_polarity(self, emb: Any) -> float:
         """Get bond polarity (electronegativity difference)."""
-        return emb[8 + POLARITY_OFFSET].item() * 4.0
+        return emb[16 + POLARITY_OFFSET].item() * 4.0
 
     def is_polar(self, emb: Any) -> bool:
         """Check if bond is polar."""
-        return emb[8 + IS_POLAR_FLAG].item() > 0.5
+        return emb[16 + IS_POLAR_FLAG].item() > 0.5
 
     def is_rotatable(self, emb: Any) -> bool:
         """Check if bond is rotatable."""
-        return emb[8 + IS_ROTATABLE_FLAG].item() > 0.5
+        return emb[16 + IS_ROTATABLE_FLAG].item() > 0.5
 
     def is_single(self, emb: Any) -> bool:
         """Check if this is a single bond."""

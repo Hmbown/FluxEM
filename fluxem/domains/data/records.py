@@ -87,15 +87,15 @@ class RecordEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Number of fields
-        emb = backend.at_add(emb, 8 + NUM_FIELDS_OFFSET, n_fields / MAX_FIELDS)
+        emb = backend.at_add(emb, 16 + NUM_FIELDS_OFFSET, n_fields / MAX_FIELDS)
 
         # Schema hash (hash of field names)
         schema_str = ",".join(field_names)
         schema_hash = (hash(schema_str) % 10000) / 10000.0
-        emb = backend.at_add(emb, 8 + SCHEMA_HASH_OFFSET, schema_hash)
+        emb = backend.at_add(emb, 16 + SCHEMA_HASH_OFFSET, schema_hash)
 
         # Encode each field
         for i, name in enumerate(field_names):
@@ -103,11 +103,11 @@ class RecordEncoder:
 
             # Field name hash
             name_hash = (hash(name) % 10000) / 10000.0
-            emb = backend.at_add(emb, 8 + FIELD_NAMES_OFFSET + i, name_hash)
+            emb = backend.at_add(emb, 16 + FIELD_NAMES_OFFSET + i, name_hash)
 
             # Determine and encode field type and value
             ftype, encoded = self._encode_value(value)
-            emb = backend.at_add(emb, 8 + FIELD_TYPES_OFFSET + i, ftype.value / 4.0)
+            emb = backend.at_add(emb, 16 + FIELD_TYPES_OFFSET + i, ftype.value / 4.0)
 
             # Store encoded value (4 dims per field)
             base = 8 + FIELD_VALUES_OFFSET + i * 4
@@ -174,7 +174,7 @@ class RecordEncoder:
         Returns:
             Dictionary with decoded values
         """
-        n_fields = int(round(emb[8 + NUM_FIELDS_OFFSET].item() * MAX_FIELDS))
+        n_fields = int(round(emb[16 + NUM_FIELDS_OFFSET].item() * MAX_FIELDS))
         n_fields = max(1, min(n_fields, MAX_FIELDS))
 
         result = {}
@@ -183,7 +183,7 @@ class RecordEncoder:
             name = f"field_{i}"
 
             # Get field type
-            type_val = int(round(emb[8 + FIELD_TYPES_OFFSET + i].item() * 4.0))
+            type_val = int(round(emb[16 + FIELD_TYPES_OFFSET + i].item() * 4.0))
             type_val = max(0, min(4, type_val))
             ftype = FieldType(type_val)
 
@@ -199,7 +199,7 @@ class RecordEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid record."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -208,11 +208,11 @@ class RecordEncoder:
 
     def get_num_fields(self, emb: Any) -> int:
         """Get number of fields in the record."""
-        return int(round(emb[8 + NUM_FIELDS_OFFSET].item() * MAX_FIELDS))
+        return int(round(emb[16 + NUM_FIELDS_OFFSET].item() * MAX_FIELDS))
 
     def get_schema_hash(self, emb: Any) -> float:
         """Get schema hash for equality checking."""
-        return emb[8 + SCHEMA_HASH_OFFSET].item()
+        return emb[16 + SCHEMA_HASH_OFFSET].item()
 
     def same_schema(self, emb1: Any, emb2: Any) -> bool:
         """Check if two records have the same schema."""
@@ -227,7 +227,7 @@ class RecordEncoder:
         if index < 0 or index >= MAX_FIELDS:
             raise IndexError(f"Field index {index} out of range")
 
-        type_val = int(round(emb[8 + FIELD_TYPES_OFFSET + index].item() * 4.0))
+        type_val = int(round(emb[16 + FIELD_TYPES_OFFSET + index].item() * 4.0))
         return FieldType(max(0, min(4, type_val)))
 
     # =========================================================================
@@ -342,22 +342,22 @@ class TableEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Number of rows (log scale for large tables)
         if n_rows > 0:
             log_rows = math.log(n_rows + 1) / math.log(MAX_ROWS + 1)
-            emb = backend.at_add(emb, 8 + TABLE_ROWS_OFFSET, min(1.0, log_rows))
+            emb = backend.at_add(emb, 16 + TABLE_ROWS_OFFSET, min(1.0, log_rows))
         else:
-            emb = backend.at_add(emb, 8 + TABLE_ROWS_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + TABLE_ROWS_OFFSET, 0.0)
 
         # Number of columns
-        emb = backend.at_add(emb, 8 + TABLE_COLS_OFFSET, n_cols / MAX_FIELDS)
+        emb = backend.at_add(emb, 16 + TABLE_COLS_OFFSET, n_cols / MAX_FIELDS)
 
         # Schema hash
         schema_str = ",".join(col_names)
         schema_hash = (hash(schema_str) % 10000) / 10000.0
-        emb = backend.at_add(emb, 8 + TABLE_SCHEMA_OFFSET, schema_hash)
+        emb = backend.at_add(emb, 16 + TABLE_SCHEMA_OFFSET, schema_hash)
 
         # Encode each column
         for i, name in enumerate(col_names):
@@ -365,11 +365,11 @@ class TableEncoder:
 
             # Column name hash
             name_hash = (hash(name) % 10000) / 10000.0
-            emb = backend.at_add(emb, 8 + TABLE_COL_NAMES_OFFSET + i, name_hash)
+            emb = backend.at_add(emb, 16 + TABLE_COL_NAMES_OFFSET + i, name_hash)
 
             # Detect column type
             col_type = self._detect_column_type(col_data)
-            emb = backend.at_add(emb, 8 + TABLE_COL_TYPES_OFFSET + i, col_type.value / 4.0)
+            emb = backend.at_add(emb, 16 + TABLE_COL_TYPES_OFFSET + i, col_type.value / 4.0)
 
             # Column statistics
             stats = self._compute_column_stats(col_data, col_type)
@@ -457,25 +457,25 @@ class TableEncoder:
         Returns:
             Dictionary with table metadata
         """
-        log_rows = emb[8 + TABLE_ROWS_OFFSET].item()
+        log_rows = emb[16 + TABLE_ROWS_OFFSET].item()
         n_rows = int(math.exp(log_rows * math.log(MAX_ROWS + 1)) - 1)
         n_rows = max(0, n_rows)
 
-        n_cols = int(round(emb[8 + TABLE_COLS_OFFSET].item() * MAX_FIELDS))
+        n_cols = int(round(emb[16 + TABLE_COLS_OFFSET].item() * MAX_FIELDS))
         n_cols = max(1, min(n_cols, MAX_FIELDS))
 
-        schema_hash = emb[8 + TABLE_SCHEMA_OFFSET].item()
+        schema_hash = emb[16 + TABLE_SCHEMA_OFFSET].item()
 
         columns = []
         for i in range(n_cols):
-            type_val = int(round(emb[8 + TABLE_COL_TYPES_OFFSET + i].item() * 4.0))
+            type_val = int(round(emb[16 + TABLE_COL_TYPES_OFFSET + i].item() * 4.0))
             col_type = FieldType(max(0, min(4, type_val)))
 
             base = 8 + TABLE_COL_STATS_OFFSET + i * 2
             stat1 = emb[base].item()
             stat2 = emb[base + 1].item()
 
-            name_hash = emb[8 + TABLE_COL_NAMES_OFFSET + i].item()
+            name_hash = emb[16 + TABLE_COL_NAMES_OFFSET + i].item()
 
             columns.append({
                 "name": f"col_{i}",
@@ -495,7 +495,7 @@ class TableEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid table."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -504,16 +504,16 @@ class TableEncoder:
 
     def get_num_rows(self, emb: Any) -> int:
         """Get approximate number of rows."""
-        log_rows = emb[8 + TABLE_ROWS_OFFSET].item()
+        log_rows = emb[16 + TABLE_ROWS_OFFSET].item()
         return max(0, int(math.exp(log_rows * math.log(MAX_ROWS + 1)) - 1))
 
     def get_num_cols(self, emb: Any) -> int:
         """Get number of columns."""
-        return int(round(emb[8 + TABLE_COLS_OFFSET].item() * MAX_FIELDS))
+        return int(round(emb[16 + TABLE_COLS_OFFSET].item() * MAX_FIELDS))
 
     def get_schema_hash(self, emb: Any) -> float:
         """Get schema hash."""
-        return emb[8 + TABLE_SCHEMA_OFFSET].item()
+        return emb[16 + TABLE_SCHEMA_OFFSET].item()
 
     def same_schema(self, emb1: Any, emb2: Any) -> bool:
         """Check if two tables have the same schema."""
@@ -528,5 +528,5 @@ class TableEncoder:
         if index < 0 or index >= MAX_FIELDS:
             raise IndexError(f"Column index {index} out of range")
 
-        type_val = int(round(emb[8 + TABLE_COL_TYPES_OFFSET + index].item() * 4.0))
+        type_val = int(round(emb[16 + TABLE_COL_TYPES_OFFSET + index].item() * 4.0))
         return FieldType(max(0, min(4, type_val)))

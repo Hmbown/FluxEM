@@ -96,13 +96,13 @@ class MatrixEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Dimensions
-        emb = backend.at_add(emb, 8 + ROWS_OFFSET, 1.0)
-        emb = backend.at_add(emb, 8 + ROWS_OFFSET + 1, rows / MAX_ROWS)
-        emb = backend.at_add(emb, 8 + COLS_OFFSET, 1.0)
-        emb = backend.at_add(emb, 8 + COLS_OFFSET + 1, cols / MAX_COLS)
+        emb = backend.at_add(emb, 16 + ROWS_OFFSET, 1.0)
+        emb = backend.at_add(emb, 16 + ROWS_OFFSET + 1, rows / MAX_ROWS)
+        emb = backend.at_add(emb, 16 + COLS_OFFSET, 1.0)
+        emb = backend.at_add(emb, 16 + COLS_OFFSET + 1, cols / MAX_COLS)
 
         # Compute properties
         is_square = rows == cols
@@ -114,21 +114,21 @@ class MatrixEncoder:
                 val = m[i][j]
                 idx = i * MAX_COLS + j
                 sign, log_mag = log_encode_value(val)
-                emb = backend.at_add(emb, 8 + ELEMENTS_OFFSET + 2*idx, sign)
-                emb = backend.at_add(emb, 8 + ELEMENTS_OFFSET + 2*idx + 1, log_mag)
+                emb = backend.at_add(emb, 16 + ELEMENTS_OFFSET + 2*idx, sign)
+                emb = backend.at_add(emb, 16 + ELEMENTS_OFFSET + 2*idx + 1, log_mag)
                 frob_sq += val * val
 
         # Frobenius norm
         frob = math.sqrt(frob_sq) if frob_sq > 0 else 0.0
         if frob < EPSILON:
-            emb = backend.at_add(emb, 8 + FROB_OFFSET, 0.0)
-            emb = backend.at_add(emb, 8 + FROB_OFFSET + 1, -100.0)
+            emb = backend.at_add(emb, 16 + FROB_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + FROB_OFFSET + 1, -100.0)
         else:
-            emb = backend.at_add(emb, 8 + FROB_OFFSET, 1.0)
-            emb = backend.at_add(emb, 8 + FROB_OFFSET + 1, math.log(frob))
+            emb = backend.at_add(emb, 16 + FROB_OFFSET, 1.0)
+            emb = backend.at_add(emb, 16 + FROB_OFFSET + 1, math.log(frob))
 
         # Flags
-        emb = backend.at_add(emb, 8 + FLAG_IS_SQUARE, 1.0 if is_square else 0.0)
+        emb = backend.at_add(emb, 16 + FLAG_IS_SQUARE, 1.0 if is_square else 0.0)
 
         if is_square:
             # Compute determinant and trace
@@ -136,32 +136,32 @@ class MatrixEncoder:
             trace = sum(m[i][i] for i in range(rows))
 
             det_sign, det_log = log_encode_value(det)
-            emb = backend.at_add(emb, 8 + DET_OFFSET, det_sign)
-            emb = backend.at_add(emb, 8 + DET_OFFSET + 1, det_log)
+            emb = backend.at_add(emb, 16 + DET_OFFSET, det_sign)
+            emb = backend.at_add(emb, 16 + DET_OFFSET + 1, det_log)
 
             trace_sign, trace_log = log_encode_value(trace)
-            emb = backend.at_add(emb, 8 + TRACE_OFFSET, trace_sign)
-            emb = backend.at_add(emb, 8 + TRACE_OFFSET + 1, trace_log)
+            emb = backend.at_add(emb, 16 + TRACE_OFFSET, trace_sign)
+            emb = backend.at_add(emb, 16 + TRACE_OFFSET + 1, trace_log)
 
             # Check symmetry
             is_symmetric = all(
                 abs(m[i][j] - m[j][i]) < EPSILON
                 for i in range(rows) for j in range(i+1, cols)
             )
-            emb = backend.at_add(emb, 8 + FLAG_IS_SYMMETRIC, 1.0 if is_symmetric else 0.0)
+            emb = backend.at_add(emb, 16 + FLAG_IS_SYMMETRIC, 1.0 if is_symmetric else 0.0)
 
             # Check diagonal
             is_diagonal = all(
                 abs(m[i][j]) < EPSILON
                 for i in range(rows) for j in range(cols) if i != j
             )
-            emb = backend.at_add(emb, 8 + FLAG_IS_DIAGONAL, 1.0 if is_diagonal else 0.0)
+            emb = backend.at_add(emb, 16 + FLAG_IS_DIAGONAL, 1.0 if is_diagonal else 0.0)
 
             # Check identity
             is_identity = is_diagonal and all(
                 abs(m[i][i] - 1.0) < EPSILON for i in range(rows)
             )
-            emb = backend.at_add(emb, 8 + FLAG_IS_IDENTITY, 1.0 if is_identity else 0.0)
+            emb = backend.at_add(emb, 16 + FLAG_IS_IDENTITY, 1.0 if is_identity else 0.0)
 
         return emb
 
@@ -199,8 +199,8 @@ class MatrixEncoder:
         Returns:
             List of lists representing the matrix
         """
-        rows = int(round(emb[8 + ROWS_OFFSET + 1].item() * MAX_ROWS))
-        cols = int(round(emb[8 + COLS_OFFSET + 1].item() * MAX_COLS))
+        rows = int(round(emb[16 + ROWS_OFFSET + 1].item() * MAX_ROWS))
+        cols = int(round(emb[16 + COLS_OFFSET + 1].item() * MAX_COLS))
 
         rows = max(1, min(rows, MAX_ROWS))
         cols = max(1, min(cols, MAX_COLS))
@@ -210,8 +210,8 @@ class MatrixEncoder:
             row = []
             for j in range(cols):
                 idx = i * MAX_COLS + j
-                sign = emb[8 + ELEMENTS_OFFSET + 2*idx].item()
-                log_mag = emb[8 + ELEMENTS_OFFSET + 2*idx + 1].item()
+                sign = emb[16 + ELEMENTS_OFFSET + 2*idx].item()
+                log_mag = emb[16 + ELEMENTS_OFFSET + 2*idx + 1].item()
                 row.append(log_decode_value(sign, log_mag))
             result.append(row)
 
@@ -220,52 +220,52 @@ class MatrixEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid matrix."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     def get_shape(self, emb: Any) -> Tuple[int, int]:
         """Get the shape (rows, cols) of the encoded matrix."""
-        rows = int(round(emb[8 + ROWS_OFFSET + 1].item() * MAX_ROWS))
-        cols = int(round(emb[8 + COLS_OFFSET + 1].item() * MAX_COLS))
+        rows = int(round(emb[16 + ROWS_OFFSET + 1].item() * MAX_ROWS))
+        cols = int(round(emb[16 + COLS_OFFSET + 1].item() * MAX_COLS))
         return (max(1, min(rows, MAX_ROWS)), max(1, min(cols, MAX_COLS)))
 
     def get_determinant(self, emb: Any) -> Optional[float]:
         """Get the determinant (only for square matrices)."""
         if not self.is_square(emb):
             return None
-        sign = emb[8 + DET_OFFSET].item()
-        log_mag = emb[8 + DET_OFFSET + 1].item()
+        sign = emb[16 + DET_OFFSET].item()
+        log_mag = emb[16 + DET_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def get_trace(self, emb: Any) -> Optional[float]:
         """Get the trace (only for square matrices)."""
         if not self.is_square(emb):
             return None
-        sign = emb[8 + TRACE_OFFSET].item()
-        log_mag = emb[8 + TRACE_OFFSET + 1].item()
+        sign = emb[16 + TRACE_OFFSET].item()
+        log_mag = emb[16 + TRACE_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def get_frobenius_norm(self, emb: Any) -> float:
         """Get the Frobenius norm."""
-        sign = emb[8 + FROB_OFFSET].item()
-        log_mag = emb[8 + FROB_OFFSET + 1].item()
+        sign = emb[16 + FROB_OFFSET].item()
+        log_mag = emb[16 + FROB_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def is_square(self, emb: Any) -> bool:
         """Check if the matrix is square."""
-        return emb[8 + FLAG_IS_SQUARE].item() > 0.5
+        return emb[16 + FLAG_IS_SQUARE].item() > 0.5
 
     def is_symmetric(self, emb: Any) -> bool:
         """Check if the matrix is symmetric."""
-        return emb[8 + FLAG_IS_SYMMETRIC].item() > 0.5
+        return emb[16 + FLAG_IS_SYMMETRIC].item() > 0.5
 
     def is_diagonal(self, emb: Any) -> bool:
         """Check if the matrix is diagonal."""
-        return emb[8 + FLAG_IS_DIAGONAL].item() > 0.5
+        return emb[16 + FLAG_IS_DIAGONAL].item() > 0.5
 
     def is_identity(self, emb: Any) -> bool:
         """Check if the matrix is the identity."""
-        return emb[8 + FLAG_IS_IDENTITY].item() > 0.5
+        return emb[16 + FLAG_IS_IDENTITY].item() > 0.5
 
     # =========================================================================
     # Operations
@@ -317,13 +317,13 @@ class MatrixEncoder:
             return self.encode([[0.0] * cols for _ in range(rows)])
 
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Copy dimensions
-        result = backend.at_add(result, 8 + ROWS_OFFSET, emb[8 + ROWS_OFFSET])
-        result = backend.at_add(result, 8 + ROWS_OFFSET + 1, emb[8 + ROWS_OFFSET + 1])
-        result = backend.at_add(result, 8 + COLS_OFFSET, emb[8 + COLS_OFFSET])
-        result = backend.at_add(result, 8 + COLS_OFFSET + 1, emb[8 + COLS_OFFSET + 1])
+        result = backend.at_add(result, 16 + ROWS_OFFSET, emb[16 + ROWS_OFFSET])
+        result = backend.at_add(result, 16 + ROWS_OFFSET + 1, emb[16 + ROWS_OFFSET + 1])
+        result = backend.at_add(result, 16 + COLS_OFFSET, emb[16 + COLS_OFFSET])
+        result = backend.at_add(result, 16 + COLS_OFFSET + 1, emb[16 + COLS_OFFSET + 1])
 
         rows, cols = self.get_shape(emb)
         scalar_sign = 1.0 if scalar > 0 else -1.0
@@ -333,71 +333,71 @@ class MatrixEncoder:
         for i in range(rows):
             for j in range(cols):
                 idx = i * MAX_COLS + j
-                sign = emb[8 + ELEMENTS_OFFSET + 2*idx].item()
-                log_mag = emb[8 + ELEMENTS_OFFSET + 2*idx + 1].item()
+                sign = emb[16 + ELEMENTS_OFFSET + 2*idx].item()
+                log_mag = emb[16 + ELEMENTS_OFFSET + 2*idx + 1].item()
 
                 if abs(sign) < 0.5:
-                    result = backend.at_add(result, 8 + ELEMENTS_OFFSET + 2*idx, 0.0)
-                    result = backend.at_add(result, 8 + ELEMENTS_OFFSET + 2*idx + 1, -100.0)
+                    result = backend.at_add(result, 16 + ELEMENTS_OFFSET + 2*idx, 0.0)
+                    result = backend.at_add(result, 16 + ELEMENTS_OFFSET + 2*idx + 1, -100.0)
                 else:
                     new_sign = sign * scalar_sign
                     new_log_mag = log_mag + log_scalar
-                    result = backend.at_add(result, 8 + ELEMENTS_OFFSET + 2*idx, new_sign)
-                    result = backend.at_add(result, 8 + ELEMENTS_OFFSET + 2*idx + 1, new_log_mag)
+                    result = backend.at_add(result, 16 + ELEMENTS_OFFSET + 2*idx, new_sign)
+                    result = backend.at_add(result, 16 + ELEMENTS_OFFSET + 2*idx + 1, new_log_mag)
 
         # Update Frobenius norm
-        old_frob_sign = emb[8 + FROB_OFFSET].item()
-        old_log_frob = emb[8 + FROB_OFFSET + 1].item()
+        old_frob_sign = emb[16 + FROB_OFFSET].item()
+        old_log_frob = emb[16 + FROB_OFFSET + 1].item()
         if abs(old_frob_sign) < 0.5:
-            result = backend.at_add(result, 8 + FROB_OFFSET, 0.0)
-            result = backend.at_add(result, 8 + FROB_OFFSET + 1, -100.0)
+            result = backend.at_add(result, 16 + FROB_OFFSET, 0.0)
+            result = backend.at_add(result, 16 + FROB_OFFSET + 1, -100.0)
         else:
-            result = backend.at_add(result, 8 + FROB_OFFSET, 1.0)
-            result = backend.at_add(result, 8 + FROB_OFFSET + 1, old_log_frob + log_scalar)
+            result = backend.at_add(result, 16 + FROB_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + FROB_OFFSET + 1, old_log_frob + log_scalar)
 
         # Update flags - square, symmetric, diagonal preserved under scaling
-        result = backend.at_add(result, 8 + FLAG_IS_SQUARE, 
-            emb[8 + FLAG_IS_SQUARE]
+        result = backend.at_add(result, 16 + FLAG_IS_SQUARE, 
+            emb[16 + FLAG_IS_SQUARE]
         )
-        result = backend.at_add(result, 8 + FLAG_IS_SYMMETRIC, 
-            emb[8 + FLAG_IS_SYMMETRIC]
+        result = backend.at_add(result, 16 + FLAG_IS_SYMMETRIC, 
+            emb[16 + FLAG_IS_SYMMETRIC]
         )
-        result = backend.at_add(result, 8 + FLAG_IS_DIAGONAL, 
-            emb[8 + FLAG_IS_DIAGONAL]
+        result = backend.at_add(result, 16 + FLAG_IS_DIAGONAL, 
+            emb[16 + FLAG_IS_DIAGONAL]
         )
         # Identity is only preserved if scalar = 1
         if abs(scalar - 1.0) < EPSILON:
-            result = backend.at_add(result, 8 + FLAG_IS_IDENTITY, 
-                emb[8 + FLAG_IS_IDENTITY]
+            result = backend.at_add(result, 16 + FLAG_IS_IDENTITY, 
+                emb[16 + FLAG_IS_IDENTITY]
             )
 
         # Update determinant: det(cA) = c^n * det(A)
         if self.is_square(emb):
             n = rows
-            old_det_sign = emb[8 + DET_OFFSET].item()
-            old_det_log = emb[8 + DET_OFFSET + 1].item()
+            old_det_sign = emb[16 + DET_OFFSET].item()
+            old_det_log = emb[16 + DET_OFFSET + 1].item()
 
             if abs(old_det_sign) < 0.5:
-                result = backend.at_add(result, 8 + DET_OFFSET, 0.0)
-                result = backend.at_add(result, 8 + DET_OFFSET + 1, -100.0)
+                result = backend.at_add(result, 16 + DET_OFFSET, 0.0)
+                result = backend.at_add(result, 16 + DET_OFFSET + 1, -100.0)
             else:
                 new_det_sign = old_det_sign * (scalar_sign ** n)
                 new_det_log = old_det_log + n * log_scalar
-                result = backend.at_add(result, 8 + DET_OFFSET, new_det_sign)
-                result = backend.at_add(result, 8 + DET_OFFSET + 1, new_det_log)
+                result = backend.at_add(result, 16 + DET_OFFSET, new_det_sign)
+                result = backend.at_add(result, 16 + DET_OFFSET + 1, new_det_log)
 
             # Update trace: trace(cA) = c * trace(A)
-            old_trace_sign = emb[8 + TRACE_OFFSET].item()
-            old_trace_log = emb[8 + TRACE_OFFSET + 1].item()
+            old_trace_sign = emb[16 + TRACE_OFFSET].item()
+            old_trace_log = emb[16 + TRACE_OFFSET + 1].item()
 
             if abs(old_trace_sign) < 0.5:
-                result = backend.at_add(result, 8 + TRACE_OFFSET, 0.0)
-                result = backend.at_add(result, 8 + TRACE_OFFSET + 1, -100.0)
+                result = backend.at_add(result, 16 + TRACE_OFFSET, 0.0)
+                result = backend.at_add(result, 16 + TRACE_OFFSET + 1, -100.0)
             else:
                 new_trace_sign = old_trace_sign * scalar_sign
                 new_trace_log = old_trace_log + log_scalar
-                result = backend.at_add(result, 8 + TRACE_OFFSET, new_trace_sign)
-                result = backend.at_add(result, 8 + TRACE_OFFSET + 1, new_trace_log)
+                result = backend.at_add(result, 16 + TRACE_OFFSET, new_trace_sign)
+                result = backend.at_add(result, 16 + TRACE_OFFSET + 1, new_trace_log)
 
         return result
 
@@ -445,8 +445,8 @@ class MatrixEncoder:
             raise IndexError(f"Index ({i}, {j}) out of range for {rows}x{cols} matrix")
 
         idx = i * MAX_COLS + j
-        sign = emb[8 + ELEMENTS_OFFSET + 2*idx].item()
-        log_mag = emb[8 + ELEMENTS_OFFSET + 2*idx + 1].item()
+        sign = emb[16 + ELEMENTS_OFFSET + 2*idx].item()
+        log_mag = emb[16 + ELEMENTS_OFFSET + 2*idx + 1].item()
         return log_decode_value(sign, log_mag)
 
     def row(self, emb: Any, i: int) -> List[float]:

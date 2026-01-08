@@ -59,10 +59,27 @@ SI_PREFIXES: Dict[str, Tuple[str, int]] = {
 
 # Symbol -> power of 10
 PREFIX_SYMBOLS: Dict[str, int] = {
-    "Y": 24, "Z": 21, "E": 18, "P": 15, "T": 12, "G": 9, "M": 6,
-    "k": 3, "h": 2, "da": 1,
-    "d": -1, "c": -2, "m": -3, "u": -6, "\u03bc": -6,  # mu symbol
-    "n": -9, "p": -12, "f": -15, "a": -18, "z": -21, "y": -24,
+    "Y": 24,
+    "Z": 21,
+    "E": 18,
+    "P": 15,
+    "T": 12,
+    "G": 9,
+    "M": 6,
+    "k": 3,
+    "h": 2,
+    "da": 1,
+    "d": -1,
+    "c": -2,
+    "m": -3,
+    "u": -6,
+    "\u03bc": -6,  # mu symbol
+    "n": -9,
+    "p": -12,
+    "f": -15,
+    "a": -18,
+    "z": -21,
+    "y": -24,
 }
 
 
@@ -70,9 +87,11 @@ PREFIX_SYMBOLS: Dict[str, int] = {
 # SI Base Units
 # =============================================================================
 
+
 @dataclass(frozen=True)
 class UnitDefinition:
     """Definition of a unit with its dimensions and SI conversion factor."""
+
     symbol: str
     name: str
     dimensions: Dimensions
@@ -93,12 +112,22 @@ SI_BASE_UNITS: Dict[str, UnitDefinition] = {
 
 # Alternative symbols for base units
 BASE_UNIT_ALIASES: Dict[str, str] = {
-    "meter": "m", "meters": "m", "metre": "m", "metres": "m",
-    "kilogram": "kg", "kilograms": "kg",
-    "second": "s", "seconds": "s", "sec": "s",
-    "ampere": "A", "amperes": "A", "amp": "A", "amps": "A",
+    "meter": "m",
+    "meters": "m",
+    "metre": "m",
+    "metres": "m",
+    "kilogram": "kg",
+    "kilograms": "kg",
+    "second": "s",
+    "seconds": "s",
+    "sec": "s",
+    "ampere": "A",
+    "amperes": "A",
+    "amp": "A",
+    "amps": "A",
     "kelvin": "K",
-    "mole": "mol", "moles": "mol",
+    "mole": "mol",
+    "moles": "mol",
     "candela": "cd",
 }
 
@@ -114,7 +143,6 @@ DERIVED_UNITS: Dict[str, UnitDefinition] = {
     "W": UnitDefinition("W", "watt", Dimensions(M=1, L=2, T=-3), 1.0),
     "Pa": UnitDefinition("Pa", "pascal", Dimensions(M=1, L=-1, T=-2), 1.0),
     "Hz": UnitDefinition("Hz", "hertz", Dimensions(T=-1), 1.0),
-
     # Electromagnetic
     "C": UnitDefinition("C", "coulomb", Dimensions(I=1, T=1), 1.0),
     "V": UnitDefinition("V", "volt", Dimensions(M=1, L=2, T=-3, I=-1), 1.0),
@@ -126,7 +154,6 @@ DERIVED_UNITS: Dict[str, UnitDefinition] = {
     "H": UnitDefinition("H", "henry", Dimensions(M=1, L=2, T=-2, I=-2), 1.0),
     "Wb": UnitDefinition("Wb", "weber", Dimensions(M=1, L=2, T=-2, I=-1), 1.0),
     "T": UnitDefinition("T", "tesla", Dimensions(M=1, T=-2, I=-1), 1.0),
-
     # Other
     "lm": UnitDefinition("lm", "lumen", Dimensions(J=1), 1.0),
     "lx": UnitDefinition("lx", "lux", Dimensions(L=-2, J=1), 1.0),
@@ -151,7 +178,6 @@ NON_SI_UNITS: Dict[str, UnitDefinition] = {
     "ft": UnitDefinition("ft", "foot", Dimensions(L=1), 0.3048),
     "mi": UnitDefinition("mi", "mile", Dimensions(L=1), 1609.344),
     "yd": UnitDefinition("yd", "yard", Dimensions(L=1), 0.9144),
-
     # Mass
     "g": UnitDefinition("g", "gram", Dimensions(M=1), 1e-3),
     "mg": UnitDefinition("mg", "milligram", Dimensions(M=1), 1e-6),
@@ -159,7 +185,6 @@ NON_SI_UNITS: Dict[str, UnitDefinition] = {
     "t": UnitDefinition("t", "tonne", Dimensions(M=1), 1e3),
     "lb": UnitDefinition("lb", "pound", Dimensions(M=1), 0.45359237),
     "oz": UnitDefinition("oz", "ounce", Dimensions(M=1), 0.028349523125),
-
     # Time
     "ms": UnitDefinition("ms", "millisecond", Dimensions(T=1), 1e-3),
     "us": UnitDefinition("us", "microsecond", Dimensions(T=1), 1e-6),
@@ -169,33 +194,37 @@ NON_SI_UNITS: Dict[str, UnitDefinition] = {
     "hr": UnitDefinition("hr", "hour", Dimensions(T=1), 3600.0),
     "d": UnitDefinition("d", "day", Dimensions(T=1), 86400.0),
     "day": UnitDefinition("day", "day", Dimensions(T=1), 86400.0),
-
     # Force
     "kN": UnitDefinition("kN", "kilonewton", Dimensions(M=1, L=1, T=-2), 1e3),
     "MN": UnitDefinition("MN", "meganewton", Dimensions(M=1, L=1, T=-2), 1e6),
     "mN": UnitDefinition("mN", "millinewton", Dimensions(M=1, L=1, T=-2), 1e-3),
     "dyn": UnitDefinition("dyn", "dyne", Dimensions(M=1, L=1, T=-2), 1e-5),
-    "lbf": UnitDefinition("lbf", "pound-force", Dimensions(M=1, L=1, T=-2), 4.4482216152605),
-
+    "lbf": UnitDefinition(
+        "lbf", "pound-force", Dimensions(M=1, L=1, T=-2), 4.4482216152605
+    ),
     # Energy
     "kJ": UnitDefinition("kJ", "kilojoule", Dimensions(M=1, L=2, T=-2), 1e3),
     "MJ": UnitDefinition("MJ", "megajoule", Dimensions(M=1, L=2, T=-2), 1e6),
     "mJ": UnitDefinition("mJ", "millijoule", Dimensions(M=1, L=2, T=-2), 1e-3),
-    "eV": UnitDefinition("eV", "electronvolt", Dimensions(M=1, L=2, T=-2), 1.602176634e-19),
-    "keV": UnitDefinition("keV", "kiloelectronvolt", Dimensions(M=1, L=2, T=-2), 1.602176634e-16),
-    "MeV": UnitDefinition("MeV", "megaelectronvolt", Dimensions(M=1, L=2, T=-2), 1.602176634e-13),
+    "eV": UnitDefinition(
+        "eV", "electronvolt", Dimensions(M=1, L=2, T=-2), 1.602176634e-19
+    ),
+    "keV": UnitDefinition(
+        "keV", "kiloelectronvolt", Dimensions(M=1, L=2, T=-2), 1.602176634e-16
+    ),
+    "MeV": UnitDefinition(
+        "MeV", "megaelectronvolt", Dimensions(M=1, L=2, T=-2), 1.602176634e-13
+    ),
     "cal": UnitDefinition("cal", "calorie", Dimensions(M=1, L=2, T=-2), 4.184),
     "kcal": UnitDefinition("kcal", "kilocalorie", Dimensions(M=1, L=2, T=-2), 4184.0),
     "Wh": UnitDefinition("Wh", "watt-hour", Dimensions(M=1, L=2, T=-2), 3600.0),
     "kWh": UnitDefinition("kWh", "kilowatt-hour", Dimensions(M=1, L=2, T=-2), 3.6e6),
-
     # Power
     "kW": UnitDefinition("kW", "kilowatt", Dimensions(M=1, L=2, T=-3), 1e3),
     "MW": UnitDefinition("MW", "megawatt", Dimensions(M=1, L=2, T=-3), 1e6),
     "GW": UnitDefinition("GW", "gigawatt", Dimensions(M=1, L=2, T=-3), 1e9),
     "mW": UnitDefinition("mW", "milliwatt", Dimensions(M=1, L=2, T=-3), 1e-3),
     "hp": UnitDefinition("hp", "horsepower", Dimensions(M=1, L=2, T=-3), 745.7),
-
     # Pressure
     "kPa": UnitDefinition("kPa", "kilopascal", Dimensions(M=1, L=-1, T=-2), 1e3),
     "MPa": UnitDefinition("MPa", "megapascal", Dimensions(M=1, L=-1, T=-2), 1e6),
@@ -203,16 +232,22 @@ NON_SI_UNITS: Dict[str, UnitDefinition] = {
     "bar": UnitDefinition("bar", "bar", Dimensions(M=1, L=-1, T=-2), 1e5),
     "mbar": UnitDefinition("mbar", "millibar", Dimensions(M=1, L=-1, T=-2), 1e2),
     "atm": UnitDefinition("atm", "atmosphere", Dimensions(M=1, L=-1, T=-2), 101325.0),
-    "psi": UnitDefinition("psi", "pound per square inch", Dimensions(M=1, L=-1, T=-2), 6894.757293168),
-    "torr": UnitDefinition("torr", "torr", Dimensions(M=1, L=-1, T=-2), 133.32236842105),
-    "mmHg": UnitDefinition("mmHg", "millimeter of mercury", Dimensions(M=1, L=-1, T=-2), 133.32236842105),
-
+    "psi": UnitDefinition(
+        "psi", "pound per square inch", Dimensions(M=1, L=-1, T=-2), 6894.757293168
+    ),
+    "torr": UnitDefinition(
+        "torr", "torr", Dimensions(M=1, L=-1, T=-2), 133.32236842105
+    ),
+    "mmHg": UnitDefinition(
+        "mmHg", "millimeter of mercury", Dimensions(M=1, L=-1, T=-2), 133.32236842105
+    ),
     # Frequency
     "kHz": UnitDefinition("kHz", "kilohertz", Dimensions(T=-1), 1e3),
     "MHz": UnitDefinition("MHz", "megahertz", Dimensions(T=-1), 1e6),
     "GHz": UnitDefinition("GHz", "gigahertz", Dimensions(T=-1), 1e9),
-    "rpm": UnitDefinition("rpm", "revolutions per minute", Dimensions(T=-1), 1.0/60.0),
-
+    "rpm": UnitDefinition(
+        "rpm", "revolutions per minute", Dimensions(T=-1), 1.0 / 60.0
+    ),
     # Electrical
     "mA": UnitDefinition("mA", "milliampere", Dimensions(I=1), 1e-3),
     "uA": UnitDefinition("uA", "microampere", Dimensions(I=1), 1e-6),
@@ -224,15 +259,12 @@ NON_SI_UNITS: Dict[str, UnitDefinition] = {
     "nF": UnitDefinition("nF", "nanofarad", Dimensions(M=-1, L=-2, T=4, I=2), 1e-9),
     "uF": UnitDefinition("uF", "microfarad", Dimensions(M=-1, L=-2, T=4, I=2), 1e-6),
     "mF": UnitDefinition("mF", "millifarad", Dimensions(M=-1, L=-2, T=4, I=2), 1e-3),
-
     # Angle (dimensionless but with conversion)
-    "deg": UnitDefinition("deg", "degree", Dimensions(), math.pi/180.0),
-    "\u00b0": UnitDefinition("\u00b0", "degree", Dimensions(), math.pi/180.0),
-
+    "deg": UnitDefinition("deg", "degree", Dimensions(), math.pi / 180.0),
+    "\u00b0": UnitDefinition("\u00b0", "degree", Dimensions(), math.pi / 180.0),
     # Area
     "ha": UnitDefinition("ha", "hectare", Dimensions(L=2), 1e4),
     "acre": UnitDefinition("acre", "acre", Dimensions(L=2), 4046.8564224),
-
     # Volume
     "L": UnitDefinition("L", "liter", Dimensions(L=3), 1e-3),
     "mL": UnitDefinition("mL", "milliliter", Dimensions(L=3), 1e-6),
@@ -276,9 +308,11 @@ UNIT_PREFIX_SIZE = 8
 # Unit Parser
 # =============================================================================
 
+
 @dataclass
 class ParsedUnit:
     """Result of parsing a unit string."""
+
     base_units: List[Tuple[str, int]]  # List of (unit_symbol, exponent)
     total_factor: float  # Combined conversion factor
     dimensions: Dimensions  # Combined dimensions
@@ -307,9 +341,17 @@ def _tokenize_unit_string(unit_str: str) -> List[str]:
 
     # Handle superscript exponents
     superscripts = {
-        "\u2070": "0", "\u00b9": "1", "\u00b2": "2", "\u00b3": "3",
-        "\u2074": "4", "\u2075": "5", "\u2076": "6", "\u2077": "7",
-        "\u2078": "8", "\u2079": "9", "\u207b": "-"
+        "\u2070": "0",
+        "\u00b9": "1",
+        "\u00b2": "2",
+        "\u00b3": "3",
+        "\u2074": "4",
+        "\u2075": "5",
+        "\u2076": "6",
+        "\u2077": "7",
+        "\u2078": "8",
+        "\u2079": "9",
+        "\u207b": "-",
     }
     for sup, normal in superscripts.items():
         s = s.replace(sup, "^" + normal)
@@ -364,10 +406,10 @@ def parse_unit(unit_str: str) -> ParsedUnit:
             unit_def, prefix_factor = _parse_prefixed_unit(unit_part)
             if unit_def is None:
                 raise ValueError(f"Unknown unit: {unit_part}")
-            total_factor *= prefix_factor ** exponent
+            total_factor *= prefix_factor**exponent
 
         base_units.append((unit_def.symbol, exponent))
-        total_factor *= unit_def.to_si_factor ** exponent
+        total_factor *= unit_def.to_si_factor**exponent
 
         # Update dimensions
         if exponent > 0:
@@ -393,7 +435,7 @@ def parse_unit(unit_str: str) -> ParsedUnit:
         base_units=base_units,
         total_factor=total_factor,
         dimensions=total_dims,
-        original=unit_str
+        original=unit_str,
     )
 
 
@@ -421,7 +463,7 @@ def _parse_prefixed_unit(symbol: str) -> Tuple[Optional[UnitDefinition], float]:
 
             if prefix in PREFIX_SYMBOLS and base in ALL_UNITS:
                 power = PREFIX_SYMBOLS[prefix]
-                return (ALL_UNITS[base], 10.0 ** power)
+                return (ALL_UNITS[base], 10.0**power)
 
     return (None, 1.0)
 
@@ -429,6 +471,7 @@ def _parse_prefixed_unit(symbol: str) -> Tuple[Optional[UnitDefinition], float]:
 # =============================================================================
 # Unit Encoder
 # =============================================================================
+
 
 class UnitEncoder:
     """
@@ -465,41 +508,43 @@ class UnitEncoder:
         emb = create_embedding()
 
         # Set domain tag (dims 0-7)
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Set dimension exponents (dims 8-14)
         dim_vec = parsed.dimensions.to_vector()
         for i in range(7):
-            emb = backend.at_add(emb, 8 + i, dim_vec[i])
+            emb = backend.at_add(emb, 16 + i, dim_vec[i])
 
         # Dimensionless flag
-        emb = backend.at_add(emb, 8 + UNIT_DIMENSIONLESS_FLAG, 
-            1.0 if parsed.dimensions.is_dimensionless() else 0.0
+        emb = backend.at_add(
+            emb,
+            8 + UNIT_DIMENSIONLESS_FLAG,
+            1.0 if parsed.dimensions.is_dimensionless() else 0.0,
         )
 
         # Conversion factor encoding
         if abs(parsed.total_factor - 1.0) < EPSILON:
             # Factor is 1.0 (SI base)
-            emb = backend.at_add(emb, 8 + UNIT_CONV_SIGN, 1.0)
-            emb = backend.at_add(emb, 8 + UNIT_CONV_LOG, 0.0)
+            emb = backend.at_add(emb, 16 + UNIT_CONV_SIGN, 1.0)
+            emb = backend.at_add(emb, 16 + UNIT_CONV_LOG, 0.0)
         else:
             sign, log_mag = log_encode_value(parsed.total_factor)
-            emb = backend.at_add(emb, 8 + UNIT_CONV_SIGN, sign)
-            emb = backend.at_add(emb, 8 + UNIT_CONV_LOG, log_mag)
+            emb = backend.at_add(emb, 16 + UNIT_CONV_SIGN, sign)
+            emb = backend.at_add(emb, 16 + UNIT_CONV_LOG, log_mag)
 
         # SI base/derived flags
         if len(parsed.base_units) == 1:
             symbol, exp = parsed.base_units[0]
             if exp == 1:
                 if symbol in SI_BASE_UNITS:
-                    emb = backend.at_add(emb, 8 + UNIT_IS_SI_BASE, 1.0)
+                    emb = backend.at_add(emb, 16 + UNIT_IS_SI_BASE, 1.0)
                 elif symbol in DERIVED_UNITS:
-                    emb = backend.at_add(emb, 8 + UNIT_IS_SI_DERIVED, 1.0)
+                    emb = backend.at_add(emb, 16 + UNIT_IS_SI_DERIVED, 1.0)
 
         # Unit identifier hash
         unit_hash = _simple_hash(unit_str, UNIT_ID_HASH_SIZE)
         for i, h in enumerate(unit_hash):
-            emb = backend.at_add(emb, 8 + UNIT_ID_HASH_OFFSET + i, h)
+            emb = backend.at_add(emb, 16 + UNIT_ID_HASH_OFFSET + i, h)
 
         return emb
 
@@ -525,19 +570,19 @@ class UnitEncoder:
 
     def decode_dimensions(self, emb: Any) -> Dimensions:
         """Extract dimensions from unit embedding."""
-        dim_vec = emb[8:8 + 7]
+        dim_vec = emb[8 : 8 + 7]
         return Dimensions.from_vector(dim_vec)
 
     def decode_conversion_factor(self, emb: Any) -> float:
         """Extract the SI conversion factor from unit embedding."""
-        sign = emb[8 + UNIT_CONV_SIGN].item()
-        log_mag = emb[8 + UNIT_CONV_LOG].item()
+        sign = emb[16 + UNIT_CONV_SIGN].item()
+        log_mag = emb[16 + UNIT_CONV_LOG].item()
         return log_decode_value(sign, log_mag)
 
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid unit."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     def is_compatible(self, emb1: Any, emb2: Any) -> bool:
@@ -554,9 +599,12 @@ class UnitEncoder:
             True if units have the same dimensions
         """
         backend = get_backend()
-        dims1 = emb1[8:8 + 7]
-        dims2 = emb2[8:8 + 7]
-        return backend.allclose(dims1, dims2, atol=0.1).item()
+        dims1 = emb1[8 : 8 + 7]
+        dims2 = emb2[8 : 8 + 7]
+        result = backend.allclose(dims1, dims2, atol=0.1)
+        if hasattr(result, "item"):
+            return result.item()
+        return bool(result)
 
     def get_conversion_factor(self, from_unit: str, to_unit: str) -> Optional[float]:
         """
@@ -611,25 +659,23 @@ class UnitEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Add dimension exponents
         for i in range(7):
-            result = backend.at_add(result, 8 + i, emb1[8 + i] + emb2[8 + i])
+            result = backend.at_add(result, 16 + i, emb1[16 + i] + emb2[16 + i])
 
         # Update dimensionless flag
-        is_dimensionless = all(
-            abs(result[8 + i].item()) < 0.5 for i in range(7)
-        )
-        result = backend.at_add(result, 8 + UNIT_DIMENSIONLESS_FLAG, 
-            1.0 if is_dimensionless else 0.0
+        is_dimensionless = all(abs(result[16 + i].item()) < 0.5 for i in range(7))
+        result = backend.at_add(
+            result, 16 + UNIT_DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0
         )
 
         # Multiply conversion factors (add logs)
-        log1 = emb1[8 + UNIT_CONV_LOG].item()
-        log2 = emb2[8 + UNIT_CONV_LOG].item()
-        result = backend.at_add(result, 8 + UNIT_CONV_SIGN, 1.0)
-        result = backend.at_add(result, 8 + UNIT_CONV_LOG, log1 + log2)
+        log1 = emb1[16 + UNIT_CONV_LOG].item()
+        log2 = emb2[16 + UNIT_CONV_LOG].item()
+        result = backend.at_add(result, 16 + UNIT_CONV_SIGN, 1.0)
+        result = backend.at_add(result, 16 + UNIT_CONV_LOG, log1 + log2)
 
         return result
 
@@ -645,25 +691,23 @@ class UnitEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Subtract dimension exponents
         for i in range(7):
-            result = backend.at_add(result, 8 + i, emb1[8 + i] - emb2[8 + i])
+            result = backend.at_add(result, 16 + i, emb1[16 + i] - emb2[16 + i])
 
         # Update dimensionless flag
-        is_dimensionless = all(
-            abs(result[8 + i].item()) < 0.5 for i in range(7)
-        )
-        result = backend.at_add(result, 8 + UNIT_DIMENSIONLESS_FLAG, 
-            1.0 if is_dimensionless else 0.0
+        is_dimensionless = all(abs(result[16 + i].item()) < 0.5 for i in range(7))
+        result = backend.at_add(
+            result, 16 + UNIT_DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0
         )
 
         # Divide conversion factors (subtract logs)
-        log1 = emb1[8 + UNIT_CONV_LOG].item()
-        log2 = emb2[8 + UNIT_CONV_LOG].item()
-        result = backend.at_add(result, 8 + UNIT_CONV_SIGN, 1.0)
-        result = backend.at_add(result, 8 + UNIT_CONV_LOG, log1 - log2)
+        log1 = emb1[16 + UNIT_CONV_LOG].item()
+        log2 = emb2[16 + UNIT_CONV_LOG].item()
+        result = backend.at_add(result, 16 + UNIT_CONV_SIGN, 1.0)
+        result = backend.at_add(result, 16 + UNIT_CONV_LOG, log1 - log2)
 
         return result
 
@@ -679,24 +723,22 @@ class UnitEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Multiply dimension exponents by n
         for i in range(7):
-            result = backend.at_add(result, 8 + i, emb[8 + i] * n)
+            result = backend.at_add(result, 16 + i, emb[16 + i] * n)
 
         # Update dimensionless flag
-        is_dimensionless = all(
-            abs(result[8 + i].item()) < 0.5 for i in range(7)
-        )
-        result = backend.at_add(result, 8 + UNIT_DIMENSIONLESS_FLAG, 
-            1.0 if is_dimensionless else 0.0
+        is_dimensionless = all(abs(result[16 + i].item()) < 0.5 for i in range(7))
+        result = backend.at_add(
+            result, 16 + UNIT_DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0
         )
 
         # Power of conversion factor (multiply log by n)
-        log_factor = emb[8 + UNIT_CONV_LOG].item()
-        result = backend.at_add(result, 8 + UNIT_CONV_SIGN, 1.0)
-        result = backend.at_add(result, 8 + UNIT_CONV_LOG, log_factor * n)
+        log_factor = emb[16 + UNIT_CONV_LOG].item()
+        result = backend.at_add(result, 16 + UNIT_CONV_SIGN, 1.0)
+        result = backend.at_add(result, 16 + UNIT_CONV_LOG, log_factor * n)
 
         return result
 
@@ -707,13 +749,13 @@ class UnitEncoder:
 
         # Map from dimension to base SI symbol
         dim_to_symbol = [
-            ('M', 'kg'),
-            ('L', 'm'),
-            ('T', 's'),
-            ('I', 'A'),
-            ('Theta', 'K'),
-            ('N', 'mol'),
-            ('J', 'cd'),
+            ("M", "kg"),
+            ("L", "m"),
+            ("T", "s"),
+            ("I", "A"),
+            ("Theta", "K"),
+            ("N", "mol"),
+            ("J", "cd"),
         ]
 
         for attr, symbol in dim_to_symbol:
@@ -757,8 +799,8 @@ class UnitEncoder:
             "si_factor": parsed.total_factor,
             "components": parsed.base_units,
             "canonical_si": self._dimensions_to_unit_string(parsed.dimensions),
-            "is_si_base": emb[8 + UNIT_IS_SI_BASE].item() > 0.5,
-            "is_si_derived": emb[8 + UNIT_IS_SI_DERIVED].item() > 0.5,
+            "is_si_base": emb[16 + UNIT_IS_SI_BASE].item() > 0.5,
+            "is_si_derived": emb[16 + UNIT_IS_SI_DERIVED].item() > 0.5,
         }
 
 
@@ -800,6 +842,7 @@ def are_compatible(unit1: str, unit2: str) -> bool:
 # Inline Tests
 # =============================================================================
 
+
 def _run_tests():
     """Run basic tests to verify the implementation."""
     encoder = UnitEncoder()
@@ -833,7 +876,9 @@ def _run_tests():
     for unit_str, expected_dims in test_cases:
         emb = encoder.encode(unit_str)
         dims = encoder.decode_dimensions(emb)
-        assert dims == expected_dims, f"Wrong dims for {unit_str}: {dims} != {expected_dims}"
+        assert dims == expected_dims, (
+            f"Wrong dims for {unit_str}: {dims} != {expected_dims}"
+        )
         print(f"   {unit_str}: {dims} OK")
 
     # Test 4: Test prefixed units
@@ -843,7 +888,9 @@ def _run_tests():
         emb = encoder.encode(unit)
         factor = encoder.decode_conversion_factor(emb)
         rel_error = abs(factor - expected_factor) / expected_factor
-        assert rel_error < 0.01, f"Wrong factor for {unit}: {factor} != {expected_factor}"
+        assert rel_error < 0.01, (
+            f"Wrong factor for {unit}: {factor} != {expected_factor}"
+        )
         print(f"   {unit}: factor = {factor:.2e} OK")
 
     # Test 5: Test compatibility
@@ -876,7 +923,9 @@ def _run_tests():
         result = encoder.convert(val, from_u, to_u)
         assert result is not None, f"Conversion failed for {from_u} -> {to_u}"
         rel_error = abs(result - expected) / expected if expected != 0 else abs(result)
-        assert rel_error < 0.01, f"Wrong conversion: {val} {from_u} -> {result} {to_u} (expected {expected})"
+        assert rel_error < 0.01, (
+            f"Wrong conversion: {val} {from_u} -> {result} {to_u} (expected {expected})"
+        )
         print(f"   {val} {from_u} = {result:.6g} {to_u} OK")
 
     # Test 7: Test unit multiplication

@@ -182,36 +182,36 @@ class ElementEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Atomic number (log encoded)
-        emb = backend.at_add(emb, 8 + ATOMIC_NUM_OFFSET, 1.0)
-        emb = backend.at_add(emb, 8 + ATOMIC_NUM_OFFSET + 1, backend.log(backend.array(float(elem.atomic_number))))
+        emb = backend.at_add(emb, 16 + ATOMIC_NUM_OFFSET, 1.0)
+        emb = backend.at_add(emb, 16 + ATOMIC_NUM_OFFSET + 1, backend.log(backend.array(float(elem.atomic_number))))
 
         # Atomic mass (log encoded)
-        emb = backend.at_add(emb, 8 + ATOMIC_MASS_OFFSET, 1.0)
-        emb = backend.at_add(emb, 8 + ATOMIC_MASS_OFFSET + 1, backend.log(backend.array(elem.atomic_mass)))
+        emb = backend.at_add(emb, 16 + ATOMIC_MASS_OFFSET, 1.0)
+        emb = backend.at_add(emb, 16 + ATOMIC_MASS_OFFSET + 1, backend.log(backend.array(elem.atomic_mass)))
 
         # Position in periodic table
-        emb = backend.at_add(emb, 8 + POSITION_OFFSET, float(elem.period))
-        emb = backend.at_add(emb, 8 + POSITION_OFFSET + 1, float(elem.group) / 10.0)
-        emb = backend.at_add(emb, 8 + POSITION_OFFSET + 2, BLOCK_CODES.get(elem.block, 0.0))
-        emb = backend.at_add(emb, 8 + POSITION_OFFSET + 3, float(elem.valence_electrons) / 8.0)
+        emb = backend.at_add(emb, 16 + POSITION_OFFSET, float(elem.period))
+        emb = backend.at_add(emb, 16 + POSITION_OFFSET + 1, float(elem.group) / 10.0)
+        emb = backend.at_add(emb, 16 + POSITION_OFFSET + 2, BLOCK_CODES.get(elem.block, 0.0))
+        emb = backend.at_add(emb, 16 + POSITION_OFFSET + 3, float(elem.valence_electrons) / 8.0)
 
         # Electronegativity
         if elem.electronegativity is not None:
-            emb = backend.at_add(emb, 8 + ELECTRONEGATIVITY_OFFSET, 1.0)
-            emb = backend.at_add(emb, 8 + ELECTRONEGATIVITY_OFFSET + 1, 
+            emb = backend.at_add(emb, 16 + ELECTRONEGATIVITY_OFFSET, 1.0)
+            emb = backend.at_add(emb, 16 + ELECTRONEGATIVITY_OFFSET + 1, 
                 elem.electronegativity / 4.0  # Normalize to ~[0,1]
             )
 
         # Oxidation states (up to 4)
         for i, ox in enumerate(elem.common_oxidation_states[:4]):
-            emb = backend.at_add(emb, 8 + OXIDATION_OFFSET + i, ox / 8.0)  # Normalize
+            emb = backend.at_add(emb, 16 + OXIDATION_OFFSET + i, ox / 8.0)  # Normalize
 
         # Category
         cat_code = CATEGORY_CODES.get(elem.category, 0)
-        emb = backend.at_add(emb, 8 + CATEGORY_OFFSET, float(cat_code) / 10.0)
+        emb = backend.at_add(emb, 16 + CATEGORY_OFFSET, float(cat_code) / 10.0)
 
         return emb
 
@@ -227,7 +227,7 @@ class ElementEncoder:
         """
         backend = get_backend()
         # Extract atomic number
-        log_z = emb[8 + ATOMIC_NUM_OFFSET + 1].item()
+        log_z = emb[16 + ATOMIC_NUM_OFFSET + 1].item()
         z = int(round(backend.exp(backend.array(log_z)).item()))
         z = max(1, min(118, z))  # Clamp to valid range
 
@@ -249,7 +249,7 @@ class ElementEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid element."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -262,38 +262,38 @@ class ElementEncoder:
 
         Useful for predicting bond polarity.
         """
-        has_en1 = emb1[8 + ELECTRONEGATIVITY_OFFSET].item() > 0.5
-        has_en2 = emb2[8 + ELECTRONEGATIVITY_OFFSET].item() > 0.5
+        has_en1 = emb1[16 + ELECTRONEGATIVITY_OFFSET].item() > 0.5
+        has_en2 = emb2[16 + ELECTRONEGATIVITY_OFFSET].item() > 0.5
 
         if not (has_en1 and has_en2):
             return 0.0
 
-        en1 = emb1[8 + ELECTRONEGATIVITY_OFFSET + 1].item() * 4.0
-        en2 = emb2[8 + ELECTRONEGATIVITY_OFFSET + 1].item() * 4.0
+        en1 = emb1[16 + ELECTRONEGATIVITY_OFFSET + 1].item() * 4.0
+        en2 = emb2[16 + ELECTRONEGATIVITY_OFFSET + 1].item() * 4.0
 
         return abs(en1 - en2)
 
     def same_group(self, emb1: Any, emb2: Any) -> bool:
         """Check if two elements are in the same group."""
-        g1 = emb1[8 + POSITION_OFFSET + 1].item() * 10
-        g2 = emb2[8 + POSITION_OFFSET + 1].item() * 10
+        g1 = emb1[16 + POSITION_OFFSET + 1].item() * 10
+        g2 = emb2[16 + POSITION_OFFSET + 1].item() * 10
         return abs(g1 - g2) < 0.5
 
     def same_period(self, emb1: Any, emb2: Any) -> bool:
         """Check if two elements are in the same period."""
-        p1 = emb1[8 + POSITION_OFFSET].item()
-        p2 = emb2[8 + POSITION_OFFSET].item()
+        p1 = emb1[16 + POSITION_OFFSET].item()
+        p2 = emb2[16 + POSITION_OFFSET].item()
         return abs(p1 - p2) < 0.5
 
     def is_metal(self, emb: Any) -> bool:
         """Check if element is a metal."""
-        cat = int(emb[8 + CATEGORY_OFFSET].item() * 10)
+        cat = int(emb[16 + CATEGORY_OFFSET].item() * 10)
         # Categories 0-3 are metals, 8-9 are lanthanides/actinides (also metals)
         return cat in [0, 1, 2, 3, 8, 9]
 
     def is_nonmetal(self, emb: Any) -> bool:
         """Check if element is a nonmetal."""
-        cat = int(emb[8 + CATEGORY_OFFSET].item() * 10)
+        cat = int(emb[16 + CATEGORY_OFFSET].item() * 10)
         return cat in [5, 6, 7]  # nonmetal, halogen, noble gas
 
 

@@ -284,7 +284,7 @@ class PropositionalEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Formula type (one-hot in dims 8-13)
         type_map = {
@@ -298,43 +298,43 @@ class PropositionalEncoder:
             FormulaType.IFF: 5,
         }
         type_idx = type_map.get(formula.type, 0)
-        emb = backend.at_add(emb, 8 + TYPE_OFFSET + type_idx, 1.0)
+        emb = backend.at_add(emb, 16 + TYPE_OFFSET + type_idx, 1.0)
 
         # Truth value
         if formula.type == FormulaType.TRUE:
-            emb = backend.at_add(emb, 8 + TRUTH_OFFSET, 1.0)
+            emb = backend.at_add(emb, 16 + TRUTH_OFFSET, 1.0)
         elif formula.type == FormulaType.FALSE:
-            emb = backend.at_add(emb, 8 + TRUTH_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + TRUTH_OFFSET, 0.0)
         else:
             # Check if it's a constant (tautology/contradiction)
             if formula.is_tautology():
-                emb = backend.at_add(emb, 8 + TRUTH_OFFSET, 1.0)
+                emb = backend.at_add(emb, 16 + TRUTH_OFFSET, 1.0)
             elif formula.is_contradiction():
-                emb = backend.at_add(emb, 8 + TRUTH_OFFSET, 0.0)
+                emb = backend.at_add(emb, 16 + TRUTH_OFFSET, 0.0)
             else:
-                emb = backend.at_add(emb, 8 + TRUTH_OFFSET, 0.5)  # Unknown/variable
+                emb = backend.at_add(emb, 16 + TRUTH_OFFSET, 0.5)  # Unknown/variable
 
         # Complexity
         complexity = formula.complexity()
-        emb = backend.at_add(emb, 8 + COMPLEXITY_OFFSET, backend.log(backend.array(float(complexity + 1))))
+        emb = backend.at_add(emb, 16 + COMPLEXITY_OFFSET, backend.log(backend.array(float(complexity + 1))))
 
         # Subformula counts
         counts = self._count_subformulas(formula)
         for i, ftype in enumerate([FormulaType.ATOM, FormulaType.NOT,
                                    FormulaType.AND, FormulaType.OR,
                                    FormulaType.IMPLIES, FormulaType.IFF]):
-            emb = backend.at_add(emb, 8 + SUBFORMULA_OFFSET + i, 
+            emb = backend.at_add(emb, 16 + SUBFORMULA_OFFSET + i, 
                 backend.log(backend.array(float(counts.get(ftype, 0) + 1)))
             )
 
         # Semantic flags
-        emb = backend.at_add(emb, 8 + TAUTOLOGY_FLAG, 1.0 if formula.is_tautology() else 0.0)
-        emb = backend.at_add(emb, 8 + SATISFIABLE_FLAG, 1.0 if formula.is_satisfiable() else 0.0)
+        emb = backend.at_add(emb, 16 + TAUTOLOGY_FLAG, 1.0 if formula.is_tautology() else 0.0)
+        emb = backend.at_add(emb, 16 + SATISFIABLE_FLAG, 1.0 if formula.is_satisfiable() else 0.0)
 
         # Atom bitmap
         for atom_id in formula.atoms():
             if 0 <= atom_id < 16:
-                emb = backend.at_add(emb, 8 + ATOM_BITMAP_OFFSET + atom_id, 1.0)
+                emb = backend.at_add(emb, 16 + ATOM_BITMAP_OFFSET + atom_id, 1.0)
 
         return emb
 
@@ -359,13 +359,13 @@ class PropositionalEncoder:
         type_idx = 0
         max_val = 0.0
         for i in range(6):
-            val = emb[8 + TYPE_OFFSET + i].item()
+            val = emb[16 + TYPE_OFFSET + i].item()
             if val > max_val:
                 max_val = val
                 type_idx = i
 
         # Get truth value
-        truth = emb[8 + TRUTH_OFFSET].item()
+        truth = emb[16 + TRUTH_OFFSET].item()
 
         if type_idx == 1:  # TRUE or FALSE
             if truth > 0.5:
@@ -375,7 +375,7 @@ class PropositionalEncoder:
         elif type_idx == 0:  # ATOM
             # Find first atom in bitmap
             for i in range(16):
-                if emb[8 + ATOM_BITMAP_OFFSET + i].item() > 0.5:
+                if emb[16 + ATOM_BITMAP_OFFSET + i].item() > 0.5:
                     return PropFormula.atom(i)
             return PropFormula.atom(0)
         else:
@@ -391,7 +391,7 @@ class PropositionalEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid propositional formula."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -409,39 +409,39 @@ class PropositionalEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # AND type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 3, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 3, 1.0)
 
         # Truth value: min (AND semantics)
-        t1 = emb1[8 + TRUTH_OFFSET].item()
-        t2 = emb2[8 + TRUTH_OFFSET].item()
-        result = backend.at_add(result, 8 + TRUTH_OFFSET, min(t1, t2))
+        t1 = emb1[16 + TRUTH_OFFSET].item()
+        t2 = emb2[16 + TRUTH_OFFSET].item()
+        result = backend.at_add(result, 16 + TRUTH_OFFSET, min(t1, t2))
 
         # Complexity adds
-        c1 = emb1[8 + COMPLEXITY_OFFSET].item()
-        c2 = emb2[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, 
+        c1 = emb1[16 + COMPLEXITY_OFFSET].item()
+        c2 = emb2[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, 
             backend.log(backend.exp(backend.array(c1)) + backend.exp(backend.array(c2)) + 1)
         )
 
         # Combine atom bitmaps (union)
         for i in range(16):
-            if (emb1[8 + ATOM_BITMAP_OFFSET + i].item() > 0.5 or
-                emb2[8 + ATOM_BITMAP_OFFSET + i].item() > 0.5):
-                result = backend.at_add(result, 8 + ATOM_BITMAP_OFFSET + i, 1.0)
+            if (emb1[16 + ATOM_BITMAP_OFFSET + i].item() > 0.5 or
+                emb2[16 + ATOM_BITMAP_OFFSET + i].item() > 0.5):
+                result = backend.at_add(result, 16 + ATOM_BITMAP_OFFSET + i, 1.0)
 
         # Update semantic flags
         # AND is tautology only if both are tautologies
-        is_taut = (emb1[8 + TAUTOLOGY_FLAG].item() > 0.5 and
-                   emb2[8 + TAUTOLOGY_FLAG].item() > 0.5)
-        result = backend.at_add(result, 8 + TAUTOLOGY_FLAG, 1.0 if is_taut else 0.0)
+        is_taut = (emb1[16 + TAUTOLOGY_FLAG].item() > 0.5 and
+                   emb2[16 + TAUTOLOGY_FLAG].item() > 0.5)
+        result = backend.at_add(result, 16 + TAUTOLOGY_FLAG, 1.0 if is_taut else 0.0)
 
         # AND is satisfiable if both are satisfiable (necessary but not sufficient)
-        is_sat = (emb1[8 + SATISFIABLE_FLAG].item() > 0.5 and
-                  emb2[8 + SATISFIABLE_FLAG].item() > 0.5)
-        result = backend.at_add(result, 8 + SATISFIABLE_FLAG, 1.0 if is_sat else 0.0)
+        is_sat = (emb1[16 + SATISFIABLE_FLAG].item() > 0.5 and
+                  emb2[16 + SATISFIABLE_FLAG].item() > 0.5)
+        result = backend.at_add(result, 16 + SATISFIABLE_FLAG, 1.0 if is_sat else 0.0)
 
         return result
 
@@ -456,39 +456,39 @@ class PropositionalEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # OR type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 4, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 4, 1.0)
 
         # Truth value: max (OR semantics)
-        t1 = emb1[8 + TRUTH_OFFSET].item()
-        t2 = emb2[8 + TRUTH_OFFSET].item()
-        result = backend.at_add(result, 8 + TRUTH_OFFSET, max(t1, t2))
+        t1 = emb1[16 + TRUTH_OFFSET].item()
+        t2 = emb2[16 + TRUTH_OFFSET].item()
+        result = backend.at_add(result, 16 + TRUTH_OFFSET, max(t1, t2))
 
         # Complexity adds
-        c1 = emb1[8 + COMPLEXITY_OFFSET].item()
-        c2 = emb2[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, 
+        c1 = emb1[16 + COMPLEXITY_OFFSET].item()
+        c2 = emb2[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, 
             backend.log(backend.exp(backend.array(c1)) + backend.exp(backend.array(c2)) + 1)
         )
 
         # Combine atom bitmaps (union)
         for i in range(16):
-            if (emb1[8 + ATOM_BITMAP_OFFSET + i].item() > 0.5 or
-                emb2[8 + ATOM_BITMAP_OFFSET + i].item() > 0.5):
-                result = backend.at_add(result, 8 + ATOM_BITMAP_OFFSET + i, 1.0)
+            if (emb1[16 + ATOM_BITMAP_OFFSET + i].item() > 0.5 or
+                emb2[16 + ATOM_BITMAP_OFFSET + i].item() > 0.5):
+                result = backend.at_add(result, 16 + ATOM_BITMAP_OFFSET + i, 1.0)
 
         # Update semantic flags
         # OR is tautology if either is tautology
-        is_taut = (emb1[8 + TAUTOLOGY_FLAG].item() > 0.5 or
-                   emb2[8 + TAUTOLOGY_FLAG].item() > 0.5)
-        result = backend.at_add(result, 8 + TAUTOLOGY_FLAG, 1.0 if is_taut else 0.0)
+        is_taut = (emb1[16 + TAUTOLOGY_FLAG].item() > 0.5 or
+                   emb2[16 + TAUTOLOGY_FLAG].item() > 0.5)
+        result = backend.at_add(result, 16 + TAUTOLOGY_FLAG, 1.0 if is_taut else 0.0)
 
         # OR is satisfiable if either is satisfiable
-        is_sat = (emb1[8 + SATISFIABLE_FLAG].item() > 0.5 or
-                  emb2[8 + SATISFIABLE_FLAG].item() > 0.5)
-        result = backend.at_add(result, 8 + SATISFIABLE_FLAG, 1.0 if is_sat else 0.0)
+        is_sat = (emb1[16 + SATISFIABLE_FLAG].item() > 0.5 or
+                  emb2[16 + SATISFIABLE_FLAG].item() > 0.5)
+        result = backend.at_add(result, 16 + SATISFIABLE_FLAG, 1.0 if is_sat else 0.0)
 
         return result
 
@@ -503,38 +503,38 @@ class PropositionalEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # NOT type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 2, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 2, 1.0)
 
         # Truth value: complement
-        t = emb[8 + TRUTH_OFFSET].item()
-        result = backend.at_add(result, 8 + TRUTH_OFFSET, 1.0 - t)
+        t = emb[16 + TRUTH_OFFSET].item()
+        result = backend.at_add(result, 16 + TRUTH_OFFSET, 1.0 - t)
 
         # Complexity increases by 1
-        c = emb[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, 
+        c = emb[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, 
             backend.log(backend.exp(backend.array(c)) + 1)
         )
 
         # Copy atom bitmap
         for i in range(16):
-            if emb[8 + ATOM_BITMAP_OFFSET + i].item() > 0.5:
-                result = backend.at_add(result, 8 + ATOM_BITMAP_OFFSET + i, 1.0)
+            if emb[16 + ATOM_BITMAP_OFFSET + i].item() > 0.5:
+                result = backend.at_add(result, 16 + ATOM_BITMAP_OFFSET + i, 1.0)
 
         # Swap tautology/contradiction status
-        was_taut = emb[8 + TAUTOLOGY_FLAG].item() > 0.5
-        was_sat = emb[8 + SATISFIABLE_FLAG].item() > 0.5
+        was_taut = emb[16 + TAUTOLOGY_FLAG].item() > 0.5
+        was_sat = emb[16 + SATISFIABLE_FLAG].item() > 0.5
 
         # NOT tautology = contradiction, NOT contradiction = tautology
         if was_taut:
-            result = backend.at_add(result, 8 + SATISFIABLE_FLAG, 0.0)  # contradiction
+            result = backend.at_add(result, 16 + SATISFIABLE_FLAG, 0.0)  # contradiction
         elif not was_sat:
-            result = backend.at_add(result, 8 + TAUTOLOGY_FLAG, 1.0)  # was contradiction -> tautology
-            result = backend.at_add(result, 8 + SATISFIABLE_FLAG, 1.0)
+            result = backend.at_add(result, 16 + TAUTOLOGY_FLAG, 1.0)  # was contradiction -> tautology
+            result = backend.at_add(result, 16 + SATISFIABLE_FLAG, 1.0)
         else:
-            result = backend.at_add(result, 8 + SATISFIABLE_FLAG, 1.0)
+            result = backend.at_add(result, 16 + SATISFIABLE_FLAG, 1.0)
 
         return result
 
@@ -556,16 +556,16 @@ class PropositionalEncoder:
 
     def is_tautology(self, emb: Any) -> bool:
         """Check if embedding represents a tautology."""
-        return emb[8 + TAUTOLOGY_FLAG].item() > 0.5
+        return emb[16 + TAUTOLOGY_FLAG].item() > 0.5
 
     def is_contradiction(self, emb: Any) -> bool:
         """Check if embedding represents a contradiction."""
-        return (emb[8 + SATISFIABLE_FLAG].item() < 0.5 and
-                emb[8 + TRUTH_OFFSET].item() < 0.1)
+        return (emb[16 + SATISFIABLE_FLAG].item() < 0.5 and
+                emb[16 + TRUTH_OFFSET].item() < 0.1)
 
     def is_satisfiable(self, emb: Any) -> bool:
         """Check if embedding represents a satisfiable formula."""
-        return emb[8 + SATISFIABLE_FLAG].item() > 0.5
+        return emb[16 + SATISFIABLE_FLAG].item() > 0.5
 
     def get_truth_value(self, emb: Any) -> Optional[bool]:
         """
@@ -573,7 +573,7 @@ class PropositionalEncoder:
 
         Returns True, False, or None (for variable formulas).
         """
-        t = emb[8 + TRUTH_OFFSET].item()
+        t = emb[16 + TRUTH_OFFSET].item()
         if t > 0.9:
             return True
         elif t < 0.1:

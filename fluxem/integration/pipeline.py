@@ -8,12 +8,15 @@ into LLM training:
 3. Utility functions for common training patterns
 """
 
-from typing import Dict, List, Optional, Tuple, Any, Callable
+from typing import Dict, List, Optional, Tuple, Any, Callable, TYPE_CHECKING
 from dataclasses import dataclass
+import os
 from ..backend import get_backend
 
 from .tokenizer import MultiDomainTokenizer, DomainToken, DomainType
-from .projector import MultiDomainProjector, ProjectorConfig
+
+if TYPE_CHECKING:
+    from .projector import MultiDomainProjector, ProjectorConfig
 
 
 @dataclass
@@ -70,6 +73,17 @@ class DomainEncoderRegistry:
         from ..domains.data import ArrayEncoder, RecordEncoder
         from ..domains.biology import DNAEncoder, ProteinEncoder, TaxonomyEncoder
         from ..domains.music import PitchEncoder, ChordEncoder, ScaleEncoder, AtonalSetEncoder
+        # New expanded domain encoders
+        from ..domains.combinatorics import CombinatoricsEncoder
+        from ..domains.probability import ProbabilityEncoder
+        from ..domains.statistics import StatisticsEncoder
+        from ..domains.information_theory import InformationTheoryEncoder
+        from ..domains.signal_processing import SignalEncoder
+        from ..domains.calculus import CalculusPolynomialEncoder
+        from ..domains.temporal import TemporalEncoder
+        from ..domains.finance import FinanceEncoder
+        from ..domains.optimization import OptimizationEncoder
+        from ..domains.control_systems import ControlSystemEncoder
 
         # Map DomainType to encoder instances
         self._encoders = {
@@ -100,6 +114,17 @@ class DomainEncoderRegistry:
             DomainType.CHORD: ChordEncoder(),
             DomainType.SCALE: ScaleEncoder(),
             DomainType.ATONAL: AtonalSetEncoder(),  # Atonal set encoder
+            # New expanded domain types
+            DomainType.COMBINATORICS: CombinatoricsEncoder(),
+            DomainType.PROBABILITY: ProbabilityEncoder(),
+            DomainType.STATISTICS: StatisticsEncoder(),
+            DomainType.INFO_THEORY: InformationTheoryEncoder(),
+            DomainType.SIGNAL: SignalEncoder(),
+            DomainType.CALCULUS: CalculusPolynomialEncoder(),
+            DomainType.TEMPORAL: TemporalEncoder(),
+            DomainType.FINANCE: FinanceEncoder(),
+            DomainType.OPTIMIZATION: OptimizationEncoder(),
+            DomainType.CONTROL: ControlSystemEncoder(),
         }
         self._loaded = True
 
@@ -267,6 +292,77 @@ class DomainEncoderRegistry:
             # Musical scale - parse and encode
             return encoder.encode(text)
 
+        # New expanded domain types
+        elif token.domain == DomainType.COMBINATORICS:
+            # Parse combinatorial expression from metadata
+            kind = metadata.get("kind", "factorial")
+            n = metadata.get("n", 0)
+            k = metadata.get("k")
+            return encoder.encode((kind, n, k))
+
+        elif token.domain == DomainType.PROBABILITY:
+            # Parse probability distribution from metadata
+            kind = metadata.get("kind", "categorical")
+            probs = metadata.get("probs")
+            p = metadata.get("p")
+            n = metadata.get("n")
+            if probs is not None:
+                return encoder.encode(probs)
+            elif p is not None:
+                return encoder.encode({"kind": kind, "p": p, "n": n})
+            return encoder.encode(text)
+
+        elif token.domain == DomainType.STATISTICS:
+            # Parse statistics from values in metadata
+            values = metadata.get("values")
+            if values is not None:
+                return encoder.encode(values)
+            return encoder.encode(text)
+
+        elif token.domain == DomainType.INFO_THEORY:
+            # Parse probability distribution for information theory
+            probs = metadata.get("probs", [0.5, 0.5])
+            return encoder.encode(probs)
+
+        elif token.domain == DomainType.SIGNAL:
+            # Parse signal samples from metadata
+            samples = metadata.get("samples")
+            if samples is not None:
+                return encoder.encode(samples)
+            return encoder.encode(text)
+
+        elif token.domain == DomainType.CALCULUS:
+            # Parse polynomial coefficients from metadata
+            coefficients = metadata.get("coefficients")
+            if coefficients is not None:
+                return encoder.encode(coefficients)
+            return encoder.encode(text)
+
+        elif token.domain == DomainType.TEMPORAL:
+            # Parse date string - encoder accepts string, date, or datetime
+            return encoder.encode(text)
+
+        elif token.domain == DomainType.FINANCE:
+            # Parse cashflow data from metadata
+            rate = metadata.get("rate", 0.05)
+            cashflows = metadata.get("cashflows", [0.0])
+            return encoder.encode((rate, cashflows))
+
+        elif token.domain == DomainType.OPTIMIZATION:
+            # Parse optimization step from metadata
+            x = metadata.get("x", [0.0])
+            grad = metadata.get("grad", [0.0])
+            step_size = metadata.get("step_size", 0.01)
+            return encoder.encode((x, grad, step_size))
+
+        elif token.domain == DomainType.CONTROL:
+            # Parse control system state from metadata
+            a = metadata.get("a", [[1.0, 0.0], [0.0, 1.0]])
+            b = metadata.get("b", [[1.0, 0.0], [0.0, 1.0]])
+            x = metadata.get("x", [0.0, 0.0])
+            u = metadata.get("u", [0.0, 0.0])
+            return encoder.encode((a, b, x, u))
+
         else:
             # Default: pass text directly to encoder
             return encoder.encode(text)
@@ -289,7 +385,7 @@ class TrainingPipeline:
         self,
         llm_hidden_dim: int = 4096,
         text_embed_fn: Optional[Callable[[str], Any]] = None,
-        projector_config: Optional[ProjectorConfig] = None,
+        projector_config: Optional["ProjectorConfig"] = None,
     ):
         """
         Initialize the training pipeline.
@@ -306,9 +402,16 @@ class TrainingPipeline:
         self.tokenizer = MultiDomainTokenizer()
         self.registry = DomainEncoderRegistry()
 
-        if projector_config is None:
-            projector_config = ProjectorConfig(llm_hidden_dim=llm_hidden_dim)
+        if os.environ.get("FLUXEM_ENABLE_MLX") != "1":
+            raise ImportError(
+                "TrainingPipeline requires MLX (mlx.nn). Set FLUXEM_ENABLE_MLX=1 "
+                "and install MLX to enable TrainingPipeline."
+            )
         try:
+            from .projector import MultiDomainProjector, ProjectorConfig
+
+            if projector_config is None:
+                projector_config = ProjectorConfig(llm_hidden_dim=llm_hidden_dim)
             self.projector = MultiDomainProjector(projector_config)
         except ImportError as exc:
             raise ImportError(

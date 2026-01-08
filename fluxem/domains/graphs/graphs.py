@@ -210,7 +210,7 @@ class GraphEncoder:
         # Set domain tag
         tag_key = "graph_directed" if graph.directed else "graph_undirected"
         if tag_key in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS[tag_key])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS[tag_key])
 
         # Encode adjacency matrix as bitmap
         for src, tgt in graph.edges:
@@ -450,7 +450,7 @@ class GraphEncoder:
         result = backend.at_add(result, slice(self.ADJACENCY_START, self.ADJACENCY_START + self.ADJACENCY_SIZE), union_adj)
 
         # Keep domain tag from first graph
-        result = backend.at_add(result, slice(0, 8), emb1[:8])
+        result = backend.at_add(result, slice(0, 16), emb1[:8])
 
         # Recompute counts from union
         edge_count = float(backend.sum(union_adj > 0.5))
@@ -475,7 +475,7 @@ class GraphEncoder:
         result = backend.at_add(result, slice(self.ADJACENCY_START, self.ADJACENCY_START + self.ADJACENCY_SIZE), inter_adj)
 
         # Keep domain tag from first graph
-        result = backend.at_add(result, slice(0, 8), emb1[:8])
+        result = backend.at_add(result, slice(0, 16), emb1[:8])
 
         # Recompute counts
         edge_count = float(backend.sum(inter_adj > 0.5))
@@ -507,7 +507,7 @@ class GraphEncoder:
         comp_adj = mask * (1.0 - adj)
 
         result = backend.at_add(result, slice(self.ADJACENCY_START, self.ADJACENCY_START + self.ADJACENCY_SIZE), comp_adj)
-        result = backend.at_add(result, slice(0, 8), embedding[:8])
+        result = backend.at_add(result, slice(0, 16), embedding[:8])
         result = backend.at_add(result, self.NODE_COUNT_POS, float(node_count))
 
         edge_count = float(backend.sum(comp_adj > 0.5))
@@ -533,7 +533,7 @@ class GraphEncoder:
         sub_adj = adj * mask
 
         result = backend.at_add(result, slice(self.ADJACENCY_START, self.ADJACENCY_START + self.ADJACENCY_SIZE), sub_adj)
-        result = backend.at_add(result, slice(0, 8), embedding[:8])
+        result = backend.at_add(result, slice(0, 16), embedding[:8])
         result = backend.at_add(result, self.NODE_COUNT_POS, float(len(nodes)))
 
         edge_count = float(backend.sum(sub_adj > 0.5))
@@ -559,7 +559,7 @@ class GraphEncoder:
                 trans_adj = backend.at_add(trans_adj, new_pos, adj[old_pos])
 
         result = backend.at_add(result, slice(self.ADJACENCY_START, self.ADJACENCY_START + self.ADJACENCY_SIZE), trans_adj)
-        result = backend.at_add(result, slice(0, 8), embedding[:8])
+        result = backend.at_add(result, slice(0, 16), embedding[:8])
         result = backend.at_add(result, self.NODE_COUNT_POS, embedding[self.NODE_COUNT_POS])
         result = backend.at_add(result, self.EDGE_COUNT_POS, embedding[self.EDGE_COUNT_POS])
 

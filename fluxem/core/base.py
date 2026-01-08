@@ -15,22 +15,22 @@ from ..backend import get_backend
 # Constants
 # =============================================================================
 
-EMBEDDING_DIM = 128  # Total embedding dimension
+EMBEDDING_DIM = 256  # Total embedding dimension
 
-# Embedding layout:
-# dims 0-7:    Domain tag (one-hot identifier)
-# dims 8-71:   Domain-specific encoding (64 dims)
-# dims 72-95:  Shared semantic features (24 dims)
-# dims 96-127: Cross-domain composition (32 dims)
+# Embedding layout (256-dim):
+# dims 0-15:    Domain tag (16 dims, supports 64+ domains)
+# dims 16-127:  Domain-specific encoding (112 dims)
+# dims 128-191: Shared semantic features (64 dims)
+# dims 192-255: Cross-domain composition (64 dims)
 
 DOMAIN_OFFSET = 0
-DOMAIN_SIZE = 8
-SPECIFIC_OFFSET = 8
-SPECIFIC_SIZE = 64
-SHARED_OFFSET = 72
-SHARED_SIZE = 24
-COMPOSITION_OFFSET = 96
-COMPOSITION_SIZE = 32
+DOMAIN_SIZE = 16
+SPECIFIC_OFFSET = 16
+SPECIFIC_SIZE = 112
+SHARED_OFFSET = 128
+SHARED_SIZE = 64
+COMPOSITION_OFFSET = 192
+COMPOSITION_SIZE = 64
 
 # Epsilon for numerical stability (must handle very small physical constants like h ~ 1e-34)
 EPSILON = 1e-300
@@ -39,67 +39,88 @@ EPSILON = 1e-300
 # Domain Tags (Lazy Initialization)
 # =============================================================================
 
-# Raw domain tag values - these are framework-agnostic
+# Raw domain tag values - these are framework-agnostic (16-dim tags)
 _DOMAIN_TAG_VALUES: Dict[str, list] = {
-    # Physics domains
-    "phys_quantity": [1, 0, 0, 0, 0, 0, 0, 0],
-    "phys_constant": [1, 0, 0, 0, 0, 0, 0, 1],
-    "phys_unit": [1, 0, 0, 0, 0, 0, 1, 0],
-    # Chemistry domains
-    "chem_element": [0, 1, 0, 0, 0, 0, 0, 0],
-    "chem_molecule": [0, 1, 0, 0, 0, 0, 0, 1],
-    "chem_reaction": [0, 1, 0, 0, 0, 0, 1, 0],
-    "chem_bond": [0, 1, 0, 0, 0, 0, 1, 1],
-    # Logic domains
-    "logic_prop": [0, 0, 1, 0, 0, 0, 0, 0],
-    "logic_pred": [0, 0, 1, 0, 0, 0, 0, 1],
-    "logic_type": [0, 0, 1, 0, 0, 0, 1, 0],
-    # Math domains
-    "math_real": [0, 0, 0, 1, 0, 0, 0, 0],
-    "math_complex": [0, 0, 0, 1, 0, 0, 0, 1],
-    "math_rational": [0, 0, 0, 1, 0, 0, 1, 0],
-    "math_polynomial": [0, 0, 0, 1, 0, 0, 1, 1],
-    "math_vector": [0, 0, 0, 1, 0, 1, 0, 0],
-    "math_matrix": [0, 0, 0, 1, 0, 1, 0, 1],
-    # Biology domains
-    "bio_dna": [0, 0, 0, 0, 1, 0, 0, 0],
-    "bio_rna": [0, 0, 0, 0, 1, 0, 0, 1],
-    "bio_protein": [0, 0, 0, 0, 1, 0, 1, 0],
-    "bio_gene": [0, 0, 0, 0, 1, 0, 1, 1],
-    "bio_pathway": [0, 0, 0, 0, 1, 1, 0, 0],
-    "bio_taxonomy": [0, 0, 0, 0, 1, 1, 0, 1],
-    # Music domains
-    "music_pitch": [0, 0, 0, 0, 0, 1, 0, 0],
-    "music_chord": [0, 0, 0, 0, 0, 1, 0, 1],
-    "music_scale": [0, 0, 0, 0, 0, 1, 1, 0],
-    "music_rhythm": [0, 0, 0, 0, 0, 1, 1, 1],
-    "music_atonal": [0, 0, 0, 0, 0, 1, 1, 0.5],  # Different from scale
-    # Set theory domains
-    "set_finite": [0, 0, 1, 0, 0, 0, 1, 1],
-    "set_relation": [0, 0, 1, 1, 0, 0, 0, 0],
-    "set_function": [0, 0, 1, 1, 0, 0, 0, 1],
-    # Graph theory domains
-    "graph_directed": [1, 1, 0, 0, 0, 0, 0, 0],
-    "graph_undirected": [1, 1, 0, 0, 0, 0, 0, 1],
-    "graph_weighted": [1, 1, 0, 0, 0, 0, 1, 0],
-    "graph_tree": [1, 1, 0, 0, 0, 0, 1, 1],
-    "graph_dag": [1, 1, 0, 0, 0, 1, 0, 0],
-    # Geometry domains
-    "geom_point2d": [1, 0, 1, 0, 0, 0, 0, 0],
-    "geom_point3d": [1, 0, 1, 0, 0, 0, 0, 1],
-    "geom_vector2d": [1, 0, 1, 0, 0, 0, 1, 0],
-    "geom_vector3d": [1, 0, 1, 0, 0, 0, 1, 1],
-    "geom_transform2d": [1, 0, 1, 0, 0, 1, 0, 0],
-    "geom_transform3d": [1, 0, 1, 0, 0, 1, 0, 1],
-    "geom_triangle": [1, 0, 1, 0, 0, 1, 1, 0],
-    "geom_rectangle": [1, 0, 1, 0, 0, 1, 1, 1],
-    "geom_circle": [1, 0, 1, 0, 1, 0, 0, 0],
-    "geom_polygon": [1, 0, 1, 0, 1, 0, 0, 1],
-    # Number theory domains
-    "num_integer": [1, 0, 0, 1, 0, 0, 0, 0],
-    "num_prime": [1, 0, 0, 1, 0, 0, 0, 1],
-    "num_modular": [1, 0, 0, 1, 0, 0, 1, 0],
-    "num_rational": [1, 0, 0, 1, 0, 0, 1, 1],
+    # Physics domains (category: 1,0,0,0)
+    "phys_quantity": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "phys_constant": [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "phys_unit": [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    # Chemistry domains (category: 0,1,0,0)
+    "chem_element": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "chem_molecule": [0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "chem_reaction": [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    "chem_bond": [0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+    # Logic domains (category: 0,0,1,0)
+    "logic_prop": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "logic_pred": [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "logic_type": [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    # Math domains (category: 0,0,0,1)
+    "math_real": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "math_complex": [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "math_rational": [0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    "math_polynomial": [0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+    "math_vector": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    "math_matrix": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    # Biology domains (category: 0,0,0,0,1,0,0,0)
+    "bio_dna": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "bio_rna": [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "bio_protein": [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    "bio_gene": [0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+    "bio_pathway": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    "bio_taxonomy": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    # Music domains (category: 0,0,0,0,0,1,0,0)
+    "music_pitch": [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "music_chord": [0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "music_scale": [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    "music_rhythm": [0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+    "music_atonal": [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    # Set theory domains (category: 0,0,0,0,0,0,1,0)
+    "set_finite": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "set_relation": [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "set_function": [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    # Graph theory domains (category: 0,0,0,0,0,0,0,1)
+    "graph_directed": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    "graph_undirected": [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    "graph_weighted": [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+    "graph_tree": [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    "graph_dag": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0],
+    # Geometry domains (category: 1,0,0,0,0,0,0,1)
+    "geom_point2d": [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    "geom_point3d": [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    "geom_vector2d": [1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+    "geom_vector3d": [1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    "geom_transform2d": [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0],
+    "geom_transform3d": [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0],
+    "geom_triangle": [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+    "geom_rectangle": [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0],
+    "geom_circle": [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+    "geom_polygon": [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1],
+    # Number theory domains (category: 1,1,0,0,0,0,0,0)
+    "num_integer": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "num_prime": [1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "num_modular": [1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    "num_rational": [1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+    # Expanded domains - use distinct category patterns
+    # Combinatorics (category: 0,1,1,0,0,0,0,0)
+    "comb_term": [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Probability (category: 0,1,0,1,0,0,0,0)
+    "prob_dist": [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Statistics (category: 0,1,0,0,1,0,0,0)
+    "stats_summary": [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Information theory (category: 0,1,0,0,0,1,0,0)
+    "info_entropy": [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Signal processing (category: 0,1,0,0,0,0,1,0)
+    "signal_sequence": [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Calculus (category: 0,0,1,1,0,0,0,0)
+    "calc_polynomial": [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Temporal (category: 0,0,1,0,1,0,0,0)
+    "temporal_date": [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Finance (category: 0,0,1,0,0,1,0,0)
+    "finance_cashflow": [0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Optimization (category: 0,0,1,0,0,0,1,0)
+    "opt_step": [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    # Control systems (category: 0,0,1,0,0,0,0,1)
+    "control_state": [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
 }
 
 # Cached domain tags (lazy initialized)

@@ -201,16 +201,16 @@ class MoleculeEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Summary stats
         atom_count = formula.atom_count()
         elem_count = formula.element_count()
         mw = formula.molecular_weight()
 
-        emb = backend.at_add(emb, 8 + SUMMARY_OFFSET, backend.log(backend.array(float(atom_count + 1))))
-        emb = backend.at_add(emb, 8 + SUMMARY_OFFSET + 1, float(elem_count))
-        emb = backend.at_add(emb, 8 + SUMMARY_OFFSET + 2, backend.log(backend.array(mw + 1)))
+        emb = backend.at_add(emb, 16 + SUMMARY_OFFSET, backend.log(backend.array(float(atom_count + 1))))
+        emb = backend.at_add(emb, 16 + SUMMARY_OFFSET + 1, float(elem_count))
+        emb = backend.at_add(emb, 16 + SUMMARY_OFFSET + 2, backend.log(backend.array(mw + 1)))
 
         # Element counts (critical for stoichiometry)
         for i, symbol in enumerate(COMMON_ELEMENTS):
@@ -219,8 +219,8 @@ class MoleculeEncoder:
 
             # Store: presence flag and log(count+1)
             if count > 0:
-                emb = backend.at_add(emb, 8 + offset, 1.0)
-                emb = backend.at_add(emb, 8 + offset + 1, backend.log(backend.array(float(count + 1))))
+                emb = backend.at_add(emb, 16 + offset, 1.0)
+                emb = backend.at_add(emb, 16 + offset + 1, backend.log(backend.array(float(count + 1))))
             # (zeros already set for absent elements)
 
         # Property hints
@@ -250,10 +250,10 @@ class MoleculeEncoder:
 
         for i, symbol in enumerate(COMMON_ELEMENTS):
             offset = ELEMENT_COUNTS_OFFSET + i * 2
-            present = emb[8 + offset].item() > 0.5
+            present = emb[16 + offset].item() > 0.5
 
             if present:
-                log_count = emb[8 + offset + 1].item()
+                log_count = emb[16 + offset + 1].item()
                 count = int(round(backend.exp(backend.array(log_count)).item() - 1))
                 if count > 0:
                     composition[symbol] = count
@@ -263,7 +263,7 @@ class MoleculeEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid molecule."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -278,27 +278,27 @@ class MoleculeEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Add element counts
         for i in range(len(COMMON_ELEMENTS)):
             offset = ELEMENT_COUNTS_OFFSET + i * 2
 
             # Get counts from both embeddings
-            present1 = emb1[8 + offset].item() > 0.5
-            present2 = emb2[8 + offset].item() > 0.5
+            present1 = emb1[16 + offset].item() > 0.5
+            present2 = emb2[16 + offset].item() > 0.5
 
             count1 = 0
             count2 = 0
             if present1:
-                count1 = int(round(backend.exp(emb1[8 + offset + 1]).item() - 1))
+                count1 = int(round(backend.exp(emb1[16 + offset + 1]).item() - 1))
             if present2:
-                count2 = int(round(backend.exp(emb2[8 + offset + 1]).item() - 1))
+                count2 = int(round(backend.exp(emb2[16 + offset + 1]).item() - 1))
 
             total = count1 + count2
             if total > 0:
-                result = backend.at_add(result, 8 + offset, 1.0)
-                result = backend.at_add(result, 8 + offset + 1, backend.log(backend.array(float(total + 1))))
+                result = backend.at_add(result, 16 + offset, 1.0)
+                result = backend.at_add(result, 16 + offset + 1, backend.log(backend.array(float(total + 1))))
 
         # Recompute summary
         result = self._recompute_summary(result)
@@ -313,19 +313,19 @@ class MoleculeEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Scale element counts
         for i in range(len(COMMON_ELEMENTS)):
             offset = ELEMENT_COUNTS_OFFSET + i * 2
 
-            present = emb[8 + offset].item() > 0.5
+            present = emb[16 + offset].item() > 0.5
             if present:
-                count = int(round(backend.exp(emb[8 + offset + 1]).item() - 1))
+                count = int(round(backend.exp(emb[16 + offset + 1]).item() - 1))
                 scaled = count * n
                 if scaled > 0:
-                    result = backend.at_add(result, 8 + offset, 1.0)
-                    result = backend.at_add(result, 8 + offset + 1, backend.log(backend.array(float(scaled + 1))))
+                    result = backend.at_add(result, 16 + offset, 1.0)
+                    result = backend.at_add(result, 16 + offset + 1, backend.log(backend.array(float(scaled + 1))))
 
         # Recompute summary
         result = self._recompute_summary(result)
@@ -342,29 +342,29 @@ class MoleculeEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Subtract element counts
         for i in range(len(COMMON_ELEMENTS)):
             offset = ELEMENT_COUNTS_OFFSET + i * 2
 
-            present1 = emb1[8 + offset].item() > 0.5
-            present2 = emb2[8 + offset].item() > 0.5
+            present1 = emb1[16 + offset].item() > 0.5
+            present2 = emb2[16 + offset].item() > 0.5
 
             count1 = 0
             count2 = 0
             if present1:
-                count1 = int(round(backend.exp(emb1[8 + offset + 1]).item() - 1))
+                count1 = int(round(backend.exp(emb1[16 + offset + 1]).item() - 1))
             if present2:
-                count2 = int(round(backend.exp(emb2[8 + offset + 1]).item() - 1))
+                count2 = int(round(backend.exp(emb2[16 + offset + 1]).item() - 1))
 
             diff = count1 - count2
             if diff < 0:
                 return None  # Invalid subtraction
 
             if diff > 0:
-                result = backend.at_add(result, 8 + offset, 1.0)
-                result = backend.at_add(result, 8 + offset + 1, backend.log(backend.array(float(diff + 1))))
+                result = backend.at_add(result, 16 + offset, 1.0)
+                result = backend.at_add(result, 16 + offset + 1, backend.log(backend.array(float(diff + 1))))
 
         # Recompute summary
         result = self._recompute_summary(result)
@@ -379,15 +379,15 @@ class MoleculeEncoder:
         for i in range(len(COMMON_ELEMENTS)):
             offset = ELEMENT_COUNTS_OFFSET + i * 2
 
-            present1 = emb1[8 + offset].item() > 0.5
-            present2 = emb2[8 + offset].item() > 0.5
+            present1 = emb1[16 + offset].item() > 0.5
+            present2 = emb2[16 + offset].item() > 0.5
 
             if present1 != present2:
                 return False
 
             if present1:
-                count1 = round(backend.exp(emb1[8 + offset + 1]).item() - 1)
-                count2 = round(backend.exp(emb2[8 + offset + 1]).item() - 1)
+                count1 = round(backend.exp(emb1[16 + offset + 1]).item() - 1)
+                count2 = round(backend.exp(emb2[16 + offset + 1]).item() - 1)
                 if abs(count1 - count2) > 0.5:
                     return False
 
@@ -407,17 +407,17 @@ class MoleculeEncoder:
         backend = get_backend()
         # Is organic (contains C)?
         is_organic = 'C' in formula.composition
-        emb = backend.at_add(emb, 8 + PROPERTY_HINTS_OFFSET, 1.0 if is_organic else 0.0)
+        emb = backend.at_add(emb, 16 + PROPERTY_HINTS_OFFSET, 1.0 if is_organic else 0.0)
 
         # Contains halogens?
         has_halogen = any(s in formula.composition for s in ['F', 'Cl', 'Br', 'I'])
-        emb = backend.at_add(emb, 8 + PROPERTY_HINTS_OFFSET + 1, 1.0 if has_halogen else 0.0)
+        emb = backend.at_add(emb, 16 + PROPERTY_HINTS_OFFSET + 1, 1.0 if has_halogen else 0.0)
 
         # Is ionic (likely)?
         has_metal = any(s in formula.composition for s in ['Na', 'K', 'Ca', 'Fe'])
         has_nonmetal = any(s in formula.composition for s in ['O', 'S', 'Cl', 'F'])
         is_ionic = has_metal and has_nonmetal
-        emb = backend.at_add(emb, 8 + PROPERTY_HINTS_OFFSET + 2, 1.0 if is_ionic else 0.0)
+        emb = backend.at_add(emb, 16 + PROPERTY_HINTS_OFFSET + 2, 1.0 if is_ionic else 0.0)
 
         return emb
 
@@ -430,19 +430,19 @@ class MoleculeEncoder:
         elem_count = formula.element_count()
         mw = formula.molecular_weight()
 
-        emb = backend.at_add(emb, 8 + SUMMARY_OFFSET, 
-            backend.log(backend.array(float(atom_count + 1))) - emb[8 + SUMMARY_OFFSET]
+        emb = backend.at_add(emb, 16 + SUMMARY_OFFSET, 
+            backend.log(backend.array(float(atom_count + 1))) - emb[16 + SUMMARY_OFFSET]
         )
-        emb = backend.at_add(emb, 8 + SUMMARY_OFFSET + 1, float(elem_count) - emb[8 + SUMMARY_OFFSET + 1])
-        emb = backend.at_add(emb, 8 + SUMMARY_OFFSET + 2, 
-            backend.log(backend.array(mw + 1)) - emb[8 + SUMMARY_OFFSET + 2]
+        emb = backend.at_add(emb, 16 + SUMMARY_OFFSET + 1, float(elem_count) - emb[16 + SUMMARY_OFFSET + 1])
+        emb = backend.at_add(emb, 16 + SUMMARY_OFFSET + 2, 
+            backend.log(backend.array(mw + 1)) - emb[16 + SUMMARY_OFFSET + 2]
         )
 
         return emb
 
     def is_organic(self, emb: Any) -> bool:
         """Check if molecule is organic (contains carbon)."""
-        return emb[8 + PROPERTY_HINTS_OFFSET].item() > 0.5
+        return emb[16 + PROPERTY_HINTS_OFFSET].item() > 0.5
 
     def get_element_count(self, emb: Any, symbol: str) -> int:
         """Get count of a specific element."""
@@ -453,7 +453,7 @@ class MoleculeEncoder:
         i = COMMON_ELEMENTS.index(symbol)
         offset = ELEMENT_COUNTS_OFFSET + i * 2
 
-        if emb[8 + offset].item() < 0.5:
+        if emb[16 + offset].item() < 0.5:
             return 0
 
-        return int(round(backend.exp(emb[8 + offset + 1]).item() - 1))
+        return int(round(backend.exp(emb[16 + offset + 1]).item() - 1))

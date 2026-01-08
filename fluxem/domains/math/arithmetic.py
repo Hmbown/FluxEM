@@ -19,8 +19,6 @@ from ...core.base import (
     log_decode_value,
 )
 
-ARITH_TAG_VALUES = [1, 0, 0, 1, 0, 0, 0, 0]
-
 # Embedding layout within domain-specific region (dims 8-71):
 # dims 0-1:   Value (sign, log|value|) for magnitude
 # dims 2-3:   Linear component (for addition)
@@ -56,9 +54,7 @@ class ArithmeticEncoder:
     floating-point error in `log`/`exp`.
     """
     
-    @property
-    def domain_tag(self) -> Any:
-        return get_backend().array(ARITH_TAG_VALUES)
+    domain_tag = DOMAIN_TAGS["math_real"]
     domain_name = "arithmetic"
     
     def __init__(self, scale: float = LINEAR_SCALE):
@@ -88,25 +84,25 @@ class ArithmeticEncoder:
         emb = create_embedding()
         
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
         
         # Log-magnitude encoding (for multiplication)
         sign, log_mag = log_encode_value(float(value))
-        emb = backend.at_add(emb, 8 + VALUE_OFFSET, sign)
-        emb = backend.at_add(emb, 8 + VALUE_OFFSET + 1, log_mag)
+        emb = backend.at_add(emb, 16 + VALUE_OFFSET, sign)
+        emb = backend.at_add(emb, 16 + VALUE_OFFSET + 1, log_mag)
         
         # Linear encoding (for addition)
         # Normalize to [-1, 1] range
         linear_val = float(value) / self.scale
         linear_val = max(-1.0, min(1.0, linear_val))  # Clamp
-        emb = backend.at_add(emb, 8 + LINEAR_OFFSET, 1.0)  # Valid flag
-        emb = backend.at_add(emb, 8 + LINEAR_OFFSET + 1, linear_val)
+        emb = backend.at_add(emb, 16 + LINEAR_OFFSET, 1.0)  # Valid flag
+        emb = backend.at_add(emb, 16 + LINEAR_OFFSET + 1, linear_val)
         
         # Flags
         is_int = isinstance(value, int) or (isinstance(value, float) and value == int(value))
-        emb = backend.at_add(emb, 8 + IS_INT_FLAG, 1.0 if is_int else 0.0)
-        emb = backend.at_add(emb, 8 + IS_ZERO_FLAG, 1.0 if abs(value) < EPSILON else 0.0)
-        emb = backend.at_add(emb, 8 + IS_NEG_FLAG, 1.0 if value < 0 else 0.0)
+        emb = backend.at_add(emb, 16 + IS_INT_FLAG, 1.0 if is_int else 0.0)
+        emb = backend.at_add(emb, 16 + IS_ZERO_FLAG, 1.0 if abs(value) < EPSILON else 0.0)
+        emb = backend.at_add(emb, 16 + IS_NEG_FLAG, 1.0 if value < 0 else 0.0)
         
         # Digit encoding (for direct integer representation)
         if is_int and abs(value) < 1e16:
@@ -126,8 +122,8 @@ class ArithmeticEncoder:
         
         # Encode up to 16 digits
         for i, digit in enumerate(digits[:16]):
-            emb = backend.at_add(emb, 8 + DIGITS_OFFSET + 2*i, 1.0)  # Valid flag
-            emb = backend.at_add(emb, 8 + DIGITS_OFFSET + 2*i + 1, digit / 10.0)
+            emb = backend.at_add(emb, 16 + DIGITS_OFFSET + 2*i, 1.0)  # Valid flag
+            emb = backend.at_add(emb, 16 + DIGITS_OFFSET + 2*i + 1, digit / 10.0)
         
         return emb
     
@@ -139,17 +135,17 @@ class ArithmeticEncoder:
             Decoded float value
         """
         # Try digit decoding first for integers
-        is_int = emb[8 + IS_INT_FLAG].item() > 0.5
+        is_int = emb[16 + IS_INT_FLAG].item() > 0.5
         
         if is_int:
             value = self._decode_digits(emb)
             if value is not None:
-                is_neg = emb[8 + IS_NEG_FLAG].item() > 0.5
+                is_neg = emb[16 + IS_NEG_FLAG].item() > 0.5
                 return -value if is_neg else value
         
         # Fall back to log-magnitude decoding
-        sign = emb[8 + VALUE_OFFSET].item()
-        log_mag = emb[8 + VALUE_OFFSET + 1].item()
+        sign = emb[16 + VALUE_OFFSET].item()
+        log_mag = emb[16 + VALUE_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
     
     def _decode_digits(self, emb: Any) -> Optional[int]:
@@ -158,10 +154,10 @@ class ArithmeticEncoder:
         multiplier = 1
         
         for i in range(16):
-            valid = emb[8 + DIGITS_OFFSET + 2*i].item()
+            valid = emb[16 + DIGITS_OFFSET + 2*i].item()
             if valid < 0.5:
                 break
-            digit = int(round(emb[8 + DIGITS_OFFSET + 2*i + 1].item() * 10.0))
+            digit = int(round(emb[16 + DIGITS_OFFSET + 2*i + 1].item() * 10.0))
             digit = max(0, min(9, digit))
             value += digit * multiplier
             multiplier *= 10
@@ -171,7 +167,7 @@ class ArithmeticEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is valid arithmetic."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
     
     # =========================================================================
@@ -186,8 +182,8 @@ class ArithmeticEncoder:
         embed(a).linear + embed(b).linear = embed(a+b).linear
         """
         # Get linear values
-        lin1 = emb1[8 + LINEAR_OFFSET + 1].item() * self.scale
-        lin2 = emb2[8 + LINEAR_OFFSET + 1].item() * self.scale
+        lin1 = emb1[16 + LINEAR_OFFSET + 1].item() * self.scale
+        lin2 = emb2[16 + LINEAR_OFFSET + 1].item() * self.scale
         
         result = lin1 + lin2
         return self.encode(result)
@@ -198,8 +194,8 @@ class ArithmeticEncoder:
         
         Computed in the linear component.
         """
-        lin1 = emb1[8 + LINEAR_OFFSET + 1].item() * self.scale
-        lin2 = emb2[8 + LINEAR_OFFSET + 1].item() * self.scale
+        lin1 = emb1[16 + LINEAR_OFFSET + 1].item() * self.scale
+        lin2 = emb2[16 + LINEAR_OFFSET + 1].item() * self.scale
         
         result = lin1 - lin2
         return self.encode(result)
@@ -212,17 +208,17 @@ class ArithmeticEncoder:
         log(a) + log(b) = log(a * b)
         """
         # Check for zeros
-        is_zero1 = emb1[8 + IS_ZERO_FLAG].item() > 0.5
-        is_zero2 = emb2[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero1 = emb1[16 + IS_ZERO_FLAG].item() > 0.5
+        is_zero2 = emb2[16 + IS_ZERO_FLAG].item() > 0.5
         
         if is_zero1 or is_zero2:
             return self.encode(0)
         
         # Get sign and log-magnitude
-        sign1 = emb1[8 + VALUE_OFFSET].item()
-        log1 = emb1[8 + VALUE_OFFSET + 1].item()
-        sign2 = emb2[8 + VALUE_OFFSET].item()
-        log2 = emb2[8 + VALUE_OFFSET + 1].item()
+        sign1 = emb1[16 + VALUE_OFFSET].item()
+        log1 = emb1[16 + VALUE_OFFSET + 1].item()
+        sign2 = emb2[16 + VALUE_OFFSET].item()
+        log2 = emb2[16 + VALUE_OFFSET + 1].item()
         
         # Multiply: add logs, multiply signs
         result_sign = sign1 * sign2
@@ -241,20 +237,20 @@ class ArithmeticEncoder:
         log(a) - log(b) = log(a / b)
         """
         # Check for zero divisor
-        is_zero2 = emb2[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero2 = emb2[16 + IS_ZERO_FLAG].item() > 0.5
         if is_zero2:
             raise ValueError("Division by zero")
         
         # Check for zero dividend
-        is_zero1 = emb1[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero1 = emb1[16 + IS_ZERO_FLAG].item() > 0.5
         if is_zero1:
             return self.encode(0)
         
         # Get sign and log-magnitude
-        sign1 = emb1[8 + VALUE_OFFSET].item()
-        log1 = emb1[8 + VALUE_OFFSET + 1].item()
-        sign2 = emb2[8 + VALUE_OFFSET].item()
-        log2 = emb2[8 + VALUE_OFFSET + 1].item()
+        sign1 = emb1[16 + VALUE_OFFSET].item()
+        log1 = emb1[16 + VALUE_OFFSET + 1].item()
+        sign2 = emb2[16 + VALUE_OFFSET].item()
+        log2 = emb2[16 + VALUE_OFFSET + 1].item()
         
         # Divide: subtract logs, multiply signs
         result_sign = sign1 * sign2
@@ -284,12 +280,12 @@ class ArithmeticEncoder:
         if n == 0:
             return self.encode(1)
         
-        is_zero = emb[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero = emb[16 + IS_ZERO_FLAG].item() > 0.5
         if is_zero:
             return self.encode(0)
         
-        sign = emb[8 + VALUE_OFFSET].item()
-        log_mag = emb[8 + VALUE_OFFSET + 1].item()
+        sign = emb[16 + VALUE_OFFSET].item()
+        log_mag = emb[16 + VALUE_OFFSET + 1].item()
         
         # Power: multiply log by n
         result_log = log_mag * n
@@ -314,15 +310,15 @@ class ArithmeticEncoder:
         
         Computed in log-space: log(a) / 2 = log(sqrt(a))
         """
-        is_neg = emb[8 + IS_NEG_FLAG].item() > 0.5
+        is_neg = emb[16 + IS_NEG_FLAG].item() > 0.5
         if is_neg:
             raise ValueError("Cannot take square root of negative number")
         
-        is_zero = emb[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero = emb[16 + IS_ZERO_FLAG].item() > 0.5
         if is_zero:
             return self.encode(0)
         
-        log_mag = emb[8 + VALUE_OFFSET + 1].item()
+        log_mag = emb[16 + VALUE_OFFSET + 1].item()
         result_log = log_mag / 2
         
         result = math.exp(result_log)
@@ -348,15 +344,15 @@ class ArithmeticEncoder:
     
     def is_zero(self, emb: Any) -> bool:
         """Check if number is zero."""
-        return emb[8 + IS_ZERO_FLAG].item() > 0.5
+        return emb[16 + IS_ZERO_FLAG].item() > 0.5
     
     def is_negative(self, emb: Any) -> bool:
         """Check if number is negative."""
-        return emb[8 + IS_NEG_FLAG].item() > 0.5
+        return emb[16 + IS_NEG_FLAG].item() > 0.5
     
     def is_integer(self, emb: Any) -> bool:
         """Check if number is an integer."""
-        return emb[8 + IS_INT_FLAG].item() > 0.5
+        return emb[16 + IS_INT_FLAG].item() > 0.5
 
 
 # Convenience functions

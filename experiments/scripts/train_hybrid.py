@@ -3,8 +3,16 @@
 Train a hybrid transformer with FluxEM embeddings.
 
 This model detects numeric spans, encodes them with FluxEM, and projects
-the 128-d embeddings into the transformer hidden space.
+the 256-d embeddings into the transformer hidden space.
 """
+
+import sys
+from pathlib import Path
+
+# Ensure repo root is on sys.path for local imports.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 import argparse
 import json
@@ -367,17 +375,309 @@ def evaluate(model, dataloader, device):
     return total_loss / len(dataloader)
 
 
+def _align_spans_to_tokens(spans, span_embeddings, offsets):
+    positions = []
+    aligned_embeddings = []
+    if offsets is None:
+        return positions, aligned_embeddings
+    if isinstance(offsets, torch.Tensor):
+        offsets = offsets[0].tolist()
+    elif isinstance(offsets, list) and offsets and isinstance(offsets[0], list):
+        offsets = offsets[0]
+
+    for span, emb in zip(spans, span_embeddings):
+        if emb is None:
+            continue
+        token_indices = [
+            idx
+            for idx, (start, end) in enumerate(offsets)
+            if start < span.end and end > span.start
+        ]
+        if not token_indices:
+            continue
+        positions.append(token_indices[0])
+        aligned_embeddings.append(emb)
+
+    return positions, aligned_embeddings
+
+
+def _to_torch_embedding(emb, device):
+    if isinstance(emb, torch.Tensor):
+        return emb.to(device)
+    array = np.array(emb, dtype=np.float32).reshape(-1)
+    return torch.tensor(array, dtype=torch.float32, device=device)
+
+
+def _generate_tool_chain_examples(count, seed):
+    import math
+    import random
+    from fluxem.domains.information_theory import entropy as info_entropy
+
+    rng = random.Random(seed)
+    examples = []
+    for _ in range(count):
+        base = rng.randint(3, 5)
+        p_val = round(rng.uniform(0.1, 0.9), 2)
+        n_val = math.factorial(base)
+        probs = [
+            math.comb(n_val, k) * (p_val ** k) * ((1.0 - p_val) ** (n_val - k))
+            for k in range(n_val + 1)
+        ]
+        ent_val = info_entropy(probs)
+        prompt = (
+            "What's the entropy of a binomial distribution "
+            f"with n={base}! trials and p={p_val}?"
+        )
+        examples.append(
+            {
+                "prompt": prompt,
+                "factorial_base": base,
+                "n_val": n_val,
+                "p_val": p_val,
+                "probs": probs,
+                "entropy": ent_val,
+            }
+        )
+    return examples
+
+
+def _evaluate_benchmark(pipeline, max_per_domain):
+    from experiments.qwen3_toolcalling.benchmark_data import BENCHMARK_PROMPTS
+    from experiments.qwen3_toolcalling.evaluator import Evaluator, ToolCallResult
+
+    evaluator = Evaluator()
+    supported_domains = {"combinatorics", "probability", "information_theory", "arithmetic"}
+
+    for domain, prompts in BENCHMARK_PROMPTS.items():
+        if domain not in supported_domains:
+            continue
+        for sample in prompts[:max_per_domain]:
+            prompt = sample["prompt"]
+            expected = sample["expected"]
+
+            spans = pipeline.detector.detect(prompt)
+            calls = pipeline._plan_tool_chain(prompt, spans)
+            results = pipeline._execute_tools(calls, prompt, spans) if calls else []
+
+            tool_result = None
+            if results:
+                final_call = results[-1]
+                tool_result = ToolCallResult(
+                    domain=domain,
+                    tool_name=final_call.name,
+                    success=final_call.error is None,
+                    result=final_call.result,
+                    error=final_call.error,
+                    execution_time_ms=0.0,
+                )
+
+            eval_result = evaluator.evaluate_response(
+                prompt=prompt,
+                tool_result=tool_result,
+                baseline_response=None,
+                expected_domain=domain,
+                expected_answer=expected,
+                tool_time_ms=0.0,
+                baseline_time_ms=None,
+            )
+            evaluator.add_result(eval_result)
+
+    metrics = evaluator.aggregate_metrics()
+    report = evaluator.generate_report(metrics)
+    print(report)
+
+
+def qwen3_main(args):
+    if not TORCH_AVAILABLE:
+        emit_table("error", ["type", "detail"], ["pytorch_not_installed", "install_torch"])
+        return
+
+    try:
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+    except ImportError:
+        emit_table("error", ["type", "detail"], ["transformers_missing", "pip install transformers"])
+        return
+
+    from fluxem.composition.operators import CompositionOperator, CompositionConfig
+    from fluxem.injection.projector import FluxEMProjector, ProjectorConfig
+    from fluxem.pipeline.inference import FluxEMPipeline, SpanEncoderRegistry
+    from fluxem.detection.span_detector import SpanDetector
+    from fluxem.domains.probability import ProbabilityDistribution, ProbabilityEncoder
+    from fluxem.domains.math.arithmetic import ArithmeticEncoder
+
+    model_name = args.model
+    if model_name is None:
+        emit_table("error", ["type", "detail"], ["missing_model", "use --model"])
+        return
+
+    device = torch.device(args.device or "cpu")
+    emit_table("run_context", ["field", "value"], ["device", device])
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    base_model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+    base_model.eval()
+
+    for param in base_model.parameters():
+        param.requires_grad = False
+
+    hidden_dim = getattr(base_model.config, "hidden_size", 2048)
+    projector = FluxEMProjector(
+        ProjectorConfig(output_dim=hidden_dim, hidden_dim=args.proj_hidden_dim)
+    ).to(device)
+    composer = CompositionOperator(
+        CompositionConfig(embedding_dim=projector.config.input_dim)
+    ).to(device)
+
+    span_detector = SpanDetector()
+    span_encoder = SpanEncoderRegistry()
+    prob_encoder = ProbabilityEncoder()
+    arithmetic_encoder = ArithmeticEncoder()
+
+    examples = _generate_tool_chain_examples(args.max_samples, args.seed)
+
+    optimizer = torch.optim.Adam(
+        list(projector.parameters()) + list(composer.parameters()),
+        lr=args.learning_rate,
+    )
+
+    for epoch in range(args.epochs):
+        total_loss = 0.0
+        for example in examples:
+            prompt = example["prompt"]
+            spans = span_detector.detect(prompt)
+            span_embeddings = [span_encoder.encode_span(span) for span in spans]
+
+            try:
+                encoding = tokenizer(
+                    prompt,
+                    return_tensors="pt",
+                    return_offsets_mapping=True,
+                )
+            except TypeError:
+                encoding = tokenizer(prompt, return_tensors="pt")
+            input_ids = encoding["input_ids"].to(device)
+            attention_mask = encoding.get("attention_mask")
+            if attention_mask is not None:
+                attention_mask = attention_mask.to(device)
+
+            offsets = encoding.get("offset_mapping")
+            positions, aligned = _align_spans_to_tokens(spans, span_embeddings, offsets)
+
+            projection_loss = torch.tensor(0.0, device=device)
+            if positions and aligned:
+                with torch.no_grad():
+                    outputs = base_model(
+                        input_ids,
+                        attention_mask=attention_mask,
+                        output_hidden_states=True,
+                    )
+                    hidden_states = outputs.hidden_states[-1]
+                    target_states = hidden_states[0, positions]
+
+                projected = projector(
+                    torch.stack(
+                        [_to_torch_embedding(emb, device) for emb in aligned], dim=0
+                    )
+                )
+                projection_loss = torch.nn.functional.mse_loss(
+                    projected, target_states
+                )
+
+            factorial_emb = arithmetic_encoder.encode(example["n_val"])
+            dist = ProbabilityDistribution(
+                kind="binomial",
+                n=example["n_val"],
+                p=example["p_val"],
+            )
+            prob_emb = prob_encoder.encode(dist)
+            target_emb = arithmetic_encoder.encode(example["entropy"])
+
+            composed = composer.compose_many(
+                torch.stack(
+                    [
+                        _to_torch_embedding(factorial_emb, device),
+                        _to_torch_embedding(prob_emb, device),
+                    ],
+                    dim=0,
+                ).unsqueeze(0),
+                operation="chain",
+            )
+            composition_loss = torch.nn.functional.mse_loss(
+                composed.squeeze(0),
+                _to_torch_embedding(target_emb, device),
+            )
+
+            loss = (
+                args.projection_weight * projection_loss
+                + args.composition_weight * composition_loss
+            )
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            total_loss += float(loss.item())
+
+        avg_loss = total_loss / max(len(examples), 1)
+        emit_table(
+            "training_epoch",
+            ["epoch", "total_epochs", "avg_loss"],
+            [epoch + 1, args.epochs, f"{avg_loss:.6f}"],
+        )
+
+    if args.eval_benchmark:
+        from experiments.qwen3_toolcalling.tool_registry import create_tool_registry
+
+        tool_registry = create_tool_registry()
+        pipeline = FluxEMPipeline(
+            detector=span_detector,
+            span_encoder=span_encoder,
+            composer=composer,
+            tool_registry=tool_registry,
+        )
+        _evaluate_benchmark(pipeline, args.benchmark_max_per_domain)
+
+
 def main():
     if not TORCH_AVAILABLE:
         emit_table("error", ["type", "detail"], ["pytorch_not_installed", "install_torch"])
         return
     
     parser = argparse.ArgumentParser(description="Train hybrid FluxEM model")
-    parser.add_argument("--config", required=True, help="Path to config YAML")
+    parser.add_argument(
+        "--mode",
+        choices=["legacy", "qwen3"],
+        default="legacy",
+        help="Training mode: legacy transformer or qwen3 projector",
+    )
+    parser.add_argument("--config", required=False, help="Path to config YAML")
     parser.add_argument("--epochs", type=int, default=None, help="Override epochs")
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
     parser.add_argument("--device", type=str, default=None, help="Device (cpu/cuda/mps)")
+    parser.add_argument("--model", type=str, default=None, help="Qwen3 model name/path")
+    parser.add_argument("--max-samples", type=int, default=64, help="Synthetic samples")
+    parser.add_argument("--learning-rate", type=float, default=1e-4, help="Learning rate")
+    parser.add_argument("--proj-hidden-dim", type=int, default=1024, help="Projector hidden dim")
+    parser.add_argument("--projection-weight", type=float, default=1.0, help="Projection loss weight")
+    parser.add_argument("--composition-weight", type=float, default=1.0, help="Composition loss weight")
+    parser.add_argument("--eval-benchmark", action="store_true", help="Run benchmark eval")
+    parser.add_argument(
+        "--benchmark-max-per-domain",
+        type=int,
+        default=5,
+        help="Max benchmark prompts per domain",
+    )
     args = parser.parse_args()
+
+    if args.mode == "qwen3":
+        if args.seed is None:
+            args.seed = 42
+        qwen3_main(args)
+        return
+
+    if not args.config:
+        emit_table("error", ["type", "detail"], ["missing_config", "use --config"])
+        return
     
     config = load_config(args.config)
     

@@ -75,28 +75,28 @@ class VectorEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Dimension encoding
-        emb = backend.at_add(emb, 8 + DIM_OFFSET, 1.0)
-        emb = backend.at_add(emb, 8 + DIM_OFFSET + 1, n / MAX_VECTOR_DIM)
+        emb = backend.at_add(emb, 16 + DIM_OFFSET, 1.0)
+        emb = backend.at_add(emb, 16 + DIM_OFFSET + 1, n / MAX_VECTOR_DIM)
 
         # Compute and encode norm
         norm_sq = sum(x * x for x in v)
         norm = math.sqrt(norm_sq) if norm_sq > 0 else 0.0
 
         if norm < EPSILON:
-            emb = backend.at_add(emb, 8 + NORM_OFFSET, 0.0)
-            emb = backend.at_add(emb, 8 + NORM_OFFSET + 1, -100.0)  # Zero sentinel
+            emb = backend.at_add(emb, 16 + NORM_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + NORM_OFFSET + 1, -100.0)  # Zero sentinel
         else:
-            emb = backend.at_add(emb, 8 + NORM_OFFSET, 1.0)
-            emb = backend.at_add(emb, 8 + NORM_OFFSET + 1, math.log(norm))
+            emb = backend.at_add(emb, 16 + NORM_OFFSET, 1.0)
+            emb = backend.at_add(emb, 16 + NORM_OFFSET + 1, math.log(norm))
 
         # Encode each component
         for i, val in enumerate(v):
             sign, log_mag = log_encode_value(val)
-            emb = backend.at_add(emb, 8 + COMPONENTS_OFFSET + 2*i, sign)
-            emb = backend.at_add(emb, 8 + COMPONENTS_OFFSET + 2*i + 1, log_mag)
+            emb = backend.at_add(emb, 16 + COMPONENTS_OFFSET + 2*i, sign)
+            emb = backend.at_add(emb, 16 + COMPONENTS_OFFSET + 2*i + 1, log_mag)
 
         # Zero out remaining component slots (already zero from create_embedding)
 
@@ -110,7 +110,7 @@ class VectorEncoder:
             List of floats representing the vector
         """
         # Get dimension
-        n = int(round(emb[8 + DIM_OFFSET + 1].item() * MAX_VECTOR_DIM))
+        n = int(round(emb[16 + DIM_OFFSET + 1].item() * MAX_VECTOR_DIM))
         if n < 1:
             n = 1
         if n > MAX_VECTOR_DIM:
@@ -119,8 +119,8 @@ class VectorEncoder:
         # Decode each component
         result = []
         for i in range(n):
-            sign = emb[8 + COMPONENTS_OFFSET + 2*i].item()
-            log_mag = emb[8 + COMPONENTS_OFFSET + 2*i + 1].item()
+            sign = emb[16 + COMPONENTS_OFFSET + 2*i].item()
+            log_mag = emb[16 + COMPONENTS_OFFSET + 2*i + 1].item()
             result.append(log_decode_value(sign, log_mag))
 
         return result
@@ -128,17 +128,17 @@ class VectorEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid vector."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     def get_dimension(self, emb: Any) -> int:
         """Get the dimension of the encoded vector."""
-        return int(round(emb[8 + DIM_OFFSET + 1].item() * MAX_VECTOR_DIM))
+        return int(round(emb[16 + DIM_OFFSET + 1].item() * MAX_VECTOR_DIM))
 
     def get_norm(self, emb: Any) -> float:
         """Get the Euclidean norm of the vector."""
-        sign = emb[8 + NORM_OFFSET].item()
-        log_mag = emb[8 + NORM_OFFSET + 1].item()
+        sign = emb[16 + NORM_OFFSET].item()
+        log_mag = emb[16 + NORM_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     # =========================================================================
@@ -186,11 +186,11 @@ class VectorEncoder:
             return self.encode([0.0] * len(v))
 
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Copy dimension
-        result = backend.at_add(result, 8 + DIM_OFFSET, emb[8 + DIM_OFFSET])
-        result = backend.at_add(result, 8 + DIM_OFFSET + 1, emb[8 + DIM_OFFSET + 1])
+        result = backend.at_add(result, 16 + DIM_OFFSET, emb[16 + DIM_OFFSET])
+        result = backend.at_add(result, 16 + DIM_OFFSET + 1, emb[16 + DIM_OFFSET + 1])
 
         n = self.get_dimension(emb)
         scalar_sign = 1.0 if scalar > 0 else -1.0
@@ -198,28 +198,28 @@ class VectorEncoder:
 
         # Scale each component
         for i in range(n):
-            sign = emb[8 + COMPONENTS_OFFSET + 2*i].item()
-            log_mag = emb[8 + COMPONENTS_OFFSET + 2*i + 1].item()
+            sign = emb[16 + COMPONENTS_OFFSET + 2*i].item()
+            log_mag = emb[16 + COMPONENTS_OFFSET + 2*i + 1].item()
 
             if abs(sign) < 0.5:
                 # Zero component stays zero
-                result = backend.at_add(result, 8 + COMPONENTS_OFFSET + 2*i, 0.0)
-                result = backend.at_add(result, 8 + COMPONENTS_OFFSET + 2*i + 1, -100.0)
+                result = backend.at_add(result, 16 + COMPONENTS_OFFSET + 2*i, 0.0)
+                result = backend.at_add(result, 16 + COMPONENTS_OFFSET + 2*i + 1, -100.0)
             else:
                 new_sign = sign * scalar_sign
                 new_log_mag = log_mag + log_scalar
-                result = backend.at_add(result, 8 + COMPONENTS_OFFSET + 2*i, new_sign)
-                result = backend.at_add(result, 8 + COMPONENTS_OFFSET + 2*i + 1, new_log_mag)
+                result = backend.at_add(result, 16 + COMPONENTS_OFFSET + 2*i, new_sign)
+                result = backend.at_add(result, 16 + COMPONENTS_OFFSET + 2*i + 1, new_log_mag)
 
         # Update norm (scale by |scalar|)
-        old_norm_sign = emb[8 + NORM_OFFSET].item()
-        old_log_norm = emb[8 + NORM_OFFSET + 1].item()
+        old_norm_sign = emb[16 + NORM_OFFSET].item()
+        old_log_norm = emb[16 + NORM_OFFSET + 1].item()
         if abs(old_norm_sign) < 0.5:
-            result = backend.at_add(result, 8 + NORM_OFFSET, 0.0)
-            result = backend.at_add(result, 8 + NORM_OFFSET + 1, -100.0)
+            result = backend.at_add(result, 16 + NORM_OFFSET, 0.0)
+            result = backend.at_add(result, 16 + NORM_OFFSET + 1, -100.0)
         else:
-            result = backend.at_add(result, 8 + NORM_OFFSET, 1.0)
-            result = backend.at_add(result, 8 + NORM_OFFSET + 1, old_log_norm + log_scalar)
+            result = backend.at_add(result, 16 + NORM_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + NORM_OFFSET + 1, old_log_norm + log_scalar)
 
         return result
 
@@ -323,6 +323,6 @@ class VectorEncoder:
         if index < 0 or index >= n:
             raise IndexError(f"Component index {index} out of range [0, {n})")
 
-        sign = emb[8 + COMPONENTS_OFFSET + 2*index].item()
-        log_mag = emb[8 + COMPONENTS_OFFSET + 2*index + 1].item()
+        sign = emb[16 + COMPONENTS_OFFSET + 2*index].item()
+        log_mag = emb[16 + COMPONENTS_OFFSET + 2*index + 1].item()
         return log_decode_value(sign, log_mag)

@@ -396,7 +396,7 @@ class PredicateEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Formula type (one-hot in dims 8+TYPE_OFFSET to 8+TYPE_OFFSET+9)
         type_map = {
@@ -413,27 +413,27 @@ class PredicateEncoder:
             FOLFormulaType.EQUALS: 8,
         }
         type_idx = type_map.get(formula.type, 0)
-        emb = backend.at_add(emb, 8 + TYPE_OFFSET + type_idx, 1.0)
+        emb = backend.at_add(emb, 16 + TYPE_OFFSET + type_idx, 1.0)
 
         # Quantifier depth (normalized by 10)
         quant_depth = formula.quantifier_depth()
-        emb = backend.at_add(emb, 8 + QUANT_DEPTH_OFFSET, float(quant_depth) / 10.0)
+        emb = backend.at_add(emb, 16 + QUANT_DEPTH_OFFSET, float(quant_depth) / 10.0)
 
         # Complexity
         complexity = formula.complexity()
-        emb = backend.at_add(emb, 8 + COMPLEXITY_OFFSET, backend.log(backend.array(float(complexity + 1))))
+        emb = backend.at_add(emb, 16 + COMPLEXITY_OFFSET, backend.log(backend.array(float(complexity + 1))))
 
         # Variable counts
         free_vars = formula.free_variables()
         bound_vars = formula.bound_variables()
-        emb = backend.at_add(emb, 8 + FREE_VARS_OFFSET, float(len(free_vars)) / 10.0)
-        emb = backend.at_add(emb, 8 + BOUND_VARS_OFFSET, float(len(bound_vars)) / 10.0)
+        emb = backend.at_add(emb, 16 + FREE_VARS_OFFSET, float(len(free_vars)) / 10.0)
+        emb = backend.at_add(emb, 16 + BOUND_VARS_OFFSET, float(len(bound_vars)) / 10.0)
 
         # Predicate info
         preds = formula.predicates()
-        emb = backend.at_add(emb, 8 + PRED_COUNT_OFFSET, float(len(preds)) / 10.0)
+        emb = backend.at_add(emb, 16 + PRED_COUNT_OFFSET, float(len(preds)) / 10.0)
         max_arity = max((arity for _, arity in preds), default=0)
-        emb = backend.at_add(emb, 8 + MAX_ARITY_OFFSET, float(max_arity) / 10.0)
+        emb = backend.at_add(emb, 16 + MAX_ARITY_OFFSET, float(max_arity) / 10.0)
 
         # Subformula counts
         counts = self._count_subformulas(formula)
@@ -442,29 +442,29 @@ class PredicateEncoder:
                                    FOLFormulaType.IMPLIES, FOLFormulaType.FORALL,
                                    FOLFormulaType.EXISTS, FOLFormulaType.EQUALS]):
             if i < 8:
-                emb = backend.at_add(emb, 8 + SUBFORMULA_OFFSET + i, 
+                emb = backend.at_add(emb, 16 + SUBFORMULA_OFFSET + i, 
                     backend.log(backend.array(float(counts.get(ftype, 0) + 1)))
                 )
 
         # Sentence flag
-        emb = backend.at_add(emb, 8 + SENTENCE_FLAG, 1.0 if formula.is_sentence() else 0.0)
+        emb = backend.at_add(emb, 16 + SENTENCE_FLAG, 1.0 if formula.is_sentence() else 0.0)
 
         # Prenex normal form flag (all quantifiers at front)
-        emb = backend.at_add(emb, 8 + PRENEX_FLAG, 1.0 if self._is_prenex(formula) else 0.0)
+        emb = backend.at_add(emb, 16 + PRENEX_FLAG, 1.0 if self._is_prenex(formula) else 0.0)
 
         # Variable hash
         for i, var in enumerate(sorted(free_vars | bound_vars)[:8]):
             var_hash = hash(var) % 256
-            emb = backend.at_add(emb, 8 + VAR_HASH_OFFSET + i, float(var_hash) / 256.0)
+            emb = backend.at_add(emb, 16 + VAR_HASH_OFFSET + i, float(var_hash) / 256.0)
 
         # Predicate hash
         for i, (pred_name, arity) in enumerate(sorted(preds)[:8]):
             pred_hash = (hash(pred_name) + arity) % 256
-            emb = backend.at_add(emb, 8 + PRED_HASH_OFFSET + i, float(pred_hash) / 256.0)
+            emb = backend.at_add(emb, 16 + PRED_HASH_OFFSET + i, float(pred_hash) / 256.0)
 
         # Term depth encoding
         term_depth = self._max_term_depth(formula)
-        emb = backend.at_add(emb, 8 + TERM_DEPTH_OFFSET, float(term_depth) / 10.0)
+        emb = backend.at_add(emb, 16 + TERM_DEPTH_OFFSET, float(term_depth) / 10.0)
 
         return emb
 
@@ -515,13 +515,13 @@ class PredicateEncoder:
         type_idx = 0
         max_val = 0.0
         for i in range(10):
-            val = emb[8 + TYPE_OFFSET + i].item()
+            val = emb[16 + TYPE_OFFSET + i].item()
             if val > max_val:
                 max_val = val
                 type_idx = i
 
         if type_idx == 1:  # TRUE or FALSE
-            truth = emb[8 + QUANT_DEPTH_OFFSET].item()
+            truth = emb[16 + QUANT_DEPTH_OFFSET].item()
             if truth > 0.5:
                 return FOLFormula.true()
             return FOLFormula.false()
@@ -538,7 +538,7 @@ class PredicateEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid first-order formula."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -558,32 +558,32 @@ class PredicateEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # FORALL type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 6, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 6, 1.0)
 
         # Increment quantifier depth
-        old_depth = body_emb[8 + QUANT_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + QUANT_DEPTH_OFFSET, old_depth + 0.1)
+        old_depth = body_emb[16 + QUANT_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + QUANT_DEPTH_OFFSET, old_depth + 0.1)
 
         # Increment complexity
-        old_complexity = body_emb[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, old_complexity + 0.1)
+        old_complexity = body_emb[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, old_complexity + 0.1)
 
         # Decrement free vars, increment bound vars
-        old_free = body_emb[8 + FREE_VARS_OFFSET].item()
-        old_bound = body_emb[8 + BOUND_VARS_OFFSET].item()
-        result = backend.at_add(result, 8 + FREE_VARS_OFFSET, max(0, old_free - 0.1))
-        result = backend.at_add(result, 8 + BOUND_VARS_OFFSET, old_bound + 0.1)
+        old_free = body_emb[16 + FREE_VARS_OFFSET].item()
+        old_bound = body_emb[16 + BOUND_VARS_OFFSET].item()
+        result = backend.at_add(result, 16 + FREE_VARS_OFFSET, max(0, old_free - 0.1))
+        result = backend.at_add(result, 16 + BOUND_VARS_OFFSET, old_bound + 0.1)
 
         # Copy predicate info
-        result = backend.at_add(result, 8 + PRED_COUNT_OFFSET, body_emb[8 + PRED_COUNT_OFFSET].item())
-        result = backend.at_add(result, 8 + MAX_ARITY_OFFSET, body_emb[8 + MAX_ARITY_OFFSET].item())
+        result = backend.at_add(result, 16 + PRED_COUNT_OFFSET, body_emb[16 + PRED_COUNT_OFFSET].item())
+        result = backend.at_add(result, 16 + MAX_ARITY_OFFSET, body_emb[16 + MAX_ARITY_OFFSET].item())
 
         # Update sentence flag
         if old_free <= 0.1:
-            result = backend.at_add(result, 8 + SENTENCE_FLAG, 1.0)
+            result = backend.at_add(result, 16 + SENTENCE_FLAG, 1.0)
 
         return result
 
@@ -600,28 +600,28 @@ class PredicateEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # EXISTS type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 7, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 7, 1.0)
 
         # Increment quantifier depth
-        old_depth = body_emb[8 + QUANT_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + QUANT_DEPTH_OFFSET, old_depth + 0.1)
+        old_depth = body_emb[16 + QUANT_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + QUANT_DEPTH_OFFSET, old_depth + 0.1)
 
         # Increment complexity
-        old_complexity = body_emb[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, old_complexity + 0.1)
+        old_complexity = body_emb[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, old_complexity + 0.1)
 
         # Decrement free vars, increment bound vars
-        old_free = body_emb[8 + FREE_VARS_OFFSET].item()
-        old_bound = body_emb[8 + BOUND_VARS_OFFSET].item()
-        result = backend.at_add(result, 8 + FREE_VARS_OFFSET, max(0, old_free - 0.1))
-        result = backend.at_add(result, 8 + BOUND_VARS_OFFSET, old_bound + 0.1)
+        old_free = body_emb[16 + FREE_VARS_OFFSET].item()
+        old_bound = body_emb[16 + BOUND_VARS_OFFSET].item()
+        result = backend.at_add(result, 16 + FREE_VARS_OFFSET, max(0, old_free - 0.1))
+        result = backend.at_add(result, 16 + BOUND_VARS_OFFSET, old_bound + 0.1)
 
         # Copy predicate info
-        result = backend.at_add(result, 8 + PRED_COUNT_OFFSET, body_emb[8 + PRED_COUNT_OFFSET].item())
-        result = backend.at_add(result, 8 + MAX_ARITY_OFFSET, body_emb[8 + MAX_ARITY_OFFSET].item())
+        result = backend.at_add(result, 16 + PRED_COUNT_OFFSET, body_emb[16 + PRED_COUNT_OFFSET].item())
+        result = backend.at_add(result, 16 + MAX_ARITY_OFFSET, body_emb[16 + MAX_ARITY_OFFSET].item())
 
         return result
 
@@ -633,24 +633,24 @@ class PredicateEncoder:
         """Negate a formula embedding."""
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # NOT type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 2, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 2, 1.0)
 
         # Keep quantifier depth
-        result = backend.at_add(result, 8 + QUANT_DEPTH_OFFSET, emb[8 + QUANT_DEPTH_OFFSET].item())
+        result = backend.at_add(result, 16 + QUANT_DEPTH_OFFSET, emb[16 + QUANT_DEPTH_OFFSET].item())
 
         # Increment complexity
-        old_complexity = emb[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, old_complexity + 0.1)
+        old_complexity = emb[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, old_complexity + 0.1)
 
         # Copy other features
-        result = backend.at_add(result, 8 + FREE_VARS_OFFSET, emb[8 + FREE_VARS_OFFSET].item())
-        result = backend.at_add(result, 8 + BOUND_VARS_OFFSET, emb[8 + BOUND_VARS_OFFSET].item())
-        result = backend.at_add(result, 8 + PRED_COUNT_OFFSET, emb[8 + PRED_COUNT_OFFSET].item())
-        result = backend.at_add(result, 8 + MAX_ARITY_OFFSET, emb[8 + MAX_ARITY_OFFSET].item())
-        result = backend.at_add(result, 8 + SENTENCE_FLAG, emb[8 + SENTENCE_FLAG].item())
+        result = backend.at_add(result, 16 + FREE_VARS_OFFSET, emb[16 + FREE_VARS_OFFSET].item())
+        result = backend.at_add(result, 16 + BOUND_VARS_OFFSET, emb[16 + BOUND_VARS_OFFSET].item())
+        result = backend.at_add(result, 16 + PRED_COUNT_OFFSET, emb[16 + PRED_COUNT_OFFSET].item())
+        result = backend.at_add(result, 16 + MAX_ARITY_OFFSET, emb[16 + MAX_ARITY_OFFSET].item())
+        result = backend.at_add(result, 16 + SENTENCE_FLAG, emb[16 + SENTENCE_FLAG].item())
 
         return result
 
@@ -658,43 +658,43 @@ class PredicateEncoder:
         """Conjoin two formula embeddings (AND)."""
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # AND type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 3, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 3, 1.0)
 
         # Max quantifier depth
-        d1 = emb1[8 + QUANT_DEPTH_OFFSET].item()
-        d2 = emb2[8 + QUANT_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + QUANT_DEPTH_OFFSET, max(d1, d2))
+        d1 = emb1[16 + QUANT_DEPTH_OFFSET].item()
+        d2 = emb2[16 + QUANT_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + QUANT_DEPTH_OFFSET, max(d1, d2))
 
         # Add complexities
-        c1 = emb1[8 + COMPLEXITY_OFFSET].item()
-        c2 = emb2[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, c1 + c2 + 0.1)
+        c1 = emb1[16 + COMPLEXITY_OFFSET].item()
+        c2 = emb2[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, c1 + c2 + 0.1)
 
         # Combine variables (approximate)
-        fv1 = emb1[8 + FREE_VARS_OFFSET].item()
-        fv2 = emb2[8 + FREE_VARS_OFFSET].item()
-        result = backend.at_add(result, 8 + FREE_VARS_OFFSET, fv1 + fv2)
+        fv1 = emb1[16 + FREE_VARS_OFFSET].item()
+        fv2 = emb2[16 + FREE_VARS_OFFSET].item()
+        result = backend.at_add(result, 16 + FREE_VARS_OFFSET, fv1 + fv2)
 
-        bv1 = emb1[8 + BOUND_VARS_OFFSET].item()
-        bv2 = emb2[8 + BOUND_VARS_OFFSET].item()
-        result = backend.at_add(result, 8 + BOUND_VARS_OFFSET, bv1 + bv2)
+        bv1 = emb1[16 + BOUND_VARS_OFFSET].item()
+        bv2 = emb2[16 + BOUND_VARS_OFFSET].item()
+        result = backend.at_add(result, 16 + BOUND_VARS_OFFSET, bv1 + bv2)
 
         # Max predicate info
-        pc1 = emb1[8 + PRED_COUNT_OFFSET].item()
-        pc2 = emb2[8 + PRED_COUNT_OFFSET].item()
-        result = backend.at_add(result, 8 + PRED_COUNT_OFFSET, pc1 + pc2)
+        pc1 = emb1[16 + PRED_COUNT_OFFSET].item()
+        pc2 = emb2[16 + PRED_COUNT_OFFSET].item()
+        result = backend.at_add(result, 16 + PRED_COUNT_OFFSET, pc1 + pc2)
 
-        ma1 = emb1[8 + MAX_ARITY_OFFSET].item()
-        ma2 = emb2[8 + MAX_ARITY_OFFSET].item()
-        result = backend.at_add(result, 8 + MAX_ARITY_OFFSET, max(ma1, ma2))
+        ma1 = emb1[16 + MAX_ARITY_OFFSET].item()
+        ma2 = emb2[16 + MAX_ARITY_OFFSET].item()
+        result = backend.at_add(result, 16 + MAX_ARITY_OFFSET, max(ma1, ma2))
 
         # Sentence only if both are sentences
-        s1 = emb1[8 + SENTENCE_FLAG].item() > 0.5
-        s2 = emb2[8 + SENTENCE_FLAG].item() > 0.5
-        result = backend.at_add(result, 8 + SENTENCE_FLAG, 1.0 if (s1 and s2) else 0.0)
+        s1 = emb1[16 + SENTENCE_FLAG].item() > 0.5
+        s2 = emb2[16 + SENTENCE_FLAG].item() > 0.5
+        result = backend.at_add(result, 16 + SENTENCE_FLAG, 1.0 if (s1 and s2) else 0.0)
 
         return result
 
@@ -702,43 +702,43 @@ class PredicateEncoder:
         """Disjoin two formula embeddings (OR)."""
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # OR type
-        result = backend.at_add(result, 8 + TYPE_OFFSET + 4, 1.0)
+        result = backend.at_add(result, 16 + TYPE_OFFSET + 4, 1.0)
 
         # Max quantifier depth
-        d1 = emb1[8 + QUANT_DEPTH_OFFSET].item()
-        d2 = emb2[8 + QUANT_DEPTH_OFFSET].item()
-        result = backend.at_add(result, 8 + QUANT_DEPTH_OFFSET, max(d1, d2))
+        d1 = emb1[16 + QUANT_DEPTH_OFFSET].item()
+        d2 = emb2[16 + QUANT_DEPTH_OFFSET].item()
+        result = backend.at_add(result, 16 + QUANT_DEPTH_OFFSET, max(d1, d2))
 
         # Add complexities
-        c1 = emb1[8 + COMPLEXITY_OFFSET].item()
-        c2 = emb2[8 + COMPLEXITY_OFFSET].item()
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, c1 + c2 + 0.1)
+        c1 = emb1[16 + COMPLEXITY_OFFSET].item()
+        c2 = emb2[16 + COMPLEXITY_OFFSET].item()
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, c1 + c2 + 0.1)
 
         # Combine variables
-        fv1 = emb1[8 + FREE_VARS_OFFSET].item()
-        fv2 = emb2[8 + FREE_VARS_OFFSET].item()
-        result = backend.at_add(result, 8 + FREE_VARS_OFFSET, fv1 + fv2)
+        fv1 = emb1[16 + FREE_VARS_OFFSET].item()
+        fv2 = emb2[16 + FREE_VARS_OFFSET].item()
+        result = backend.at_add(result, 16 + FREE_VARS_OFFSET, fv1 + fv2)
 
-        bv1 = emb1[8 + BOUND_VARS_OFFSET].item()
-        bv2 = emb2[8 + BOUND_VARS_OFFSET].item()
-        result = backend.at_add(result, 8 + BOUND_VARS_OFFSET, bv1 + bv2)
+        bv1 = emb1[16 + BOUND_VARS_OFFSET].item()
+        bv2 = emb2[16 + BOUND_VARS_OFFSET].item()
+        result = backend.at_add(result, 16 + BOUND_VARS_OFFSET, bv1 + bv2)
 
         # Max predicate info
-        pc1 = emb1[8 + PRED_COUNT_OFFSET].item()
-        pc2 = emb2[8 + PRED_COUNT_OFFSET].item()
-        result = backend.at_add(result, 8 + PRED_COUNT_OFFSET, pc1 + pc2)
+        pc1 = emb1[16 + PRED_COUNT_OFFSET].item()
+        pc2 = emb2[16 + PRED_COUNT_OFFSET].item()
+        result = backend.at_add(result, 16 + PRED_COUNT_OFFSET, pc1 + pc2)
 
-        ma1 = emb1[8 + MAX_ARITY_OFFSET].item()
-        ma2 = emb2[8 + MAX_ARITY_OFFSET].item()
-        result = backend.at_add(result, 8 + MAX_ARITY_OFFSET, max(ma1, ma2))
+        ma1 = emb1[16 + MAX_ARITY_OFFSET].item()
+        ma2 = emb2[16 + MAX_ARITY_OFFSET].item()
+        result = backend.at_add(result, 16 + MAX_ARITY_OFFSET, max(ma1, ma2))
 
         # Sentence only if both are sentences
-        s1 = emb1[8 + SENTENCE_FLAG].item() > 0.5
-        s2 = emb2[8 + SENTENCE_FLAG].item() > 0.5
-        result = backend.at_add(result, 8 + SENTENCE_FLAG, 1.0 if (s1 and s2) else 0.0)
+        s1 = emb1[16 + SENTENCE_FLAG].item() > 0.5
+        s2 = emb2[16 + SENTENCE_FLAG].item() > 0.5
+        result = backend.at_add(result, 16 + SENTENCE_FLAG, 1.0 if (s1 and s2) else 0.0)
 
         return result
 
@@ -763,26 +763,26 @@ class PredicateEncoder:
             Approximate embedding of the substituted formula
         """
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Copy most features from formula
         for i in range(10):
-            result = backend.at_add(result, 8 + TYPE_OFFSET + i, formula_emb[8 + TYPE_OFFSET + i].item())
+            result = backend.at_add(result, 16 + TYPE_OFFSET + i, formula_emb[16 + TYPE_OFFSET + i].item())
 
-        result = backend.at_add(result, 8 + QUANT_DEPTH_OFFSET, formula_emb[8 + QUANT_DEPTH_OFFSET].item())
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, formula_emb[8 + COMPLEXITY_OFFSET].item())
+        result = backend.at_add(result, 16 + QUANT_DEPTH_OFFSET, formula_emb[16 + QUANT_DEPTH_OFFSET].item())
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, formula_emb[16 + COMPLEXITY_OFFSET].item())
 
         # Adjust free variables (one less after substitution if var was free)
-        old_free = formula_emb[8 + FREE_VARS_OFFSET].item()
-        result = backend.at_add(result, 8 + FREE_VARS_OFFSET, max(0, old_free - 0.1))
+        old_free = formula_emb[16 + FREE_VARS_OFFSET].item()
+        result = backend.at_add(result, 16 + FREE_VARS_OFFSET, max(0, old_free - 0.1))
 
-        result = backend.at_add(result, 8 + BOUND_VARS_OFFSET, formula_emb[8 + BOUND_VARS_OFFSET].item())
-        result = backend.at_add(result, 8 + PRED_COUNT_OFFSET, formula_emb[8 + PRED_COUNT_OFFSET].item())
-        result = backend.at_add(result, 8 + MAX_ARITY_OFFSET, formula_emb[8 + MAX_ARITY_OFFSET].item())
+        result = backend.at_add(result, 16 + BOUND_VARS_OFFSET, formula_emb[16 + BOUND_VARS_OFFSET].item())
+        result = backend.at_add(result, 16 + PRED_COUNT_OFFSET, formula_emb[16 + PRED_COUNT_OFFSET].item())
+        result = backend.at_add(result, 16 + MAX_ARITY_OFFSET, formula_emb[16 + MAX_ARITY_OFFSET].item())
 
         # May become a sentence
         if old_free <= 0.1:
-            result = backend.at_add(result, 8 + SENTENCE_FLAG, 1.0)
+            result = backend.at_add(result, 16 + SENTENCE_FLAG, 1.0)
 
         return result
 
@@ -806,8 +806,8 @@ class PredicateEncoder:
         max_val1 = 0.0
         max_val2 = 0.0
         for i in range(10):
-            v1 = emb1[8 + TYPE_OFFSET + i].item()
-            v2 = emb2[8 + TYPE_OFFSET + i].item()
+            v1 = emb1[16 + TYPE_OFFSET + i].item()
+            v2 = emb2[16 + TYPE_OFFSET + i].item()
             if v1 > max_val1:
                 max_val1 = v1
                 type1 = i
@@ -819,13 +819,13 @@ class PredicateEncoder:
             return False
 
         # Check if similar predicate structure
-        pc1 = emb1[8 + PRED_COUNT_OFFSET].item()
-        pc2 = emb2[8 + PRED_COUNT_OFFSET].item()
+        pc1 = emb1[16 + PRED_COUNT_OFFSET].item()
+        pc2 = emb2[16 + PRED_COUNT_OFFSET].item()
         if abs(pc1 - pc2) > 0.3:
             return False
 
-        ma1 = emb1[8 + MAX_ARITY_OFFSET].item()
-        ma2 = emb2[8 + MAX_ARITY_OFFSET].item()
+        ma1 = emb1[16 + MAX_ARITY_OFFSET].item()
+        ma2 = emb2[16 + MAX_ARITY_OFFSET].item()
         if abs(ma1 - ma2) > 0.3:
             return False
 
@@ -852,16 +852,16 @@ class PredicateEncoder:
 
     def get_quantifier_depth(self, emb: Any) -> float:
         """Get the quantifier depth from an embedding."""
-        return emb[8 + QUANT_DEPTH_OFFSET].item() * 10.0
+        return emb[16 + QUANT_DEPTH_OFFSET].item() * 10.0
 
     def is_sentence(self, emb: Any) -> bool:
         """Check if embedding represents a sentence (closed formula)."""
-        return emb[8 + SENTENCE_FLAG].item() > 0.5
+        return emb[16 + SENTENCE_FLAG].item() > 0.5
 
     def get_free_var_count(self, emb: Any) -> int:
         """Get approximate number of free variables."""
-        return int(emb[8 + FREE_VARS_OFFSET].item() * 10.0 + 0.5)
+        return int(emb[16 + FREE_VARS_OFFSET].item() * 10.0 + 0.5)
 
     def get_bound_var_count(self, emb: Any) -> int:
         """Get approximate number of bound variables."""
-        return int(emb[8 + BOUND_VARS_OFFSET].item() * 10.0 + 0.5)
+        return int(emb[16 + BOUND_VARS_OFFSET].item() * 10.0 + 0.5)

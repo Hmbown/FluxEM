@@ -456,7 +456,7 @@ class RelationEncoder:
         emb = create_embedding()
 
         # Domain tag (dims 0-7)
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Adjacency matrix (dims 8-71)
         for a, b in relation.pairs:
@@ -525,7 +525,7 @@ class RelationEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid relation."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -540,7 +540,7 @@ class RelationEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Compute composition via matrix multiplication
         for i in range(8):
@@ -563,7 +563,7 @@ class RelationEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         for i in range(8):
             for j in range(8):
@@ -576,7 +576,7 @@ class RelationEncoder:
         """Union of relations: R₁ ∪ R₂"""
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         for bit_idx in range(ADJACENCY_SIZE):
             if (emb1[ADJACENCY_START + bit_idx].item() > 0.5 or
@@ -589,7 +589,7 @@ class RelationEncoder:
         """Intersection of relations: R₁ ∩ R₂"""
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         for bit_idx in range(ADJACENCY_SIZE):
             if (emb1[ADJACENCY_START + bit_idx].item() > 0.5 and

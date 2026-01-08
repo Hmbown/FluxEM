@@ -1,0 +1,172 @@
+# FluxEM Multi-Domain Tool-Calling Training Configuration
+# For Qwen3-4B with all 22 domains including 10 new expanded domains
+
+task: toolcalling_multidomain
+seed: 42
+
+# Base model configuration
+base_model:
+  name: "Qwen/Qwen3-4B-Instruct"
+  path: "~/.mlx/models/Qwen/Qwen3-4B-Instruct-MLX"  # for MLX backend
+  transformers_path: "Qwen/Qwen3-4B-Instruct"  # for HuggingFace backend
+
+# Data configuration
+data:
+  train_size: 50000
+  val_size: 5000
+  test_size: 5000
+
+  # Tool-calling format settings
+  include_tool_calls: true
+  include_chain_of_thought: true
+  max_chain_length: 3  # Multi-step tool chains
+
+  # Domain distribution for all 22 domains
+  # Total sums to 1.0, weights reflect domain importance and complexity
+  domain_distribution:
+    # Core domains (higher weight - well established)
+    arithmetic: 0.10
+    physics: 0.08
+    chemistry: 0.06
+    biology: 0.05
+    math: 0.08
+
+    # NEW domains (focus of this training)
+    combinatorics: 0.06
+    probability: 0.06
+    statistics: 0.06
+    information_theory: 0.04
+    signal_processing: 0.04
+    calculus: 0.05
+    temporal: 0.04
+    finance: 0.05
+    optimization: 0.04
+    control_systems: 0.03
+
+    # Existing smaller domains
+    music: 0.02
+    geometry: 0.03
+    graphs: 0.02
+    sets: 0.02
+    logic: 0.02
+    number_theory: 0.03
+    data: 0.02
+
+  # Difficulty distribution per sample
+  difficulty_distribution:
+    easy: 0.30      # Single tool call, simple inputs
+    medium: 0.40    # Single tool with complex inputs
+    hard: 0.20      # Multi-step / chained tools
+    very_hard: 0.10 # Cross-domain chains
+
+# FluxEM embedding configuration
+fluxem:
+  embedding_dim: 128     # FluxEM native embedding dimension
+  projection_dim: 2048   # Project to Qwen3-4B hidden dim
+  max_domain_spans: 32   # Maximum domain spans per sequence
+  use_domain_tags: true  # Include domain tag in embeddings
+  normalize_embeddings: true
+
+# Model architecture
+model:
+  hidden_dim: 2048
+  num_projection_layers: 2
+  projection_dropout: 0.1
+  fusion_method: "additive"  # Options: additive, gated, attention
+  domain_type_embedding: true
+  max_seq_len: 2048
+  max_tool_calls: 8
+
+# Training configuration
+training:
+  # Hardware
+  device: "mps"  # Use Apple Silicon MPS; alternatives: cpu, cuda
+  mixed_precision: true  # Use bfloat16 where supported
+
+  # Batch settings
+  batch_size: 8
+  gradient_accumulation_steps: 4  # Effective batch = 32
+
+  # Learning rate schedule
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine_with_warmup"
+  warmup_steps: 500
+  weight_decay: 0.01
+
+  # Training duration
+  epochs: 10
+  max_steps: 50000
+  eval_steps: 1000
+  save_steps: 2500
+
+  # Regularization
+  dropout: 0.1
+  max_grad_norm: 1.0
+
+  # LoRA configuration (parameter-efficient fine-tuning)
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+# Auxiliary losses (from hybrid training approach)
+auxiliary_losses:
+  boundary_tagging:
+    weight: 0.3
+    description: "Force model to identify domain span boundaries"
+
+  invariance:
+    weight: 0.1
+    description: "Equivalent expressions should have similar embeddings"
+
+  operation_conditioned:
+    weight: 0.2
+    description: "Predict operation from encoded operands"
+
+  projection_regularization:
+    weight: 0.01
+    description: "L2 regularization on projection weights"
+
+  tool_selection:
+    weight: 0.5
+    description: "Cross-entropy loss on tool choice prediction"
+
+# Evaluation configuration
+evaluation:
+  metrics:
+    - "tool_selection_accuracy"
+    - "argument_extraction_f1"
+    - "execution_accuracy"
+    - "chain_completion_rate"
+    - "domain_accuracy_per_domain"
+
+  # Per-domain thresholds for numeric accuracy
+  numeric_tolerance:
+    default: 1.0e-6
+    physics: 1.0e-4   # Allow for unit conversion rounding
+    statistics: 1.0e-4
+    finance: 0.01     # Cents-level precision
+
+# Output paths
+paths:
+  data_dir: "experiments/data/toolcalling_multidomain"
+  results_dir: "experiments/results/toolcalling_multidomain"
+  checkpoints_dir: "experiments/checkpoints/toolcalling_multidomain"
+  logs_dir: "experiments/logs/toolcalling_multidomain"
+
+# Logging
+logging:
+  level: "INFO"
+  log_every_n_steps: 100
+  wandb:
+    enabled: false
+    project: "fluxem-toolcalling"
+    name: "multidomain-qwen3-4b"

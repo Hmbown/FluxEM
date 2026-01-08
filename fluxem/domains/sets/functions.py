@@ -404,7 +404,7 @@ class FunctionEncoder:
         emb = create_embedding()
 
         # Domain tag (dims 0-7)
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Mapping (dims 8-71, one-hot per input)
         for inp, out in func.mapping.items():
@@ -469,7 +469,7 @@ class FunctionEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid function."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -483,7 +483,7 @@ class FunctionEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # For each input i, find f₂(i) = j, then find f₁(j) = k
         for i in range(8):
@@ -514,7 +514,7 @@ class FunctionEncoder:
             return None
 
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Transpose the mapping
         for i in range(8):

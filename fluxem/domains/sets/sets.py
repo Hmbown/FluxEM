@@ -271,7 +271,7 @@ class SetEncoder:
         emb = create_embedding()
 
         # Domain tag (dims 0-7)
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Set type (dims 8-15)
         if not elements:
@@ -324,7 +324,7 @@ class SetEncoder:
         """Check if embedding is a valid set."""
         backend = get_backend()
         # Check for set_finite tag pattern
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -341,7 +341,7 @@ class SetEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Union type
         result = backend.at_add(result, TYPE_START + 3, 1.0)  # UNION type
@@ -373,7 +373,7 @@ class SetEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Intersection type
         result = backend.at_add(result, TYPE_START + 4, 1.0)  # INTERSECTION type
@@ -405,7 +405,7 @@ class SetEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Difference type
         result = backend.at_add(result, TYPE_START + 5, 1.0)  # DIFFERENCE type
@@ -437,7 +437,7 @@ class SetEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Symmetric difference type
         result = backend.at_add(result, TYPE_START + 7, 1.0)  # SYMMETRIC_DIFF type
@@ -474,7 +474,7 @@ class SetEncoder:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Complement type
         result = backend.at_add(result, TYPE_START + 6, 1.0)  # COMPLEMENT type

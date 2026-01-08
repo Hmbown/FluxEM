@@ -335,7 +335,7 @@ class VectorEncoder:
         # Set domain tag
         tag_key = "geom_vector3d" if is_3d else "geom_vector2d"
         if tag_key in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS[tag_key])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS[tag_key])
 
         # Encode X component
         x_sign, x_log = log_encode_value(vector.x)

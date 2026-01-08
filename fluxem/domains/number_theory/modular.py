@@ -212,7 +212,7 @@ class ModularEncoder:
         embedding = backend.zeros((EMBEDDING_DIM,))
 
         # Domain tag
-        embedding = backend.at_add(embedding, slice(0, 8), self.domain_tag)
+        embedding = backend.at_add(embedding, slice(0, 16), self.domain_tag)
 
         # Value and modulus
         embedding = backend.at_add(embedding, self.VALUE_POS, float(modular_int.value))
@@ -249,7 +249,7 @@ class ModularEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is valid for this domain."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # Operations on embeddings

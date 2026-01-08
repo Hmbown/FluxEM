@@ -445,7 +445,7 @@ class ShapeEncoder:
     def _encode_triangle(self, embedding: Any, tri: Triangle) -> Any:
         backend = get_backend()
         if "geom_triangle" in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS["geom_triangle"])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS["geom_triangle"])
 
         embedding = backend.at_add(embedding, self.SHAPE_TYPE_POS, float(ShapeType.TRIANGLE.value))
 
@@ -476,7 +476,7 @@ class ShapeEncoder:
     def _encode_rectangle(self, embedding: Any, rect: Rectangle) -> Any:
         backend = get_backend()
         if "geom_rectangle" in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS["geom_rectangle"])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS["geom_rectangle"])
 
         embedding = backend.at_add(embedding, self.SHAPE_TYPE_POS, float(ShapeType.RECTANGLE.value))
 
@@ -505,7 +505,7 @@ class ShapeEncoder:
     def _encode_circle(self, embedding: Any, circle: Circle) -> Any:
         backend = get_backend()
         if "geom_circle" in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS["geom_circle"])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS["geom_circle"])
 
         embedding = backend.at_add(embedding, self.SHAPE_TYPE_POS, float(ShapeType.CIRCLE.value))
 
@@ -528,7 +528,7 @@ class ShapeEncoder:
     def _encode_polygon(self, embedding: Any, poly: Polygon) -> Any:
         backend = get_backend()
         if "geom_polygon" in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS["geom_polygon"])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS["geom_polygon"])
 
         embedding = backend.at_add(embedding, self.SHAPE_TYPE_POS, float(ShapeType.POLYGON.value))
 

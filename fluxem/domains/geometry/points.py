@@ -264,7 +264,7 @@ class PointEncoder:
         # Set domain tag
         tag_key = "geom_point3d" if is_3d else "geom_point2d"
         if tag_key in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS[tag_key])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS[tag_key])
 
         # Encode X coordinate
         x_sign, x_log = log_encode_value(point.x)

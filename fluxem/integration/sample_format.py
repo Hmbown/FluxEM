@@ -41,6 +41,17 @@ VALID_SPAN_TYPES = {
     "music_pitch",      # Musical pitches
     "music_chord",      # Musical chords
     "music_atonal",     # Atonal pitch-class sets
+    # New expanded domain span types
+    "comb_term",        # Combinatorial terms: factorial, nCr, nPr
+    "prob_dist",        # Probability distributions
+    "stats_summary",    # Statistical summaries
+    "info_entropy",     # Information theory: entropy, KL divergence
+    "signal_sequence",  # Signal processing data
+    "calc_polynomial",  # Calculus polynomials
+    "temporal_date",    # Temporal dates
+    "finance_cashflow", # Financial cashflows
+    "opt_step",         # Optimization steps
+    "control_state",    # Control system states
 }
 
 
@@ -203,6 +214,17 @@ def validate_span(span: Dict, text: str, registry=None) -> List[ValidationError]
                 "music_pitch": DomainType.PITCH,
                 "music_chord": DomainType.CHORD,
                 "music_atonal": DomainType.ATONAL,
+                # New expanded domain mappings
+                "comb_term": DomainType.COMBINATORICS,
+                "prob_dist": DomainType.PROBABILITY,
+                "stats_summary": DomainType.STATISTICS,
+                "info_entropy": DomainType.INFO_THEORY,
+                "signal_sequence": DomainType.SIGNAL,
+                "calc_polynomial": DomainType.CALCULUS,
+                "temporal_date": DomainType.TEMPORAL,
+                "finance_cashflow": DomainType.FINANCE,
+                "opt_step": DomainType.OPTIMIZATION,
+                "control_state": DomainType.CONTROL,
             }
             
             domain_type = type_mapping.get(span["type"])

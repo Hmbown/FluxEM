@@ -319,37 +319,37 @@ class AtonalSetEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Pitch class set (12-dim binary vector)
         pc_vec = pitch_class_set_to_vector(pcs)
         for i in range(12):
-            emb = backend.at_add(emb, 8 + PC_SET_VECTOR_OFFSET + i, pc_vec[i])
+            emb = backend.at_add(emb, 16 + PC_SET_VECTOR_OFFSET + i, pc_vec[i])
 
         # Interval class vector (6-dim)
         icv = interval_class_vector(pcs)
         for i in range(6):
-            emb = backend.at_add(emb, 8 + IC_VECTOR_OFFSET + i, icv[i])
+            emb = backend.at_add(emb, 16 + IC_VECTOR_OFFSET + i, icv[i])
 
         # Prime form
         pf = prime_form(pcs)
         for i, pc in enumerate(pf):
-            emb = backend.at_add(emb, 8 + PRIME_FORM_OFFSET + i, float(pc) / 12.0)
+            emb = backend.at_add(emb, 16 + PRIME_FORM_OFFSET + i, float(pc) / 12.0)
 
         # Cardinality
-        emb = backend.at_add(emb, 8 + CARDINALITY_OFFSET, 
+        emb = backend.at_add(emb, 16 + CARDINALITY_OFFSET, 
             float(len(set(pc % 12 for pc in pcs))) / 12.0
         )
 
         # Fortean number
         forte = forte_number(pcs)
         _, log_forte = log_encode_value(float(forte))
-        emb = backend.at_add(emb, 8 + FORTEAN_OFFSET, log_forte / 12.0)
+        emb = backend.at_add(emb, 16 + FORTEAN_OFFSET, log_forte / 12.0)
 
         # Tn invariance (which transpositions preserve set)
         tn_inv = invariant_under_Tn(pcs)
         for n in tn_inv:
-            emb = backend.at_add(emb, 8 + INVARIANCE_OFFSET + n, 1.0)
+            emb = backend.at_add(emb, 16 + INVARIANCE_OFFSET + n, 1.0)
 
         return emb
 
@@ -360,7 +360,7 @@ class AtonalSetEncoder:
         # Extract pitch class set
         pcs = []
         for i in range(12):
-            if emb[8 + PC_SET_VECTOR_OFFSET + i].item() > 0.5:
+            if emb[16 + PC_SET_VECTOR_OFFSET + i].item() > 0.5:
                 pcs.append(i)
 
         return pcs
@@ -368,7 +368,7 @@ class AtonalSetEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is valid."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -463,8 +463,8 @@ class AtonalSetEncoder:
 
         # Override with prime form only
         for i, pc in enumerate(pf):
-            result = backend.at_add(result, 8 + PRIME_FORM_OFFSET + i, 
-                float(pc) / 12.0 - result[8 + PRIME_FORM_OFFSET + i]
+            result = backend.at_add(result, 16 + PRIME_FORM_OFFSET + i, 
+                float(pc) / 12.0 - result[16 + PRIME_FORM_OFFSET + i]
             )
 
         return result

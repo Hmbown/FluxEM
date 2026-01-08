@@ -107,7 +107,7 @@ class TaxonomyEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Encode each taxonomic rank
         ranks = [
@@ -124,20 +124,20 @@ class TaxonomyEncoder:
         for i, rank_value in enumerate(ranks):
             if rank_value:
                 idx = self._get_taxon_index(rank_value)
-                emb = backend.at_add(emb, 8 + RANK_OFFSET + i, float(idx))
+                emb = backend.at_add(emb, 16 + RANK_OFFSET + i, float(idx))
 
         # Encode parent-child relationships
         for i in range(7):  # 7 parent-child pairs
             parent_idx = self._get_taxon_index(ranks[i])
             child_idx = self._get_taxon_index(ranks[i + 1])
             if parent_idx > 0 and child_idx > 0:
-                emb = backend.at_add(emb, 8 + RELATION_OFFSET + i, parent_idx)
-                emb = backend.at_add(emb, 8 + RELATION_OFFSET + i + 8, child_idx)
+                emb = backend.at_add(emb, 16 + RELATION_OFFSET + i, parent_idx)
+                emb = backend.at_add(emb, 16 + RELATION_OFFSET + i + 8, child_idx)
 
         # Phylogenetic tree embedding
         tree_hash = self._phylogenetic_hash(taxon)
         for i, val in enumerate(tree_hash):
-            emb = backend.at_add(emb, 8 + TREE_EMBED_OFFSET + i, val)
+            emb = backend.at_add(emb, 16 + TREE_EMBED_OFFSET + i, val)
 
         return emb
 
@@ -146,7 +146,7 @@ class TaxonomyEncoder:
         ranks = [""] * 8
 
         for i in range(8):
-            idx = int(emb[8 + RANK_OFFSET + i].item())
+            idx = int(emb[16 + RANK_OFFSET + i].item())
             if idx > 0:
                 ranks[i] = self._get_taxon_from_index(idx)
 
@@ -164,7 +164,7 @@ class TaxonomyEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid taxon."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return bool(backend.allclose(tag, self.domain_tag, atol=0.1).item())
 
     # ========================================================================
@@ -178,8 +178,8 @@ class TaxonomyEncoder:
         backend = get_backend()
         # Find lowest common rank
         for i in range(8):
-            rank1_idx = emb1[8 + RANK_OFFSET + i].item()
-            rank2_idx = emb2[8 + RANK_OFFSET + i].item()
+            rank1_idx = emb1[16 + RANK_OFFSET + i].item()
+            rank2_idx = emb2[16 + RANK_OFFSET + i].item()
 
             if rank1_idx == 0 or rank2_idx == 0:
                 # No more data
@@ -191,17 +191,17 @@ class TaxonomyEncoder:
             else:
                 # Diverged - parent of i is MRCA
                 if i > 0:
-                    parent_idx = emb1[8 + RANK_OFFSET + i - 1].item()
+                    parent_idx = emb1[16 + RANK_OFFSET + i - 1].item()
                     result = create_embedding()
-                    result = backend.at_add(result, slice(0, 8), self.domain_tag)
-                    result = backend.at_add(result, 8 + RANK_OFFSET + i - 1, parent_idx)
+                    result = backend.at_add(result, slice(0, 16), self.domain_tag)
+                    result = backend.at_add(result, 16 + RANK_OFFSET + i - 1, parent_idx)
                     return result
                 else:
                     # Different domains - no common ancestor
                     return create_embedding()
 
         # One is ancestor of the other
-        return emb1 if emb1[8 + RANK_OFFSET + 7].item() == 0 else emb2
+        return emb1 if emb1[16 + RANK_OFFSET + 7].item() == 0 else emb2
 
     def phylogenetic_distance(self, emb1: Any, emb2: Any) -> float:
         """
@@ -213,8 +213,8 @@ class TaxonomyEncoder:
         distance = 0.0
 
         for i in range(8):
-            rank1_idx = emb1[8 + RANK_OFFSET + i].item()
-            rank2_idx = emb2[8 + RANK_OFFSET + i].item()
+            rank1_idx = emb1[16 + RANK_OFFSET + i].item()
+            rank2_idx = emb2[16 + RANK_OFFSET + i].item()
 
             if rank1_idx == 0 and rank2_idx == 0:
                 # Both have no data - same species
@@ -238,8 +238,8 @@ class TaxonomyEncoder:
             min_rank: Minimum rank to match (0=domain, 7=species)
         """
         for i in range(min_rank):
-            rank1_idx = emb1[8 + RANK_OFFSET + i].item()
-            rank2_idx = emb2[8 + RANK_OFFSET + i].item()
+            rank1_idx = emb1[16 + RANK_OFFSET + i].item()
+            rank2_idx = emb2[16 + RANK_OFFSET + i].item()
 
             if rank1_idx != rank2_idx:
                 return False

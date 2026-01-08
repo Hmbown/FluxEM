@@ -112,13 +112,13 @@ class ArrayEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # DType
-        emb = backend.at_add(emb, 8 + DTYPE_OFFSET, dtype.value / 4.0)
+        emb = backend.at_add(emb, 16 + DTYPE_OFFSET, dtype.value / 4.0)
 
         # Length
-        emb = backend.at_add(emb, 8 + LENGTH_OFFSET, min(n, MAX_ARRAY_LEN * 2) / (MAX_ARRAY_LEN * 2))
+        emb = backend.at_add(emb, 16 + LENGTH_OFFSET, min(n, MAX_ARRAY_LEN * 2) / (MAX_ARRAY_LEN * 2))
 
         # For numeric arrays, compute statistics
         if dtype in (ArrayDType.FLOAT, ArrayDType.INT):
@@ -134,36 +134,36 @@ class ArrayEncoder:
         # Encode first N values
         for i, val in enumerate(arr[:16]):
             if val is None:
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i, 0.0)
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i + 1, -100.0)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i, 0.0)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i + 1, -100.0)
             elif dtype in (ArrayDType.FLOAT, ArrayDType.INT):
                 sign, log_mag = log_encode_value(float(val))
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i, sign)
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i + 1, log_mag)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i, sign)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i + 1, log_mag)
             elif dtype == ArrayDType.BOOL:
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i, 1.0 if val else -1.0)
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i + 1, 0.0)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i, 1.0 if val else -1.0)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i + 1, 0.0)
             else:
                 # Categorical/string - use hash
                 hash_val = hash(str(val)) % 10000 / 10000.0
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i, 1.0)
-                emb = backend.at_add(emb, 8 + VALUES_OFFSET + 2*i + 1, hash_val)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i, 1.0)
+                emb = backend.at_add(emb, 16 + VALUES_OFFSET + 2*i + 1, hash_val)
 
         # Flags
         has_nulls = any(x is None for x in arr)
-        emb = backend.at_add(emb, 8 + HAS_NULLS_FLAG, 1.0 if has_nulls else 0.0)
+        emb = backend.at_add(emb, 16 + HAS_NULLS_FLAG, 1.0 if has_nulls else 0.0)
 
         # Check if sorted (for numeric)
         if dtype in (ArrayDType.FLOAT, ArrayDType.INT):
             non_null = [x for x in arr if x is not None]
             is_sorted = non_null == sorted(non_null)
-            emb = backend.at_add(emb, 8 + IS_SORTED_FLAG, 1.0 if is_sorted else 0.0)
+            emb = backend.at_add(emb, 16 + IS_SORTED_FLAG, 1.0 if is_sorted else 0.0)
 
             is_unique = len(non_null) == len(set(non_null))
-            emb = backend.at_add(emb, 8 + IS_UNIQUE_FLAG, 1.0 if is_unique else 0.0)
+            emb = backend.at_add(emb, 16 + IS_UNIQUE_FLAG, 1.0 if is_unique else 0.0)
 
             is_constant = len(set(non_null)) <= 1
-            emb = backend.at_add(emb, 8 + IS_CONSTANT_FLAG, 1.0 if is_constant else 0.0)
+            emb = backend.at_add(emb, 16 + IS_CONSTANT_FLAG, 1.0 if is_constant else 0.0)
 
         return emb
 
@@ -203,28 +203,28 @@ class ArrayEncoder:
 
         # Encode min
         sign, log_mag = log_encode_value(min_val)
-        emb = backend.at_add(emb, 8 + MIN_OFFSET, sign)
-        emb = backend.at_add(emb, 8 + MIN_OFFSET + 1, log_mag)
+        emb = backend.at_add(emb, 16 + MIN_OFFSET, sign)
+        emb = backend.at_add(emb, 16 + MIN_OFFSET + 1, log_mag)
 
         # Encode max
         sign, log_mag = log_encode_value(max_val)
-        emb = backend.at_add(emb, 8 + MAX_OFFSET, sign)
-        emb = backend.at_add(emb, 8 + MAX_OFFSET + 1, log_mag)
+        emb = backend.at_add(emb, 16 + MAX_OFFSET, sign)
+        emb = backend.at_add(emb, 16 + MAX_OFFSET + 1, log_mag)
 
         # Encode mean
         sign, log_mag = log_encode_value(mean_val)
-        emb = backend.at_add(emb, 8 + MEAN_OFFSET, sign)
-        emb = backend.at_add(emb, 8 + MEAN_OFFSET + 1, log_mag)
+        emb = backend.at_add(emb, 16 + MEAN_OFFSET, sign)
+        emb = backend.at_add(emb, 16 + MEAN_OFFSET + 1, log_mag)
 
         # Encode std
         sign, log_mag = log_encode_value(std_val)
-        emb = backend.at_add(emb, 8 + STD_OFFSET, sign)
-        emb = backend.at_add(emb, 8 + STD_OFFSET + 1, log_mag)
+        emb = backend.at_add(emb, 16 + STD_OFFSET, sign)
+        emb = backend.at_add(emb, 16 + STD_OFFSET + 1, log_mag)
 
         # Encode sum
         sign, log_mag = log_encode_value(sum_val)
-        emb = backend.at_add(emb, 8 + SUM_OFFSET, sign)
-        emb = backend.at_add(emb, 8 + SUM_OFFSET + 1, log_mag)
+        emb = backend.at_add(emb, 16 + SUM_OFFSET, sign)
+        emb = backend.at_add(emb, 16 + SUM_OFFSET + 1, log_mag)
 
         # Histogram (8 bins)
         if max_val > min_val:
@@ -234,8 +234,8 @@ class ArrayEncoder:
                 bin_idx = min(7, int((v - min_val) / bin_width))
                 bins[bin_idx] += 1
             for i, count in enumerate(bins):
-                emb = backend.at_add(emb, 8 + HISTOGRAM_OFFSET + 2*i, 1.0)
-                emb = backend.at_add(emb, 8 + HISTOGRAM_OFFSET + 2*i + 1, count / n)
+                emb = backend.at_add(emb, 16 + HISTOGRAM_OFFSET + 2*i, 1.0)
+                emb = backend.at_add(emb, 16 + HISTOGRAM_OFFSET + 2*i + 1, count / n)
 
         return emb
 
@@ -248,17 +248,17 @@ class ArrayEncoder:
         Returns:
             Tuple of (values list, dtype)
         """
-        dtype_val = int(round(emb[8 + DTYPE_OFFSET].item() * 4.0))
+        dtype_val = int(round(emb[16 + DTYPE_OFFSET].item() * 4.0))
         dtype_val = max(0, min(4, dtype_val))
         dtype = ArrayDType(dtype_val)
 
-        length = int(round(emb[8 + LENGTH_OFFSET].item() * MAX_ARRAY_LEN * 2))
+        length = int(round(emb[16 + LENGTH_OFFSET].item() * MAX_ARRAY_LEN * 2))
         length = max(1, min(length, 16))  # Can only decode first 16
 
         values = []
         for i in range(length):
-            sign = emb[8 + VALUES_OFFSET + 2*i].item()
-            log_mag = emb[8 + VALUES_OFFSET + 2*i + 1].item()
+            sign = emb[16 + VALUES_OFFSET + 2*i].item()
+            log_mag = emb[16 + VALUES_OFFSET + 2*i + 1].item()
 
             if abs(sign) < 0.5:
                 values.append(None)
@@ -274,7 +274,7 @@ class ArrayEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid array."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -283,66 +283,66 @@ class ArrayEncoder:
 
     def get_length(self, emb: Any) -> int:
         """Get array length."""
-        return int(round(emb[8 + LENGTH_OFFSET].item() * MAX_ARRAY_LEN * 2))
+        return int(round(emb[16 + LENGTH_OFFSET].item() * MAX_ARRAY_LEN * 2))
 
     def get_dtype(self, emb: Any) -> ArrayDType:
         """Get array dtype."""
-        dtype_val = int(round(emb[8 + DTYPE_OFFSET].item() * 4.0))
+        dtype_val = int(round(emb[16 + DTYPE_OFFSET].item() * 4.0))
         return ArrayDType(max(0, min(4, dtype_val)))
 
     def get_min(self, emb: Any) -> Optional[float]:
         """Get minimum value."""
-        sign = emb[8 + MIN_OFFSET].item()
+        sign = emb[16 + MIN_OFFSET].item()
         if abs(sign) < 0.5:
             return None
-        log_mag = emb[8 + MIN_OFFSET + 1].item()
+        log_mag = emb[16 + MIN_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def get_max(self, emb: Any) -> Optional[float]:
         """Get maximum value."""
-        sign = emb[8 + MAX_OFFSET].item()
+        sign = emb[16 + MAX_OFFSET].item()
         if abs(sign) < 0.5:
             return None
-        log_mag = emb[8 + MAX_OFFSET + 1].item()
+        log_mag = emb[16 + MAX_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def get_mean(self, emb: Any) -> Optional[float]:
         """Get mean value."""
-        sign = emb[8 + MEAN_OFFSET].item()
+        sign = emb[16 + MEAN_OFFSET].item()
         if abs(sign) < 0.5:
             return None
-        log_mag = emb[8 + MEAN_OFFSET + 1].item()
+        log_mag = emb[16 + MEAN_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def get_std(self, emb: Any) -> Optional[float]:
         """Get standard deviation."""
-        sign = emb[8 + STD_OFFSET].item()
-        log_mag = emb[8 + STD_OFFSET + 1].item()
+        sign = emb[16 + STD_OFFSET].item()
+        log_mag = emb[16 + STD_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def get_sum(self, emb: Any) -> Optional[float]:
         """Get sum."""
-        sign = emb[8 + SUM_OFFSET].item()
+        sign = emb[16 + SUM_OFFSET].item()
         if abs(sign) < 0.5:
             return None
-        log_mag = emb[8 + SUM_OFFSET + 1].item()
+        log_mag = emb[16 + SUM_OFFSET + 1].item()
         return log_decode_value(sign, log_mag)
 
     def has_nulls(self, emb: Any) -> bool:
         """Check if array has null values."""
-        return emb[8 + HAS_NULLS_FLAG].item() > 0.5
+        return emb[16 + HAS_NULLS_FLAG].item() > 0.5
 
     def is_sorted(self, emb: Any) -> bool:
         """Check if array is sorted."""
-        return emb[8 + IS_SORTED_FLAG].item() > 0.5
+        return emb[16 + IS_SORTED_FLAG].item() > 0.5
 
     def is_unique(self, emb: Any) -> bool:
         """Check if all values are unique."""
-        return emb[8 + IS_UNIQUE_FLAG].item() > 0.5
+        return emb[16 + IS_UNIQUE_FLAG].item() > 0.5
 
     def is_constant(self, emb: Any) -> bool:
         """Check if all values are the same."""
-        return emb[8 + IS_CONSTANT_FLAG].item() > 0.5
+        return emb[16 + IS_CONSTANT_FLAG].item() > 0.5
 
     # =========================================================================
     # Operations

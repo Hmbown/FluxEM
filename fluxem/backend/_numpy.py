@@ -118,8 +118,8 @@ class NumPyBackend:
 
     # Comparison
     def allclose(self, a: Any, b: Any, atol: float = 1e-8) -> np.ndarray:
-        # Return a NumPy scalar so callers can use .item() consistently.
-        return np.allclose(a, b, atol=atol)
+        # Wrap in np.array so callers can use .item() consistently.
+        return np.array(np.allclose(a, b, atol=atol))
 
     def where(self, condition: Any, x: Any, y: Any) -> np.ndarray:
         return np.where(condition, x, y)

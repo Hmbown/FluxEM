@@ -127,7 +127,8 @@ class MLXBackend:
 
     # Comparison
     def allclose(self, a: Any, b: Any, atol: float = 1e-8) -> mx.array:
-        return mx.allclose(a, b, atol=atol)
+        result = mx.allclose(a, b, atol=atol)
+        return result if hasattr(result, "item") else mx.array(result)
 
     def where(self, condition: Any, x: Any, y: Any) -> mx.array:
         return mx.where(condition, x, y)

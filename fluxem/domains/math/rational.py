@@ -100,32 +100,32 @@ class RationalEncoder:
         emb = create_embedding()
 
         # Domain tag
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Numerator
         if p == 0:
-            emb = backend.at_add(emb, 8 + NUMER_OFFSET, 0.0)
-            emb = backend.at_add(emb, 8 + NUMER_OFFSET + 1, 0.0)
-            emb = backend.at_add(emb, 8 + IS_ZERO_FLAG, 1.0)
+            emb = backend.at_add(emb, 16 + NUMER_OFFSET, 0.0)
+            emb = backend.at_add(emb, 16 + NUMER_OFFSET + 1, 0.0)
+            emb = backend.at_add(emb, 16 + IS_ZERO_FLAG, 1.0)
         else:
-            emb = backend.at_add(emb, 8 + NUMER_OFFSET, 1.0 if p > 0 else -1.0)
-            emb = backend.at_add(emb, 8 + NUMER_OFFSET + 1, math.log(abs(p) + 1))
+            emb = backend.at_add(emb, 16 + NUMER_OFFSET, 1.0 if p > 0 else -1.0)
+            emb = backend.at_add(emb, 16 + NUMER_OFFSET + 1, math.log(abs(p) + 1))
 
         # Denominator (always positive)
-        emb = backend.at_add(emb, 8 + DENOM_OFFSET, 1.0)
-        emb = backend.at_add(emb, 8 + DENOM_OFFSET + 1, math.log(q))
+        emb = backend.at_add(emb, 16 + DENOM_OFFSET, 1.0)
+        emb = backend.at_add(emb, 16 + DENOM_OFFSET + 1, math.log(q))
 
         # Decimal approximation
         if p != 0:
             decimal = p / q
-            emb = backend.at_add(emb, 8 + DECIMAL_OFFSET, 1.0 if decimal > 0 else -1.0)
-            emb = backend.at_add(emb, 8 + DECIMAL_OFFSET + 1, math.log(abs(decimal)))
+            emb = backend.at_add(emb, 16 + DECIMAL_OFFSET, 1.0 if decimal > 0 else -1.0)
+            emb = backend.at_add(emb, 16 + DECIMAL_OFFSET + 1, math.log(abs(decimal)))
 
         # Flags
-        emb = backend.at_add(emb, 8 + IS_INTEGER_FLAG, 1.0 if q == 1 else 0.0)
+        emb = backend.at_add(emb, 16 + IS_INTEGER_FLAG, 1.0 if q == 1 else 0.0)
 
         # Complexity
-        emb = backend.at_add(emb, 8 + COMPLEXITY_OFFSET, math.log(abs(p) + q + 1))
+        emb = backend.at_add(emb, 16 + COMPLEXITY_OFFSET, math.log(abs(p) + q + 1))
 
         return emb
 
@@ -152,18 +152,18 @@ class RationalEncoder:
         """
         Decode embedding to (numerator, denominator).
         """
-        if emb[8 + IS_ZERO_FLAG].item() > 0.5:
+        if emb[16 + IS_ZERO_FLAG].item() > 0.5:
             return (0, 1)
 
         # Numerator
-        sign_p = emb[8 + NUMER_OFFSET].item()
-        log_p = emb[8 + NUMER_OFFSET + 1].item()
+        sign_p = emb[16 + NUMER_OFFSET].item()
+        log_p = emb[16 + NUMER_OFFSET + 1].item()
         p = int(round(math.exp(log_p) - 1))
         if sign_p < 0:
             p = -p
 
         # Denominator
-        log_q = emb[8 + DENOM_OFFSET + 1].item()
+        log_q = emb[16 + DENOM_OFFSET + 1].item()
         q = max(1, int(round(math.exp(log_q))))
 
         return canonical_form(p, q)
@@ -176,7 +176,7 @@ class RationalEncoder:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid rational."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -192,22 +192,22 @@ class RationalEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Check for zeros
-        is_zero1 = emb1[8 + IS_ZERO_FLAG].item() > 0.5
-        is_zero2 = emb2[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero1 = emb1[16 + IS_ZERO_FLAG].item() > 0.5
+        is_zero2 = emb2[16 + IS_ZERO_FLAG].item() > 0.5
 
         if is_zero1 or is_zero2:
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-            result = backend.at_add(result, 8 + DENOM_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, 16 + DENOM_OFFSET, 1.0)
             return result
 
         # Multiply numerators (add logs)
-        sign1 = emb1[8 + NUMER_OFFSET].item()
-        sign2 = emb2[8 + NUMER_OFFSET].item()
-        log_p1 = emb1[8 + NUMER_OFFSET + 1].item()
-        log_p2 = emb2[8 + NUMER_OFFSET + 1].item()
+        sign1 = emb1[16 + NUMER_OFFSET].item()
+        sign2 = emb2[16 + NUMER_OFFSET].item()
+        log_p1 = emb1[16 + NUMER_OFFSET + 1].item()
+        log_p2 = emb2[16 + NUMER_OFFSET + 1].item()
 
         result_sign = sign1 * sign2
         # log(p1 * p2 + 1) ≈ log(exp(log_p1 - 1 + 1) * exp(log_p2 - 1 + 1) + 1)
@@ -216,27 +216,27 @@ class RationalEncoder:
         p2 = math.exp(log_p2) - 1
         result_p = p1 * p2
 
-        result = backend.at_add(result, 8 + NUMER_OFFSET, result_sign)
-        result = backend.at_add(result, 8 + NUMER_OFFSET + 1, math.log(result_p + 1))
+        result = backend.at_add(result, 16 + NUMER_OFFSET, result_sign)
+        result = backend.at_add(result, 16 + NUMER_OFFSET + 1, math.log(result_p + 1))
 
         # Multiply denominators (add logs)
-        log_q1 = emb1[8 + DENOM_OFFSET + 1].item()
-        log_q2 = emb2[8 + DENOM_OFFSET + 1].item()
+        log_q1 = emb1[16 + DENOM_OFFSET + 1].item()
+        log_q2 = emb2[16 + DENOM_OFFSET + 1].item()
 
-        result = backend.at_add(result, 8 + DENOM_OFFSET, 1.0)
-        result = backend.at_add(result, 8 + DENOM_OFFSET + 1, log_q1 + log_q2)
+        result = backend.at_add(result, 16 + DENOM_OFFSET, 1.0)
+        result = backend.at_add(result, 16 + DENOM_OFFSET + 1, log_q1 + log_q2)
 
         # Update decimal and flags
         p, q = self.decode(result)
         if q != 0:
             decimal = p / q
-            result = backend.at_add(result, 8 + DECIMAL_OFFSET, 1.0 if decimal > 0 else -1.0)
-            result = backend.at_add(result, 8 + DECIMAL_OFFSET + 1, 
+            result = backend.at_add(result, 16 + DECIMAL_OFFSET, 1.0 if decimal > 0 else -1.0)
+            result = backend.at_add(result, 16 + DECIMAL_OFFSET + 1, 
                 math.log(abs(decimal)) if abs(decimal) > EPSILON else -100
             )
 
-        result = backend.at_add(result, 8 + IS_INTEGER_FLAG, 1.0 if q == 1 else 0.0)
-        result = backend.at_add(result, 8 + COMPLEXITY_OFFSET, math.log(abs(p) + q + 1))
+        result = backend.at_add(result, 16 + IS_INTEGER_FLAG, 1.0 if q == 1 else 0.0)
+        result = backend.at_add(result, 16 + COMPLEXITY_OFFSET, math.log(abs(p) + q + 1))
 
         return result
 
@@ -258,31 +258,31 @@ class RationalEncoder:
         """
         backend = get_backend()
         result = create_embedding()
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
-        if emb[8 + IS_ZERO_FLAG].item() > 0.5:
+        if emb[16 + IS_ZERO_FLAG].item() > 0.5:
             # 1/0 = infinity (encode as very large)
-            result = backend.at_add(result, 8 + NUMER_OFFSET, 1.0)
-            result = backend.at_add(result, 8 + NUMER_OFFSET + 1, 100.0)
-            result = backend.at_add(result, 8 + DENOM_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + NUMER_OFFSET, 1.0)
+            result = backend.at_add(result, 16 + NUMER_OFFSET + 1, 100.0)
+            result = backend.at_add(result, 16 + DENOM_OFFSET, 1.0)
             return result
 
         # Swap numerator and denominator
         # New numerator = old denominator (always positive in canonical form)
-        result = backend.at_add(result, 8 + NUMER_OFFSET, emb[8 + NUMER_OFFSET])  # Keep sign
-        result = backend.at_add(result, 8 + NUMER_OFFSET + 1, emb[8 + DENOM_OFFSET + 1])
+        result = backend.at_add(result, 16 + NUMER_OFFSET, emb[16 + NUMER_OFFSET])  # Keep sign
+        result = backend.at_add(result, 16 + NUMER_OFFSET + 1, emb[16 + DENOM_OFFSET + 1])
 
         # New denominator = |old numerator|
-        log_p = emb[8 + NUMER_OFFSET + 1].item()
-        result = backend.at_add(result, 8 + DENOM_OFFSET, 1.0)
-        result = backend.at_add(result, 8 + DENOM_OFFSET + 1, log_p)
+        log_p = emb[16 + NUMER_OFFSET + 1].item()
+        result = backend.at_add(result, 16 + DENOM_OFFSET, 1.0)
+        result = backend.at_add(result, 16 + DENOM_OFFSET + 1, log_p)
 
         # Update decimal
         p, q = self.decode(result)
         if q != 0 and p != 0:
             decimal = p / q
-            result = backend.at_add(result, 8 + DECIMAL_OFFSET, 1.0 if decimal > 0 else -1.0)
-            result = backend.at_add(result, 8 + DECIMAL_OFFSET + 1, math.log(abs(decimal)))
+            result = backend.at_add(result, 16 + DECIMAL_OFFSET, 1.0 if decimal > 0 else -1.0)
+            result = backend.at_add(result, 16 + DECIMAL_OFFSET + 1, math.log(abs(decimal)))
 
         return result
 
@@ -321,11 +321,11 @@ class RationalEncoder:
         backend = get_backend()
         result = emb.copy() if hasattr(emb, 'copy') else backend.array(emb)
         # Flip numerator sign
-        current_sign = result[8 + NUMER_OFFSET].item()
-        result = backend.at_add(result, 8 + NUMER_OFFSET, -2 * current_sign)
+        current_sign = result[16 + NUMER_OFFSET].item()
+        result = backend.at_add(result, 16 + NUMER_OFFSET, -2 * current_sign)
         # Flip decimal sign
-        current_dec_sign = result[8 + DECIMAL_OFFSET].item()
-        result = backend.at_add(result, 8 + DECIMAL_OFFSET, -2 * current_dec_sign)
+        current_dec_sign = result[16 + DECIMAL_OFFSET].item()
+        result = backend.at_add(result, 16 + DECIMAL_OFFSET, -2 * current_dec_sign)
         return result
 
     # =========================================================================
@@ -334,20 +334,20 @@ class RationalEncoder:
 
     def is_integer(self, emb: Any) -> bool:
         """Check if the rational is an integer."""
-        return emb[8 + IS_INTEGER_FLAG].item() > 0.5
+        return emb[16 + IS_INTEGER_FLAG].item() > 0.5
 
     def is_zero(self, emb: Any) -> bool:
         """Check if the rational is zero."""
-        return emb[8 + IS_ZERO_FLAG].item() > 0.5
+        return emb[16 + IS_ZERO_FLAG].item() > 0.5
 
     def is_positive(self, emb: Any) -> bool:
         """Check if the rational is positive."""
-        return (emb[8 + NUMER_OFFSET].item() > 0.5 and
+        return (emb[16 + NUMER_OFFSET].item() > 0.5 and
                 not self.is_zero(emb))
 
     def is_negative(self, emb: Any) -> bool:
         """Check if the rational is negative."""
-        return emb[8 + NUMER_OFFSET].item() < -0.5
+        return emb[16 + NUMER_OFFSET].item() < -0.5
 
     def compare(self, emb1: Any, emb2: Any) -> int:
         """
@@ -356,8 +356,8 @@ class RationalEncoder:
         Returns: -1 if r1 < r2, 0 if equal, 1 if r1 > r2
         """
         # Use decimal approximations for comparison
-        d1 = emb1[8 + DECIMAL_OFFSET].item() * math.exp(emb1[8 + DECIMAL_OFFSET + 1].item())
-        d2 = emb2[8 + DECIMAL_OFFSET].item() * math.exp(emb2[8 + DECIMAL_OFFSET + 1].item())
+        d1 = emb1[16 + DECIMAL_OFFSET].item() * math.exp(emb1[16 + DECIMAL_OFFSET + 1].item())
+        d2 = emb2[16 + DECIMAL_OFFSET].item() * math.exp(emb2[16 + DECIMAL_OFFSET + 1].item())
 
         if abs(d1 - d2) < EPSILON:
             return 0

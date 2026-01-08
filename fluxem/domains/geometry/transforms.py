@@ -424,7 +424,7 @@ class TransformEncoder:
         # Set domain tag
         tag_key = "geom_transform3d" if is_3d else "geom_transform2d"
         if tag_key in DOMAIN_TAGS:
-            embedding = backend.at_add(embedding, slice(0, 8), DOMAIN_TAGS[tag_key])
+            embedding = backend.at_add(embedding, slice(0, 16), DOMAIN_TAGS[tag_key])
 
         if is_3d:
             # Store 3D matrix elements

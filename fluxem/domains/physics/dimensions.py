@@ -222,28 +222,28 @@ class DimensionalQuantity:
         emb = create_embedding()
 
         # Set domain tag (dims 0-7)
-        emb = backend.at_add(emb, slice(0, 8), self.domain_tag)
+        emb = backend.at_add(emb, slice(0, 16), self.domain_tag)
 
         # Set dimension exponents (dims 8-14 in full embedding = 0-6 in specific)
         dim_vec = dimensions.to_vector()
         for i in range(7):
-            emb = backend.at_add(emb, 8 + i, dim_vec[i])
+            emb = backend.at_add(emb, 16 + i, dim_vec[i])
 
         # Dimensionless flag
-        emb = backend.at_add(emb, 8 + DIMENSIONLESS_FLAG, 
+        emb = backend.at_add(emb, 16 + DIMENSIONLESS_FLAG, 
             1.0 if dimensions.is_dimensionless() else 0.0
         )
 
         # Magnitude encoding
         if abs(value) < EPSILON:
-            emb = backend.at_add(emb, 8 + MAGNITUDE_SIGN, 0.0)
-            emb = backend.at_add(emb, 8 + MAGNITUDE_LOG, -100.0)
-            emb = backend.at_add(emb, 8 + IS_ZERO_FLAG, 1.0)
+            emb = backend.at_add(emb, 16 + MAGNITUDE_SIGN, 0.0)
+            emb = backend.at_add(emb, 16 + MAGNITUDE_LOG, -100.0)
+            emb = backend.at_add(emb, 16 + IS_ZERO_FLAG, 1.0)
         else:
             sign, log_mag = log_encode_value(value)
-            emb = backend.at_add(emb, 8 + MAGNITUDE_SIGN, sign)
-            emb = backend.at_add(emb, 8 + MAGNITUDE_LOG, log_mag)
-            emb = backend.at_add(emb, 8 + IS_ZERO_FLAG, 0.0)
+            emb = backend.at_add(emb, 16 + MAGNITUDE_SIGN, sign)
+            emb = backend.at_add(emb, 16 + MAGNITUDE_LOG, log_mag)
+            emb = backend.at_add(emb, 16 + IS_ZERO_FLAG, 0.0)
 
         # Derived unit hints
         emb = self._set_derived_hints(emb, dimensions)
@@ -261,16 +261,16 @@ class DimensionalQuantity:
             Tuple of (magnitude, Dimensions)
         """
         # Extract dimensions
-        dim_vec = emb[8:8 + 7]
+        dim_vec = emb[16:8 + 7]
         dimensions = Dimensions.from_vector(dim_vec)
 
         # Extract magnitude
-        is_zero = emb[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero = emb[16 + IS_ZERO_FLAG].item() > 0.5
         if is_zero:
             return (0.0, dimensions)
 
-        sign = emb[8 + MAGNITUDE_SIGN].item()
-        log_mag = emb[8 + MAGNITUDE_LOG].item()
+        sign = emb[16 + MAGNITUDE_SIGN].item()
+        log_mag = emb[16 + MAGNITUDE_LOG].item()
         value = log_decode_value(sign, log_mag)
 
         return (value, dimensions)
@@ -288,7 +288,7 @@ class DimensionalQuantity:
     def is_valid(self, emb: Any) -> bool:
         """Check if embedding is a valid physical quantity."""
         backend = get_backend()
-        tag = emb[0:8]
+        tag = emb[0:16]
         return backend.allclose(tag, self.domain_tag, atol=0.1).item()
 
     # =========================================================================
@@ -307,35 +307,35 @@ class DimensionalQuantity:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Add dimension exponents
         for i in range(7):
-            result = backend.at_add(result, 8 + i, emb1[8 + i] + emb2[8 + i])
+            result = backend.at_add(result, 16 + i, emb1[16 + i] + emb2[16 + i])
 
         # Update dimensionless flag
         is_dimensionless = all(
-            abs(result[8 + i].item()) < 0.5 for i in range(7)
+            abs(result[16 + i].item()) < 0.5 for i in range(7)
         )
-        result = backend.at_add(result, 8 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
+        result = backend.at_add(result, 16 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
 
         # Multiply magnitudes (add logs)
-        is_zero1 = emb1[8 + IS_ZERO_FLAG].item() > 0.5
-        is_zero2 = emb2[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero1 = emb1[16 + IS_ZERO_FLAG].item() > 0.5
+        is_zero2 = emb2[16 + IS_ZERO_FLAG].item() > 0.5
 
         if is_zero1 or is_zero2:
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-            result = backend.at_add(result, 8 + MAGNITUDE_SIGN, 0.0)
-            result = backend.at_add(result, 8 + MAGNITUDE_LOG, -100.0)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_SIGN, 0.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_LOG, -100.0)
         else:
-            sign1 = emb1[8 + MAGNITUDE_SIGN].item()
-            sign2 = emb2[8 + MAGNITUDE_SIGN].item()
-            log1 = emb1[8 + MAGNITUDE_LOG].item()
-            log2 = emb2[8 + MAGNITUDE_LOG].item()
+            sign1 = emb1[16 + MAGNITUDE_SIGN].item()
+            sign2 = emb2[16 + MAGNITUDE_SIGN].item()
+            log1 = emb1[16 + MAGNITUDE_LOG].item()
+            log2 = emb2[16 + MAGNITUDE_LOG].item()
 
-            result = backend.at_add(result, 8 + MAGNITUDE_SIGN, sign1 * sign2)
-            result = backend.at_add(result, 8 + MAGNITUDE_LOG, log1 + log2)
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 0.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_SIGN, sign1 * sign2)
+            result = backend.at_add(result, 16 + MAGNITUDE_LOG, log1 + log2)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 0.0)
 
         return result
 
@@ -351,40 +351,40 @@ class DimensionalQuantity:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Subtract dimension exponents
         for i in range(7):
-            result = backend.at_add(result, 8 + i, emb1[8 + i] - emb2[8 + i])
+            result = backend.at_add(result, 16 + i, emb1[16 + i] - emb2[16 + i])
 
         # Update dimensionless flag
         is_dimensionless = all(
-            abs(result[8 + i].item()) < 0.5 for i in range(7)
+            abs(result[16 + i].item()) < 0.5 for i in range(7)
         )
-        result = backend.at_add(result, 8 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
+        result = backend.at_add(result, 16 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
 
         # Divide magnitudes (subtract logs)
-        is_zero1 = emb1[8 + IS_ZERO_FLAG].item() > 0.5
-        is_zero2 = emb2[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero1 = emb1[16 + IS_ZERO_FLAG].item() > 0.5
+        is_zero2 = emb2[16 + IS_ZERO_FLAG].item() > 0.5
 
         if is_zero2:
             # Division by zero - return infinity
-            result = backend.at_add(result, 8 + MAGNITUDE_SIGN, emb1[8 + MAGNITUDE_SIGN])
-            result = backend.at_add(result, 8 + MAGNITUDE_LOG, float('inf'))
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 0.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_SIGN, emb1[16 + MAGNITUDE_SIGN])
+            result = backend.at_add(result, 16 + MAGNITUDE_LOG, float('inf'))
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 0.0)
         elif is_zero1:
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-            result = backend.at_add(result, 8 + MAGNITUDE_SIGN, 0.0)
-            result = backend.at_add(result, 8 + MAGNITUDE_LOG, -100.0)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_SIGN, 0.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_LOG, -100.0)
         else:
-            sign1 = emb1[8 + MAGNITUDE_SIGN].item()
-            sign2 = emb2[8 + MAGNITUDE_SIGN].item()
-            log1 = emb1[8 + MAGNITUDE_LOG].item()
-            log2 = emb2[8 + MAGNITUDE_LOG].item()
+            sign1 = emb1[16 + MAGNITUDE_SIGN].item()
+            sign2 = emb2[16 + MAGNITUDE_SIGN].item()
+            log1 = emb1[16 + MAGNITUDE_LOG].item()
+            log2 = emb2[16 + MAGNITUDE_LOG].item()
 
-            result = backend.at_add(result, 8 + MAGNITUDE_SIGN, sign1 * sign2)
-            result = backend.at_add(result, 8 + MAGNITUDE_LOG, log1 - log2)
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 0.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_SIGN, sign1 * sign2)
+            result = backend.at_add(result, 16 + MAGNITUDE_LOG, log1 - log2)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 0.0)
 
         return result
 
@@ -400,32 +400,32 @@ class DimensionalQuantity:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Multiply dimension exponents by n
         for i in range(7):
-            result = backend.at_add(result, 8 + i, emb[8 + i] * n)
+            result = backend.at_add(result, 16 + i, emb[16 + i] * n)
 
         # Update dimensionless flag
         is_dimensionless = all(
-            abs(result[8 + i].item()) < 0.5 for i in range(7)
+            abs(result[16 + i].item()) < 0.5 for i in range(7)
         )
-        result = backend.at_add(result, 8 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
+        result = backend.at_add(result, 16 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
 
         # Power of magnitude
-        is_zero = emb[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero = emb[16 + IS_ZERO_FLAG].item() > 0.5
 
         if is_zero:
             if n > 0:
-                result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-                result = backend.at_add(result, 8 + MAGNITUDE_SIGN, 0.0)
-                result = backend.at_add(result, 8 + MAGNITUDE_LOG, -100.0)
+                result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+                result = backend.at_add(result, 16 + MAGNITUDE_SIGN, 0.0)
+                result = backend.at_add(result, 16 + MAGNITUDE_LOG, -100.0)
             else:
                 # 0^0 or 0^negative - undefined/infinity
-                result = backend.at_add(result, 8 + MAGNITUDE_LOG, float('inf'))
+                result = backend.at_add(result, 16 + MAGNITUDE_LOG, float('inf'))
         else:
-            sign = emb[8 + MAGNITUDE_SIGN].item()
-            log_mag = emb[8 + MAGNITUDE_LOG].item()
+            sign = emb[16 + MAGNITUDE_SIGN].item()
+            log_mag = emb[16 + MAGNITUDE_LOG].item()
 
             # Sign handling for powers
             if n % 2 == 0:
@@ -433,9 +433,9 @@ class DimensionalQuantity:
             else:
                 result_sign = sign
 
-            result = backend.at_add(result, 8 + MAGNITUDE_SIGN, result_sign)
-            result = backend.at_add(result, 8 + MAGNITUDE_LOG, log_mag * n)
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 0.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_SIGN, result_sign)
+            result = backend.at_add(result, 16 + MAGNITUDE_LOG, log_mag * n)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 0.0)
 
         return result
 
@@ -450,41 +450,41 @@ class DimensionalQuantity:
         result = create_embedding()
 
         # Domain tag
-        result = backend.at_add(result, slice(0, 8), self.domain_tag)
+        result = backend.at_add(result, slice(0, 16), self.domain_tag)
 
         # Halve dimension exponents (must be even integers)
-        exponents = [int(round(emb[8 + i].item())) for i in range(7)]
+        exponents = [int(round(emb[16 + i].item())) for i in range(7)]
         for exp in exponents:
             if exp % 2 != 0:
                 raise ValueError("Cannot take sqrt of quantity with odd SI dimension exponent")
         for i, exp in enumerate(exponents):
-            result = backend.at_add(result, 8 + i, float(exp // 2))
+            result = backend.at_add(result, 16 + i, float(exp // 2))
 
         # Update dimensionless flag
         is_dimensionless = all(
-            abs(result[8 + i].item()) < 0.5 for i in range(7)
+            abs(result[16 + i].item()) < 0.5 for i in range(7)
         )
-        result = backend.at_add(result, 8 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
+        result = backend.at_add(result, 16 + DIMENSIONLESS_FLAG, 1.0 if is_dimensionless else 0.0)
 
         # Square root of magnitude
-        is_zero = emb[8 + IS_ZERO_FLAG].item() > 0.5
+        is_zero = emb[16 + IS_ZERO_FLAG].item() > 0.5
 
         if is_zero:
-            result = backend.at_add(result, 8 + IS_ZERO_FLAG, 1.0)
-            result = backend.at_add(result, 8 + MAGNITUDE_SIGN, 0.0)
-            result = backend.at_add(result, 8 + MAGNITUDE_LOG, -100.0)
+            result = backend.at_add(result, 16 + IS_ZERO_FLAG, 1.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_SIGN, 0.0)
+            result = backend.at_add(result, 16 + MAGNITUDE_LOG, -100.0)
         else:
-            sign = emb[8 + MAGNITUDE_SIGN].item()
-            log_mag = emb[8 + MAGNITUDE_LOG].item()
+            sign = emb[16 + MAGNITUDE_SIGN].item()
+            log_mag = emb[16 + MAGNITUDE_LOG].item()
 
             if sign < 0:
                 # Square root of negative - return NaN sentinel
-                result = backend.at_add(result, 8 + MAGNITUDE_SIGN, 1.0)
-                result = backend.at_add(result, 8 + MAGNITUDE_LOG, float('nan'))
+                result = backend.at_add(result, 16 + MAGNITUDE_SIGN, 1.0)
+                result = backend.at_add(result, 16 + MAGNITUDE_LOG, float('nan'))
             else:
-                result = backend.at_add(result, 8 + MAGNITUDE_SIGN, 1.0)
-                result = backend.at_add(result, 8 + MAGNITUDE_LOG, log_mag / 2.0)
-                result = backend.at_add(result, 8 + IS_ZERO_FLAG, 0.0)
+                result = backend.at_add(result, 16 + MAGNITUDE_SIGN, 1.0)
+                result = backend.at_add(result, 16 + MAGNITUDE_LOG, log_mag / 2.0)
+                result = backend.at_add(result, 16 + IS_ZERO_FLAG, 0.0)
 
         return result
 
@@ -554,7 +554,7 @@ class DimensionalQuantity:
 
         for known_dims, offset in hints:
             if dims == known_dims:
-                emb = backend.at_add(emb, 8 + DERIVED_HINTS_OFFSET + offset, 1.0)
+                emb = backend.at_add(emb, 16 + DERIVED_HINTS_OFFSET + offset, 1.0)
 
         return emb
 

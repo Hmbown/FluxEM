@@ -315,12 +315,20 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["snell", "refraction", "angle"],
     ))
 
+    def _parse_critical_angle(args):
+        if isinstance(args, dict):
+            n1 = args.get("n1")
+            n2 = args.get("n2")
+            if n1 is None or n2 is None:
+                raise ValueError("Required: n1 and n2")
+            return critical_angle_degrees(float(n1), float(n2))
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            return critical_angle_degrees(float(args[0]), float(args[1]))
+        raise ValueError(f"Cannot parse critical_angle args: {args}")
+
     registry.register(ToolSpec(
         name="optics_critical_angle",
-        function=lambda args: critical_angle_degrees(
-            float(args.get("n1", args[0]) if isinstance(args, dict) else args[0]),
-            float(args.get("n2", args[1]) if isinstance(args, dict) else args[1])
-        ),
+        function=_parse_critical_angle,
         description="Calculates critical angle for total internal reflection (degrees).",
         parameters={
             "type": "object",
@@ -338,13 +346,21 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["critical angle", "reflection", "total internal"],
     ))
 
+    def _parse_diffraction_grating(args):
+        if isinstance(args, dict):
+            m = args.get("order", args.get("m"))
+            wl = args.get("wavelength", args.get("lambda"))
+            sp = args.get("spacing", args.get("d"))
+            if m is None or wl is None or sp is None:
+                raise ValueError("Required: order, wavelength, and spacing")
+            return math.degrees(diffraction_grating_angle(int(m), float(wl), float(sp)))
+        if isinstance(args, (list, tuple)) and len(args) >= 3:
+            return math.degrees(diffraction_grating_angle(int(args[0]), float(args[1]), float(args[2])))
+        raise ValueError(f"Cannot parse diffraction_grating args: {args}")
+
     registry.register(ToolSpec(
         name="optics_diffraction_grating",
-        function=lambda args: math.degrees(diffraction_grating_angle(
-            int(args.get("order", args.get("m", args[0])) if isinstance(args, dict) else args[0]),
-            float(args.get("wavelength", args.get("lambda", args[1])) if isinstance(args, dict) else args[1]),
-            float(args.get("spacing", args.get("d", args[2])) if isinstance(args, dict) else args[2])
-        )),
+        function=_parse_diffraction_grating,
         description="Calculates diffraction angle from a grating (d*sin(θ) = m*λ).",
         parameters={
             "type": "object",

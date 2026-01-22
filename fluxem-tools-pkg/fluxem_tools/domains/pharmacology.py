@@ -278,12 +278,20 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["dosage", "weight", "pediatric"],
     ))
 
+    def _parse_clearance(args):
+        if isinstance(args, dict):
+            dose = args.get("dose")
+            auc = args.get("auc")
+            if dose is None or auc is None:
+                raise ValueError("Required: dose and auc")
+            return clearance_rate(float(dose), float(auc))
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            return clearance_rate(float(args[0]), float(args[1]))
+        raise ValueError(f"Cannot parse clearance args: {args}")
+
     registry.register(ToolSpec(
         name="pharma_clearance",
-        function=lambda args: clearance_rate(
-            float(args.get("dose", args[0]) if isinstance(args, dict) else args[0]),
-            float(args.get("auc", args[1]) if isinstance(args, dict) else args[1])
-        ),
+        function=_parse_clearance,
         description="Calculates drug clearance rate (CL = Dose/AUC).",
         parameters={
             "type": "object",
@@ -301,12 +309,20 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["clearance", "kinetics"],
     ))
 
+    def _parse_volume_distribution(args):
+        if isinstance(args, dict):
+            dose = args.get("dose")
+            conc = args.get("concentration", args.get("C0"))
+            if dose is None or conc is None:
+                raise ValueError("Required: dose and concentration")
+            return volume_of_distribution(float(dose), float(conc))
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            return volume_of_distribution(float(args[0]), float(args[1]))
+        raise ValueError(f"Cannot parse volume_distribution args: {args}")
+
     registry.register(ToolSpec(
         name="pharma_volume_distribution",
-        function=lambda args: volume_of_distribution(
-            float(args.get("dose", args[0]) if isinstance(args, dict) else args[0]),
-            float(args.get("concentration", args.get("C0", args[1])) if isinstance(args, dict) else args[1])
-        ),
+        function=_parse_volume_distribution,
         description="Calculates apparent volume of distribution (Vd = Dose/C₀).",
         parameters={
             "type": "object",

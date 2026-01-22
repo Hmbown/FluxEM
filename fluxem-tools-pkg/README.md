@@ -142,9 +142,9 @@ Every tool is deterministic - same input always produces same output.
 | Tool | Description | Example |
 |------|-------------|---------|
 | `arithmetic` | Evaluate math expression | `"2 + 3 * 4"` → `14` |
-| `electrical_ohms_law` | V = I × R | `{V:12, I:2}` → `6.0` |
-| `chemistry_mw` | Molecular weight | `"H2O"` → `18.015` |
-| `fitness_bmi` | Body Mass Index | `{weight:70, height:1.75}` → `22.86` |
+| `electrical_ohms_law` | V = I × R | `{voltage:12, current:2}` → `{resistance: 6.0}` |
+| `chemistry_molecule` | Molecular weight | `"H2O"` → `18.015` |
+| `fitness_bmi` | Body Mass Index | `{weight_kg:70, height_m:1.75}` → `22.86` |
 | `geo_distance` | Haversine distance | NYC to LA → `3935746 m` |
 | `acoustics_db_add` | Add decibels | `{60, 60}` → `63.01` |
 | `photo_depth_of_field` | DoF calculation | Near/far limits |

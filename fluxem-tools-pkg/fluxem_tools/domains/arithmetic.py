@@ -12,13 +12,13 @@ from typing import Any, Dict, Union
 from ..registry import ToolSpec, ToolRegistry
 
 
-def compute_arithmetic(expr: str) -> float:
+def compute_arithmetic(args) -> float:
     """Compute arithmetic expressions with safe evaluation.
 
     Supports: +, -, *, /, **, %, pi, e
 
     Args:
-        expr: Arithmetic expression as string (e.g., "2 + 3 * 4", "2**10")
+        args: Either a string expression or dict with "expr" key
 
     Returns:
         Computed result as float
@@ -26,11 +26,22 @@ def compute_arithmetic(expr: str) -> float:
     Examples:
         >>> compute_arithmetic("2 + 3")
         5.0
-        >>> compute_arithmetic("2 ** 10")
+        >>> compute_arithmetic({"expr": "2 ** 10"})
         1024.0
         >>> compute_arithmetic("pi * 2")
         6.283185307179586
     """
+    # Handle dict input with "expr" key
+    if isinstance(args, dict):
+        expr = args.get("expr", args.get("expression"))
+        if expr is None:
+            raise ValueError("Required: 'expr' key with arithmetic expression")
+    else:
+        expr = args
+
+    if not isinstance(expr, str):
+        raise ValueError(f"Expression must be a string, got: {type(expr)}")
+
     expr_clean = expr.strip()
     expr_clean = expr_clean.replace("^", "**")
     expr_clean = expr_clean.replace("×", "*")

@@ -291,12 +291,20 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["half-life", "decay"],
     ))
 
+    def _parse_activity(args):
+        if isinstance(args, dict):
+            n = args.get("num_atoms", args.get("N"))
+            lam = args.get("decay_constant", args.get("lambda"))
+            if n is None or lam is None:
+                raise ValueError("Required: num_atoms and decay_constant")
+            return activity(float(n), float(lam))
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            return activity(float(args[0]), float(args[1]))
+        raise ValueError(f"Cannot parse activity args: {args}")
+
     registry.register(ToolSpec(
         name="nuclear_activity",
-        function=lambda args: activity(
-            float(args.get("num_atoms", args.get("N", args[0])) if isinstance(args, dict) else args[0]),
-            float(args.get("decay_constant", args.get("lambda", args[1])) if isinstance(args, dict) else args[1])
-        ),
+        function=_parse_activity,
         description="Calculates radioactive activity (A = λN) in Becquerels.",
         parameters={
             "type": "object",
@@ -355,13 +363,21 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["dose", "sievert", "radiation"],
     ))
 
+    def _parse_inverse_square(args):
+        if isinstance(args, dict):
+            i_ref = args.get("intensity_ref", args.get("I_ref"))
+            d_ref = args.get("distance_ref", args.get("d_ref"))
+            d = args.get("distance", args.get("d"))
+            if i_ref is None or d_ref is None or d is None:
+                raise ValueError("Required: intensity_ref, distance_ref, and distance")
+            return inverse_square_intensity(float(i_ref), float(d_ref), float(d))
+        if isinstance(args, (list, tuple)) and len(args) >= 3:
+            return inverse_square_intensity(float(args[0]), float(args[1]), float(args[2]))
+        raise ValueError(f"Cannot parse inverse_square args: {args}")
+
     registry.register(ToolSpec(
         name="nuclear_inverse_square",
-        function=lambda args: inverse_square_intensity(
-            float(args.get("intensity_ref", args.get("I_ref", args[0])) if isinstance(args, dict) else args[0]),
-            float(args.get("distance_ref", args.get("d_ref", args[1])) if isinstance(args, dict) else args[1]),
-            float(args.get("distance", args.get("d", args[2])) if isinstance(args, dict) else args[2])
-        ),
+        function=_parse_inverse_square,
         description="Calculates radiation intensity at distance (inverse square law).",
         parameters={
             "type": "object",

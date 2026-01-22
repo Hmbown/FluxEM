@@ -261,12 +261,20 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["reynolds", "flow", "turbulence"],
     ))
 
+    def _parse_bernoulli(args):
+        if isinstance(args, dict):
+            dp = args.get("pressure_diff", args.get("dP"))
+            rho = args.get("density", args.get("rho"))
+            if dp is None or rho is None:
+                raise ValueError("Required: pressure_diff and density")
+            return bernoulli_velocity(float(dp), float(rho))
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            return bernoulli_velocity(float(args[0]), float(args[1]))
+        raise ValueError(f"Cannot parse bernoulli args: {args}")
+
     registry.register(ToolSpec(
         name="fluid_bernoulli_velocity",
-        function=lambda args: bernoulli_velocity(
-            float(args.get("pressure_diff", args.get("dP", args[0])) if isinstance(args, dict) else args[0]),
-            float(args.get("density", args.get("rho", args[1])) if isinstance(args, dict) else args[1])
-        ),
+        function=_parse_bernoulli,
         description="Calculates flow velocity from pressure difference using Bernoulli.",
         parameters={
             "type": "object",
@@ -306,12 +314,20 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["drag", "force", "aerodynamics"],
     ))
 
+    def _parse_flow_rate(args):
+        if isinstance(args, dict):
+            v = args.get("velocity", args.get("v"))
+            d = args.get("diameter", args.get("d"))
+            if v is None or d is None:
+                raise ValueError("Required: velocity and diameter")
+            return flow_rate_pipe(float(v), float(d))
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            return flow_rate_pipe(float(args[0]), float(args[1]))
+        raise ValueError(f"Cannot parse flow_rate args: {args}")
+
     registry.register(ToolSpec(
         name="fluid_flow_rate",
-        function=lambda args: flow_rate_pipe(
-            float(args.get("velocity", args.get("v", args[0])) if isinstance(args, dict) else args[0]),
-            float(args.get("diameter", args.get("d", args[1])) if isinstance(args, dict) else args[1])
-        ),
+        function=_parse_flow_rate,
         description="Calculates volumetric flow rate through a circular pipe.",
         parameters={
             "type": "object",
@@ -350,12 +366,20 @@ def register_tools(registry: ToolRegistry) -> None:
         tags=["pressure", "depth", "hydrostatic"],
     ))
 
+    def _parse_buoyancy(args):
+        if isinstance(args, dict):
+            rho = args.get("fluid_density", args.get("density", args.get("rho")))
+            vol = args.get("displaced_volume", args.get("volume", args.get("V")))
+            if rho is None or vol is None:
+                raise ValueError("Required: fluid_density and displaced_volume")
+            return buoyancy_force(float(rho), float(vol))
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            return buoyancy_force(float(args[0]), float(args[1]))
+        raise ValueError(f"Cannot parse buoyancy args: {args}")
+
     registry.register(ToolSpec(
         name="fluid_buoyancy",
-        function=lambda args: buoyancy_force(
-            float(args.get("fluid_density", args.get("density", args.get("rho", args[0]))) if isinstance(args, dict) else args[0]),
-            float(args.get("displaced_volume", args.get("volume", args.get("V", args[1]))) if isinstance(args, dict) else args[1])
-        ),
+        function=_parse_buoyancy,
         description="Calculates buoyancy force (Archimedes' principle).",
         parameters={
             "type": "object",

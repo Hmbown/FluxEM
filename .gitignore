@@ -53,6 +53,7 @@ coverage.xml
 # Environments
 .env
 .venv
+.venv-mps/
 env/
 venv/
 ENV/
@@ -96,6 +97,9 @@ Thumbs.db
 # JAX cache
 .jax_cache/
 
+# Local tooling / sessions
+.aleph/
+
 # Benchmark artifacts (regeneratable)
 artifacts/checkpoints/
 artifacts/datasets/
@@ -103,7 +107,18 @@ artifacts/datasets/
 # Experiment artifacts (regeneratable)
 experiments/data/
 experiments/results/
+experiments/checkpoints/
+
+# Local training outputs
+*.log
+experiments/training_log.txt
+firebase-debug.log
+codex-prompt.md
+hf_repo_*/
+hf_staging_*/
+scibench_data/
 
 # Local planning docs (intentionally untracked)
 hybrid_training_plan.md
 docs/FLUXEM_2030_ROADMAP.md
+fluxem-tools-pkg/dist/

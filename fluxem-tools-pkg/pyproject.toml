@@ -54,7 +54,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/Hmbown/FluxEM"
-Documentation = "https://huggingface.co/Hmbown/fluxem-tools"
+Documentation = "https://huggingface.co/hunterbown/fluxem-tools"
 Repository = "https://github.com/Hmbown/FluxEM"
 
 [tool.hatch.build.targets.wheel]

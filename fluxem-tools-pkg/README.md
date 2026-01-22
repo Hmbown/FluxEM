@@ -237,7 +237,7 @@ MIT License
 
 - [GitHub Repository](https://github.com/Hmbown/FluxEM)
 - [PyPI Package](https://pypi.org/project/fluxem-tools/)
-- [HuggingFace](https://huggingface.co/Hmbown/fluxem-tools)
+- [HuggingFace](https://huggingface.co/hunterbown/fluxem-tools)
 
 ## Citation
 

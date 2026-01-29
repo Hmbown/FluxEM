@@ -34,6 +34,21 @@ Example (internal evals):
 
 ---
 
+## Method: Tool-First Scaling (Production) + Algebraic Embeddings (Research)
+
+FluxEM pursues two complementary approaches:
+
+- **Tool-first training (production)**: keep the base model architecture unchanged and teach it to delegate. We embed
+  tool descriptions and tasks, retrieve a small tool set via FAISS + domain routing, and train with RL so the model
+  chooses correct tools and uses them efficiently. This is an *external* sparse capacity knob.
+- **Algebraic embeddings (research)**: encode domain values so valid operations become linear algebra. This is a
+  separate track focused on structure-by-construction rather than tool calling.
+
+This is related (but not identical) to embedding-scaling papers: they expand *internal* model embeddings to add
+capacity; we expand *external* tool embeddings to improve selection and delegation without changing the base model.
+
+---
+
 ## Repository Layout
 
 - `fluxem-tools-pkg/` - deterministic tool library (packaged as `fluxem-tools`)
@@ -222,6 +237,21 @@ print(model.compute("144 * 89"))
 ```
 
 Formal notes: `docs/ERROR_MODEL.md` and `docs/FORMAL_DEFINITION.md`.
+
+---
+
+## Related Work and Convergences
+
+We cite related research for context and note convergent directions; this is not a claim of inspiration unless the
+work predates FluxEM's first commit (Jan 28, 2026).
+
+- "Scaling Embeddings Outperforms Scaling Experts in Language Models" (LongCat team, 2025). Predates FluxEM. We do not
+  modify the base model architecture or add N-gram embeddings; instead we use tool embeddings for retrieval and routing.
+  The paper's analysis of embedding scaling vs expert scaling informs how we budget retrieved tools and when retrieval
+  helps most.
+- Conditional memory / hashed lookup modules (Engram-style) are conceptually adjacent to FluxEM's deterministic tool
+  lookup and algebraic encoders; we reference them as convergent lines of work, not as direct inspiration.
+- Additional related research notes live in `docs/RESEARCH_2026.md`, with project-specific analysis in `docs/tech_report.md`.
 
 ---
 
